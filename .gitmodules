@@ -1,0 +1,6 @@
+[submodule "pithy"]
+	path = pithy
+	url = git://github.com/dansteingart/pithy.git
+[submodule "serveSIUI"]
+	path = serveSIUI
+	url = git://github.com/dansteingart/serveSIUI.git

@@ -1,0 +1,33 @@
+{
+  "chat-acoustic": [],
+  "snapshot-acoustic": "socialcalc:version:1.0\nMIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=SocialCalcSpreadsheetControlSave\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\n# SocialCalc Spreadsheet Control Save\nversion:1.0\npart:sheet\npart:edit\npart:audit\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\nversion:1.5\ncell:A1:t:Name\ncell:B1:t:Mode (tr/pe)\ncell:C1:t:Channel\ncell:D1:t:Channel 2\ncell:E1:t:Gain (dB)\ncell:F1:t:Freq (MHz)\ncell:G1:t:Time (us)\ncell:H1:t:NDA file\ncell:I1:t:Comments\ncell:A2:t:butts\ncell:B2:t:TR\ncell:C2:v:1\ncell:D2:v:7\ncell:E2:v:31\ncell:F2:v:2.25\ncell:G2:v:20\ncell:I2:t:test\ncell:A3:t:butts\ncell:B3:t:PE\ncell:C3:v:1\ncell:E3:v:32\ncell:F3:v:2.25\ncell:G3:v:20\ncell:I3:t:test\nsheet:c:9:r:3:tvf:1\nvalueformat:1:text-wiki\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\nversion:1.0\nrowpane:0:1:1\ncolpane:0:1:1\necell:A1\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\n--SocialCalcSpreadsheetControlSave--\n",
+  "audit-acoustic": [
+    "paste A1 all",
+    "paste A1 all",
+    "paste A1 all",
+    "set A1 text t Name",
+    "set B1 text t Mode (tr/pe)",
+    "set C1 text t Channel",
+    "set D1 text t Channel 2",
+    "set E1 text t Gain (dB)",
+    "set F1 text t Freq (MHz)",
+    "set G1 text t Time (us)",
+    "set H1 text t nda file",
+    "set I1 text t Comments",
+    "set H1 text t NDA file",
+    "set A2 text t butts",
+    "set B2 text t TR",
+    "set C2 value n 1",
+    "set D2 value n 7",
+    "set E2 value n 30",
+    "set E2 value n 31",
+    "set F2 value n 2.25",
+    "set G2 value n 20",
+    "set I2 text t test",
+    "copy A2:Q2 all",
+    "paste A3:Q3 all",
+    "set B3 text t PE",
+    "set D3 empty",
+    "set E3 value n 32"
+  ]
+}
