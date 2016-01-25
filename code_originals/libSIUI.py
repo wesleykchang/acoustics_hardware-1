@@ -11,27 +11,35 @@ class SIUI():
         self.dec = {}
         self.dec['range'] = {'start': 28,'bytes': 4,'type':float32}
         self.dec['gain']  = {'start': 48,'bytes': 4,'type':int32}
-        self.dec['prf']   = {'start':184,'bytes': 2,'type':int16}
+        self.dec['prf']   = {'start':184,'bytes': 2,'type':int16} #SIUI was wrong here
         self.dec['delay'] = {'start': 44,'bytes': 4,'type':float32}
         self.dec['vel']   = {'start':168,'bytes': 4,'type':float32}
+        self.dec['vel2']  = {'start': 56,'bytes': 2,'type':uint16 }
         self.dec['wave']  = {'start':400,'bytes':800,'type':uint16}
-        self.base = self.getBaseline()
+        self.base = self.getBaseline() #necessary every time?
         self.gbase = self.getGainBaseline()
         self.rects = ['pos','neg','full','filter','rf']
         self.volts = range(50,550,50)
         self.freqs = ['1_4MHz','0.5_10MHz','2_20MHz','1MHz','2.5MHz','4MHz','5MHz','10MHz','13MHz','15MHz','20MHz']
-        #defaults for param setting
-        self.vset=50
-        self.rng=30.0
-        self.mode='PE'
-        self.vel=2450
-        self.pw = 200
-        self.prf = 200
-        self.damp = 0
-        self.rect = 'full'
-        self.power = 0
-        self.freq = '1_4MHz'
-        self.gain = 30.0
+        
+        self.params = {}
+        self.resetDefaultParams()
+        
+    def resetDefaultParams(self): 
+        params = {}
+        params['vset'] = 400        #pulse voltage
+        params['range'] = 30
+        params['mode'] = 'TR'       #echo vs transmission
+        params['vel'] = 2450        #stupid scaling factor
+        params['pw'] = 440          #1/(frequency)
+        params['prf'] = 100        #repitition frequency (Hz)
+        params['damp'] = 0
+        params['rect'] = 'rf'       #rectifier
+        params['power'] = 0         # this breaks stuff if not 0
+        params['freq'] = '1MHz'   #Bandwidth/filtering
+        params['gain'] = 30       #gain
+        self.params = params
+        return params
     
     def getBaseline(self):
         a = uo(self.site+"/getBaseline").read()
@@ -58,35 +66,30 @@ class SIUI():
     
     
     def setGain(self):
-        #return uo(site+"/setGain/%f" % self.gain).read()
-            #vel
         a = self.gbase
         gains = []
-        for i in pack('i',self.gain*10): gains.append(ord(i))
+        for i in pack('i',int(self.params['gain'])*10): gains.append(ord(i))
         a[48:52] = gains
-
-                #send bundle off
         cc = 0
         aout = []
         while cc < len(a):
             aout.append(a[cc:cc+1460])
             cc+=1460
-        return self.sendMass({'type':'gain','data':aout[:]})   
+        return self.sendMass({'data':aout})   
 
 
     def setParams(self):
         a = self.base
-    
         #unpack sets and set things like TR,Voltage, etc
         rsets = a[80:84]
         foo = []
         for j in rsets:
             for i in range(8): 
                 foo.append((j >> i) & 1)
-
+                
         #set driving potential    
         sets = range(50,550,50)
-        try: food = sets.index(self.vset)
+        try: food = sets.index(self.params['vset'])
         except: food = 0
         d = bin(food).replace("0b","").rjust(4,"0")
         volts = []
@@ -95,7 +98,7 @@ class SIUI():
         foo[25:29] = volts
         
         #set pulse width    
-        food = self.pw/10
+        food = self.params['pw']/10
         d = bin(food).replace("0b","").rjust(7,"0")
         pws = []
         for b in d: pws.append(int(b))
@@ -103,15 +106,15 @@ class SIUI():
         foo[18:25] = pws
 
         #set rect    
-        food = self.rects.index(self.rect)
+        food = self.rects.index(self.params['rect'])
         d = bin(food).replace("0b","").rjust(4,"0")
         pws = []
         for b in d: pws.append(int(b))
         pws.reverse()
         foo[8:12] = pws
 
-        #set freq
-        food = self.freqs.index(self.freq)
+        #set Bandwidth
+        food = self.freqs.index(self.params['freq'])
         d = bin(food).replace("0b","").rjust(4,"0")
         pws = []
         for b in d: pws.append(int(b))
@@ -119,7 +122,7 @@ class SIUI():
         foo[4:8] = pws
 
         #set power
-        food = self.power
+        food = self.params['power']
         d = bin(food).replace("0b","").rjust(4,"0")
         pws = []
         for b in d: pws.append(int(b))
@@ -128,11 +131,11 @@ class SIUI():
 
 
         #set PE/TR Mode
-        if self.mode == 'TR': foo[16] = 1
+        if self.params['mode'] == 'TR': foo[16] = 1
         else: foo[16] = 0
 
         #set damping
-        foo[17] = self.damp
+        foo[17] = self.params['damp']
 
         #repack bits to bytes for settings
         count = 0
@@ -147,17 +150,27 @@ class SIUI():
     
         #set range
         rngs = []
-        for i in pack('f',self.rng): rngs.append(ord(i))
+        for i in pack('f',self.params['range']): rngs.append(ord(i))
         a[28:32] = rngs
 
         #vel
         vels = []
-        for i in pack('f',self.vel): vels.append(ord(i))
+        for i in pack('f',self.params['vel']): vels.append(ord(i))
+        #print self.params['vel']
+        #print vels
         a[168:168+4] = vels
+        
+
+        vels = []
+        for i in pack('h',self.params['vel']): vels.append(ord(i))
+        #print self.params['vel']
+        #print vels
+        a[56:56+2] = vels
+
 
         #prf
         prfs = []
-        for i in pack('h',self.prf): prfs.append(ord(i))
+        for i in pack('h',self.params['prf']): prfs.append(ord(i))
         a[184:184+2] = prfs
 
         #send bundle off
@@ -166,7 +179,7 @@ class SIUI():
         while cc < len(a):
             aout.append(a[cc:cc+1460])
             cc+=1460
-        return self.sendMass({'data':aout[:]})    
+        return self.sendMass({'data':aout})    
     
     
     
@@ -188,6 +201,7 @@ class SIUI():
         
         out['gain'] = out['gain']/10.
         #get mode
+        #print rsets
         if out['sets'][16] == 0: out['mode'] = 'PE'
         else: out['mode'] = 'TR'
 
@@ -197,7 +211,7 @@ class SIUI():
         #get power
         temp = out['sets'][0:4]
         b = ""
-        for t in temp: b+=str(t)
+        for t in temp:  b+=str(t)
         b = b[::-1]
         out['power'] = int(b,2)
 
@@ -207,13 +221,14 @@ class SIUI():
         b = ""
         for t in temp: b+=str(t)
         b = b[::-1]
-        out['volt'] = sets[int(b,2)]
+        out['vset'] = sets[int(b,2)]
         
         #get rectification
         temp = out['sets'][8:12]
         b = ""
         for t in temp: b+=str(t)
         b = b[::-1]
+        #print b
         out['rect'] = self.rects[int(b,2)]
         
         #get freqs
@@ -252,73 +267,92 @@ class SIUI():
         l = self.dec[k]['bytes']
         for i in arr[s:s+l]:
             temp += chr(int(i))
+            #if k == "vel": print int(i),
         return fromstring(temp,dtype=self.dec[k]['type'])
 
     
-    def setGetCheck(self):
+    def setGetCheck(self,gain=True,params=True):
+        #self.setGain()
+        #time.sleep(.2)
         set1 = [1]
         set2 = [2]
-        count = 0
-        while set1 != set2 and count < 3:        
-            self.setGain()
-            time.sleep(.5)
-            self.setParams()
-            time.sleep(.5)
-            count += 1
+        while set1 != set2:        
+            if gain:
+                self.setGain()
+                time.sleep(.2)
+            if params:
+                self.setParams()
+                time.sleep(.5)
             a = self.getData()
-            set1 = [self.gain,self.mode,self.rng,self.freq,self.vset,self.rect,self.pw]
-            set2 = [a['gain'],a['mode'],a['range'],a['freq'],a['volt'],a['rect'],a['pw']]
-            # print set1
-            # print set2
-            # print 
-        if count ==3:
-            print set1
-            print set2
-            print 
+            ps = ['gain','range','mode','freq','vset','rect']
+            if params and gain:
+                set1 = [self.params[x] for x in ps[:]]
+                set1[0] = int(set1[0])
+                set2 = [a[x] for x in ps[:]]
+                set2=[int(x) for x in set2[0:2]]+set2[2:]
+            elif params:
+                set1 = [self.params[x] for x in ps[1:]]
+                set2 = [a[x] for x in ps[:]]
+                set2=[int(x) for x in set2[1:2]]+set2[2:]
+            elif gain:
+                set1 = [self.params['gain']]
+                set2 = [int(a['gain'])]
+            else:
+                set1 = []
+                set2 = []
+            #print "set 1: ",
+            #print set1
+            #print "set 2: ",
+            #print set2
         return a
 
-if __name__ == "__main__":
+if __name__ == "__main__":# and False:
     from pithy import *
-    #site = 'http://j216-hacker-mini.local:9600'
     site = 'http://localhost:9000'
     s = SIUI(site)
-
-
+    
     #specify parameters
-    pws = 100
-    pwe = 200
-
-
-    out = []
-    
-
-
-    for i in range(pws,pwe+1,80):
-        if i == pws: c = 'g'
-        elif i == pwe: c = 'r'
-        else: c = 1-(i/float(pwe))
-        s.pw = i
-        s.vset = 100
-        s.gain = 10
-        s.rng = 6.
-        s.rect = 'rf'
-        s.freq = '1_4MHz'
-        s.prf = 200
+    s.params['vset'] = 200
+    s.params['gain'] = 25
+    s.params['range'] = 100
+    s.params['pw'] = 444 
+    s.params['rect'] = 'rf'
+    s.params['freq'] = '1MHz'
+    s.params['prf'] = 100
+    s.params['mode'] = 'TR'
+    s.params['vel'] = 4000
+    start = time.time()
+    for i in range(10):
+        data = s.setGetCheck(gain=True,params=True)
+        end = time.time()
+        print end-start
+        start = end
         
-        st = time.time()
-        data = s.setGetCheck()
-        en = time.time()
-        print en-st
-        out.append(data['wave'])
-        plot(data['x'],data['wave'],str(c),label=i)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
-    xlabel('range (mm)')
-    legend()
-    showme()
-    clf()
+ 
     
-    
-out = array(out).astype(float)
-imshow(out,aspect="auto",cmap=cm.gray,interpolation='nearest')
-showme()
-clf()

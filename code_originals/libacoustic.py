@@ -1,99 +1,171 @@
+###################################################
+###################################################
+##      import this library, not libepoch or     ##
+##      whatever else                            ##
+###################################################
+###################################################
+
+from pithy import *
 from urllib import urlopen as uo
-from StringIO import StringIO
-from time import sleep
-from numpy import *
+import json
+import libSIUI as siui
+import libEpoch
+import libethercalc as ether
 
-class epoch():
-    def __init__(self,site):
-        self.site = site
-        self.delay = .25
+class Acoustics():
+    def __init__(self,muxurl=None,etherurl=None,pulser=None,pulserurl=None):
+        self.pre = "/home/lab/EASI/data/"
         
-    def awrite(self,val,verbose=False):
-        if verbose: print "Asking for",val,":"
-        uo(self.site+"/writecf/"+str(val)).read()
-        sleep(self.delay)
-     
-    def aread(self,split=None):
-        get = uo(self.site+"/read/").read()
-        if split != None:
-            for i in range(1,6):
-                out = get.split("OK")[-i]
-                if out=="\r\n": continue
-                else: break
-            # print out
-            return out.strip()
-            #return get.split("OK")[-2].strip()
-        return get
-
-    def getLast(self,ts=300):
-        global last
-        ticks = 0
-        while ticks < ts: 
-            ticks +=1
-            sleep(.05)
-        last = self.aread(split="OK")
-        return last
-    
-    def processWaveform(self,stuff):
-        first = []
-        second = []
-        ps = stuff.split(")")
-        ps.pop(len(ps)-1)
-        for p in ps:
-            p = p.replace("(","")
-            d = p.split(",")
-            first.append(int(d[0],16)) 
-            second.append(int(d[1],16)) 
-        
-        #for outputting the right ToF values
-        self.awrite("param_Delay?")
-        sleep(self.delay)
-        dely = float(self.getLast(ts=10))
-        self.awrite("param_Range?")
-        sleep(self.delay)
-        rng = float(self.getLast(ts=10))
-        tim = linspace(dely,rng+dely,len(first))
-        rtime = [round(x,3) for x in list(tim)]
-        
-        return rtime,first,second
-    
-    def commander(self,isTR='tr',gain=25,tus_scale=40,freq=2.25,delay=0):
-        if isTR=='tr':
-            return self.commanderTR(gain,tus_scale,freq,delay)
-        elif isTR=='pe':
-            return self.commanderPE(gain,tus_scale,freq,delay)
+        self.muxurl = muxurl #check+add trailing /
+        self.pulserurl = pulserurl
+        #self.pulserurl = 'http://localhost:9002/EPOCHmux.csv' #cuz.
+        #self.initurl = 'http://localhost:9002/EPOCHmux-init.csv'
+        if etherurl is not None:
+            self.ether = ether.Ether(etherurl)
         else:
-            print 'what mode you in?'
-    
-    def commanderPE(self,gain=25,tus_scale=40,freq=2.25,delay=0):
-        self.awrite("param_Freq=%f" % freq,verbose=False)
-        self.awrite("param_Range=%f" % tus_scale,verbose=False)
-        self.awrite("param_BaseGain=%f" % gain,verbose=False)
-        self.awrite("param_TransmissionMode=0",verbose=False)
-        self.awrite("param_Delay=%f" % delay,verbose=False)
-        self.awrite("param_WaveForm?",verbose=False)
-        raw = self.getLast()
-        # open("epoch-emergency-log","a").write(str(freq)+","+str(tus_scale)+","+str(gain)+","+str(delay))
-        # open("epoch-emergency-log","a").write(raw)
-        data = self.processWaveform(raw)
-        return data
+            print "-----------------------------------------"
+            print "WARNING: No ethercalc. Stuff might break."
+            print "-----------------------------------------"
+        if muxurl is None:
+            print "------------------------------------------------"
+            print "WARNING: No mux given. Ignoring channel numbers."
+            print "------------------------------------------------"
+            
+        if pulser.lower()=="epoch":
+            self.pulser="epoch"
+            print "connecting to Epoch..."
+            self.p = libepoch.epoch(pulserurl)
+            print "... done!"
+        elif pulser.lower()=="siui":
+            self.pulser="siui"
+            print "connecting to SIUI..."
+            self.p = siui.SIUI(pulserurl)
+            print "... done!"
+        else:
+            raise AttributeError("no valid pulser type given!")
+        
+    def switchMux(self,chan,chan2=None):
+        try:
+            if chan2 is None:
+                u = self.muxurl+"/write/%i" % int(chan)
+            else:
+                u = self.muxurl+"/write/%i,%i" % (int(chan),int(chan2))
+            uo(u).read()
+        except: #don't think this is correct anymore
+            print "problem with mux"
 
-    def commanderTR(self,gain=25,tus_scale=40,freq=2.25,delay=0):
-        self.awrite("param_Freq=%f" % freq,verbose=False)
-        self.awrite("param_Range=%f" % tus_scale,verbose=False)
-        self.awrite("param_BaseGain=%f" % gain,verbose=False)
-        self.awrite("param_TransmissionMode=2",verbose=False)
-        self.awrite("param_Delay=%f" % delay,verbose=False)
-        self.awrite("param_WaveForm?",verbose=False)
-        raw = self.getLast()
-        # open("epoch-emergency-log","a").write(str(freq)+","+str(tus_scale)+","+str(gain)+","+str(delay))
-        # open("epoch-emergency-log","a").write(raw)
-        data = self.processWaveform(raw)
-        return data
+    def mark_time(self):
+        print time.time() - self.start_time
     
-    def battstat(self):
-        self.awrite("BATTSTAT?", verbose = False)
-        ans = str(self.getLast(ts=5))
-        # print ans
-        return ans
+    def getSingleData(self,row):
+        self.start_time = time.time()
+        
+        q = row
+        fn = self.pre+"%s_%s_%s_%i.json" % (q['Name'],q['Channel'],q['Mode (tr/pe)'].upper(),int(time.time()))
+            
+        if self.muxurl is not None:
+            if q['Channel 2']!="":
+                self.switchMux(q['Channel'],q['Channel 2'])
+            else:
+                self.switchMux(q['Channel'])
+        if self.pulser=="epoch":
+            try:
+                data = self.p.commander(
+                    isTR=q['Mode (tr/pe)'].lower(),
+                    gain=float(q['Gain (dB)']),
+                    tus_scale=int(q['Time (us)']),
+                    freq=float(q['Freq (MHz)']),
+                    delay=int(q['Delay (us)']))
+                json.dump({'time (us)':data[0],'amp':list(data[1])}, open(fn,'w'))
+            except:
+                print '***ERROR***'
+                import traceback
+                print traceback.format_exc()
+        elif self.pulser=="siui":
+            vel = 4000 #m/s
+            pw = 1/(float(q['Freq (MHz)'])*1E6)*1E9
+            rng = (float(q['Time (us)'])/1E6)*vel*1000.0
+            self.p.params['range'] = int(rng)
+            self.p.params['vset'] = 400 #pulse voltage
+            self.p.params['pw'] = int(floor(pw/10)*10)
+            self.p.params['vel'] = int(vel)
+            #s.params['rect'] = 'rf'#rectification
+            #s.params['prf'] = 100  #repitition frequency
+            self.p.params['gain'] = q['Gain (dB)']
+            self.p.params['mode'] = q['Mode (tr/pe)'].upper()
+            data = self.p.setGetCheck()
+            rtime = [round(float(x),3) for x in list(data['x'])]
+            out = {'time (us)':rtime,'amp':[int(x) for x in list(data['wave'])]}
+            #print out
+            json.dump(out, open(fn,'w'))
+            
+            print "execution time: ",
+            self.mark_time()
+            
+            return data
+    
+    def beginRun(self):
+        while True: 
+            self.ether.refresh()
+            for i in range(len(self.ether.rows)-1):
+                r = self.ether.rows[i]
+                if r['Run (y/n)'].lower() == 'y':
+                    print "Executing row "+str(i+1)
+                    self.getSingleData(r)
+                else:
+                    pass
+
+if __name__=="__main__":
+    a = Acoustics(pulser="siui",pulserurl="http://localhost:9000",muxurl="http://localhost:8001")
+    
+    d1 = a.getSingleData({'Name':"fakefakefake",'Channel':1,'Channel 2':7,'Gain (dB)':60,'Freq (MHz)':2.25,'Mode (tr/pe)':"TR",'Time (us)':20})
+    d2 = a.getSingleData({'Name':"fakefakefake",'Channel':2,'Channel 2':8,'Gain (dB)':60,'Freq (MHz)':2.25,'Mode (tr/pe)':"TR",'Time (us)':20})
+    plot(d1['wave'])
+    plot(d2['wave'])
+    showme()
+
+"""
+init = False
+while True:
+    if init:
+        queue = parsecsv(initurl)
+        init = False
+    else:
+        queue = parsecsv(csvurl)
+    for q in queue:
+        #print q
+        if q['Mode tr/pe/both'].lower() in ['tr','both']:
+            switchmux(mm[int(q['Channel'])])
+            getSingleData(q,True)
+        if q['Mode tr/pe/both'].lower() in ['pe','both']:
+            switchmux(mm[int(q['Channel'])]-1)
+            getSingleData(q,False)
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

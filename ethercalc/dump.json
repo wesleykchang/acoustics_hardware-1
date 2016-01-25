@@ -1,6 +1,6 @@
 {
   "chat-acoustic": [],
-  "snapshot-acoustic": "socialcalc:version:1.0\nMIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=SocialCalcSpreadsheetControlSave\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\n# SocialCalc Spreadsheet Control Save\nversion:1.0\npart:sheet\npart:edit\npart:audit\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\nversion:1.5\ncell:A1:t:Name\ncell:B1:t:Mode (tr/pe)\ncell:C1:t:Channel\ncell:D1:t:Channel 2\ncell:E1:t:Gain (dB)\ncell:F1:t:Freq (MHz)\ncell:G1:t:Time (us)\ncell:H1:t:NDA file\ncell:I1:t:Comments\ncell:A2:t:butts\ncell:B2:t:TR\ncell:C2:v:1\ncell:D2:v:7\ncell:E2:v:31\ncell:F2:v:2.25\ncell:G2:v:20\ncell:I2:t:test\ncell:A3:t:butts\ncell:B3:t:PE\ncell:C3:v:1\ncell:E3:v:32\ncell:F3:v:2.25\ncell:G3:v:20\ncell:I3:t:test\nsheet:c:9:r:3:tvf:1\nvalueformat:1:text-wiki\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\nversion:1.0\nrowpane:0:1:1\ncolpane:0:1:1\necell:A1\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\n--SocialCalcSpreadsheetControlSave--\n",
+  "snapshot-acoustic": "socialcalc:version:1.0\nMIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=SocialCalcSpreadsheetControlSave\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\n# SocialCalc Spreadsheet Control Save\nversion:1.0\npart:sheet\npart:edit\npart:audit\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\nversion:1.5\ncell:A1:t:Run (y/n)\ncell:B1:t:Name\ncell:C1:t:Mode (tr/pe)\ncell:D1:t:Channel\ncell:E1:t:Channel 2\ncell:F1:t:Gain (dB)\ncell:G1:t:Delay (us)\ncell:H1:t:Time (us)\ncell:I1:t:Freq (MHz)\ncell:J1:t:echem filename\ncell:K1:t:notes\ncell:A2:t:y\ncell:B2:t:buttz\ncell:C2:t:tr\ncell:D2:v:1\ncell:E2:v:7\ncell:F2:v:20\ncell:G2:v:3\ncell:H2:v:30\ncell:I2:v:2.25\ncell:J2:vtc:::\ncell:K2:vtc:::\ncell:A3:t:y\ncell:B3:t:buttz\ncell:C3:t:tr\ncell:D3:v:1\ncell:E3:v:7\ncell:F3:v:40\ncell:G3:v:3\ncell:H3:v:30\ncell:I3:v:2.25\ncell:A4:t:y\ncell:B4:t:buttz\ncell:C4:t:tr\ncell:D4:v:1\ncell:E4:v:7\ncell:F4:v:60\ncell:G4:v:3\ncell:H4:v:30\ncell:I4:v:2.25\ncell:A5:t:y\ncell:B5:t:buttz\ncell:C5:t:tr\ncell:D5:v:1\ncell:E5:v:7\ncell:F5:v:80\ncell:G5:v:3\ncell:H5:v:30\ncell:I5:v:2.25\ncell:A6:t:y\ncell:B6:t:buttz\ncell:C6:t:tr\ncell:D6:v:1\ncell:E6:v:7\ncell:F6:v:100\ncell:G6:v:3\ncell:H6:v:30\ncell:I6:v:2.25\ncell:A7:t:y\ncell:B7:t:buttz\ncell:C7:t:tr\ncell:D7:v:1\ncell:E7:v:7\ncell:F7:v:71\ncell:G7:v:3\ncell:H7:v:30\ncell:I7:v:2.25\ncell:A8:t:y\ncell:B8:t:buttz\ncell:C8:t:tr\ncell:D8:v:1\ncell:E8:v:7\ncell:F8:v:71\ncell:G8:v:3\ncell:H8:v:30\ncell:I8:v:2.25\ncol:A:w:43\ncol:B:w:209\ncol:C:w:51\nsheet:c:11:r:8:tvf:1\nvalueformat:1:text-wiki\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\nversion:1.0\nrowpane:0:1:1\ncolpane:0:1:1\necell:A1\n--SocialCalcSpreadsheetControlSave\nContent-type: text/plain; charset=UTF-8\n\n--SocialCalcSpreadsheetControlSave--\n",
   "audit-acoustic": [
     "paste A1 all",
     "paste A1 all",
@@ -28,6 +28,34 @@
     "paste A3:Q3 all",
     "set B3 text t PE",
     "set D3 empty",
-    "set E3 value n 32"
+    "set E3 value n 32",
+    "loadclipboard version\\c1.5\\ncell\\cA1\\ct\\cRun (y/n)\\ncell\\cB1\\ct\\cName\\ncell\\cC1\\ct\\cMode (tr/pe)\\ncell\\cD1\\ct\\cChannel\\ncell\\cE1\\ct\\cChannel 2\\ncell\\cF1\\ct\\cGain (dB)\\ncell\\cG1\\ct\\cDelay (us)\\ncell\\cH1\\ct\\cTime (us)\\ncell\\cI1\\ct\\cFreq (MHz)\\ncell\\cJ1\\ct\\cechem filename\\ncell\\cK1\\ct\\cnotes\\ncell\\cA2\\ct\\cy\\ncell\\cB2\\ct\\c20160125_C_NMC_2500_C2p5_2_g1\\ncell\\cC2\\ct\\ctr\\ncell\\cD2\\cv\\c1\\ncell\\cE2\\cv\\c7\\ncell\\cF2\\cv\\c71\\ncell\\cG2\\cv\\c3\\ncell\\cH2\\cv\\c30\\ncell\\cI2\\cv\\c2.25\\ncell\\cJ2\\cvtc\\c\\c\\c\\ncell\\cK2\\cvtc\\c\\c\\c\\nsheet\\cc\\c11\\cr\\c2\\ncopiedfrom\\cA1\\cK2\\n\npaste A1 formulas",
+    "moveinsert A2:J3 J2 all",
+    "set S3 all \nset R3 all \nset Q3 all \nset P3 all \nset O3 all \nset N3 all \nset M3 all \nset L3 all \nset K3 all \nset J3 all \nset S2 all \nset R2 all \nset Q2 all \nset P2 all \nset O2 all \nset N2 all \nset M2 all \nset L2 all \nset K2 all :vtc:::\nset J2 all \nset J3 all \nset I3 all :t:test\nset H3 all \nset G3 all :v:20\nset F3 all :v:2.25\nset E3 all :v:32\nset D3 all \nset C3 all :v:1\nset B3 all :t:PE\nset A3 all :t:butts\nset J2 all :vtc:::\nset I2 all :v:2.25\nset H2 all :v:30\nset G2 all :v:3\nset F2 all :v:71\nset E2 all :v:7\nset D2 all :v:1\nset C2 all :t:tr\nset B2 all :t:20160125_C_NMC_2500_C2p5_2_g1\nset A2 all :t:y\nchangedrendervalues",
+    "set A3:K4 empty",
+    "set B2 text t buttz",
+    "set A width 36",
+    "set A width 43",
+    "set B width 165",
+    "set B width 209",
+    "set C width 45",
+    "set C width 45",
+    "set C width 51",
+    "copy A2:I2 formulas",
+    "paste A3 formulas",
+    "paste A4 formulas",
+    "paste A5 formulas",
+    "paste A6 formulas",
+    "paste A7 formulas",
+    "paste A8 formulas",
+    "set C3 text t pe",
+    "set C3 all :t:tr",
+    "set F3 value n 20",
+    "set F2 value n 7120",
+    "set F2 value n 20",
+    "set F3 value n 40",
+    "set F4 value n 60",
+    "set F5 value n 80",
+    "set F6 value n 100"
   ]
 }

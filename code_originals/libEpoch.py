@@ -74,7 +74,7 @@ class epoch():
         data = self.processWaveform(raw)
         return data
 
-    def commanderTR(self,gain=25,tus_scale=40,freq=2.25,delay=0):
+    def commanderTrans(self,gain=25,tus_scale=40,freq=2.25,delay=0):
         self.awrite("param_Freq=%f" % freq,verbose=False)
         self.awrite("param_Range=%f" % tus_scale,verbose=False)
         self.awrite("param_BaseGain=%f" % gain,verbose=False)
