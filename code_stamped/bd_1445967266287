@@ -1,0 +1,14 @@
+from glob import glob
+import os 
+from datetime import date
+foo = glob("/home/pi/pithy/code/*.py")
+foo = sorted(foo, key=os.path.getmtime)
+foo.reverse()
+
+
+
+for i in foo:
+    p = i
+    i = i.split("/")[-1].replace(".py","")
+    if i != "temper":
+        print "<a href='"+i+"'>"+i+"</a> (<a href='http://pithy.steingart.princeton.edu/"+i+"'>code</a>) %s " % date.fromtimestamp(os.path.getmtime(p))

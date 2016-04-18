@@ -1,0 +1,52 @@
+from pithy import *
+import json 
+
+path = '/Users/j125mini/EASI/data/'
+
+pat = '''20160202-lcopouch-siui-macmini-test1
+20160202-lcopouch-siui-macmini-test2
+20160202-lcopouch-siui-macmini-test3
+20160202-ZPower-trial-g1_1*
+20160202-ZPower-trial-g1*7
+20160202-ZPower-trial-g2_1*
+20160202-ZPower-trial-g2*7'''
+
+#20160201 9:23 pm - ~348 reads
+
+pat = pat.split('\n')
+
+for nm in pat:
+    tr = glob(path + "%s*TR*.json" % nm)
+    tr.sort()
+    pe = glob(path + "%s*PE*.json" % nm)
+    pe.sort()
+    
+    print len(tr)
+    print len(pe)
+    
+    bigdextr = []
+    bigdexpe = []
+    
+    for i in tr:
+        ts = i.split("_")[-1].replace(".json","")
+        f = json.load(open(i))
+        bigdextr.append(abs(array(f['amp'])-32639))
+    for i in pe:
+        ts = i.split("_")[-1].replace(".json","")
+        f = json.load(open(i))
+        bigdexpe.append(abs(array(f['amp'])-32639))
+    
+    subplot(211)
+    bigdextr = array(bigdextr).transpose()
+    pod = imshow(bigdextr,aspect="auto")
+    ylabel('TR')
+    title(nm)
+    
+    subplot(212)
+    bigdexpe = array(bigdexpe).transpose()
+    imshow(bigdexpe,aspect="auto")
+    ylabel('PE')
+    xlabel('index')
+    
+    showme()
+    clf()

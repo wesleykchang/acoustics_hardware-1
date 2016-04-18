@@ -1,0 +1,6 @@
+from pithy import *
+from libacoustic import *
+
+a = Acoustics(etherurl="http://localhost:8001/acoustic.csv",muxurl="http://localhost:9001/",pulser="siui",pulserurl="http://localhost:9000")
+
+a.beginRun()

@@ -1,0 +1,6 @@
+from pithy import *
+import json
+import glob
+
+data = json.load(open(glob.glob("/home/pi/acoustic/data/pooper*")[-1],'r'))
+print data

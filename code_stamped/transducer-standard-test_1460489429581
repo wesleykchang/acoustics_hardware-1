@@ -1,0 +1,75 @@
+from pithy import *
+import json 
+
+path = '/Users/j125mini/EASI/data/standards/'
+
+pat = '''PS-siui
+Ac-siui
+PS-olympus
+Ac-olympus'''
+
+# pat = "poooooooop"
+
+pat = pat.split('\n')
+
+for pul in ['TR','PE']:
+    for nm in pat:
+        top = glob(path + "%s*set1*%s*.json" % (nm,pul))
+        top.sort()
+        mid = glob(path + "%s*set2*%s*.json" % (nm,pul))
+        mid.sort()
+        bot = glob(path + "%s*set3*%s*.json" % (nm,pul))
+        bot.sort()
+        
+        print len(top)
+        print len(mid)
+        print len(bot)
+        
+        bigdex1 = []
+        bigdex2 = []
+        bigdex3 = []
+        tofdex1 = []
+        tofdex2 = []
+        tofdex3 = []
+        
+        for i in top:
+            ts = i.split("_")[-1].replace(".json","")
+            f = json.load(open(i))
+            bigdex1.append(abs(array(f['amp'])-127))
+        tofdex1.append(array(f['time (us)']))
+        for i in mid:
+            ts = i.split("_")[-1].replace(".json","")
+            f = json.load(open(i))
+            bigdex2.append(abs(array(f['amp'])-127))
+        tofdex2.append(array(f['time (us)']))
+        for i in bot:
+            ts = i.split("_")[-1].replace(".json","")
+            f = json.load(open(i))
+            bigdex3.append(abs(array(f['amp'])-127))
+        tofdex3.append(array(f['time (us)']))
+        
+        print tofdex1,tofdex2
+        
+        subplot(311)
+        bigdex1 = array(bigdex1).transpose()
+        plot(bigdex1)
+        annotate('Transducer Set 1',xy=(350,100))
+        ylabel('')
+        title(nm)
+        
+        subplot(312)
+        bigdex2 = array(bigdex2).transpose()
+        plot(bigdex2)
+        annotate('Transducer Set 2',xy=(350,100))
+        ylabel('Stransducer Set 2')
+        
+        
+        subplot(313)
+        bigdex3 = array(bigdex3).transpose()
+        plot(bigdex3)
+        annotate('Transducer Set 2',xy=(350,100))
+        ylabel('Transducer Set 3')
+        xlabel('index')
+        
+        showme()
+        clf()

@@ -1,0 +1,8 @@
+from pithy import *
+from libbigfig import BigFig as bf
+
+drop_pre = "/Users/j125mini/EASI/data/"
+
+b = bf(acoustic="20160322-NCA18650-relaytest-1")
+
+b.genBigFig()

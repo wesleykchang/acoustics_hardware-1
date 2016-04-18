@@ -1,0 +1,24 @@
+from pithy import *
+import json 
+from urllib import urlopen as uo
+
+data = open("/home/lab/EASI/data/ugh","r").readlines()
+
+print data
+
+durr = []
+for i in data:
+    l = []
+    for j in i:
+        try:
+            l.append(int(j))
+        except:
+            pass
+    durr.append(l)
+    print len(l)
+
+
+
+imshow(array(durr),aspect="auto")
+showme()
+clf()

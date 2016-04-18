@@ -1,0 +1,33 @@
+from pithy import *
+import json 
+
+path = '/home/lab/EASI/data/'
+
+pat = "buttz1"
+
+#a = glob(drop_pre+"/acousticdata_acee129/*.json")
+
+
+a = glob(path + "%s*.json" % pat)
+a.sort()
+
+print len(a)
+# quit()
+
+# try: last = int(go("tail -n 1 %s.csv" % pat).split(",")[0])
+# except: last = 0
+
+bigdex = []
+tus = []
+
+for i in a:
+    ts = i.split("_")[-1].replace(".json","")
+    f = json.load(open(i))
+    bigdex.append(abs(array(f['amp'])-32639))
+
+
+bigdex = bigdex.transpose()
+
+imshow(bigdex,aspect="auto")
+showme()
+clf()

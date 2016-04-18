@@ -1,0 +1,20 @@
+from pithy import *
+import json 
+from urllib import urlopen as uo
+
+durr = []
+
+while True:
+    for i in range(8):
+        d = []
+        for x in uo("http://localhost:9000/data").read().strip().split(","):
+            try:
+                d.append(int(x))
+            except:
+                pass
+        durr.append(d)
+        time.sleep(0.25)
+        
+    imshow(durr,aspect="auto")
+    showme(kind="thing")
+    clf()

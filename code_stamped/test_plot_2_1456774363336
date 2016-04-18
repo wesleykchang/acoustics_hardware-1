@@ -1,0 +1,10 @@
+from pithy import *
+
+from MTI_Tools import *
+
+
+path = '/Users/j125mini/Downloads/TC5.4/_COM7/data/AH/'
+
+ndaname = 'AH_20160218_103443_07_3.nda'
+
+b = mti_data(path + ndaname)

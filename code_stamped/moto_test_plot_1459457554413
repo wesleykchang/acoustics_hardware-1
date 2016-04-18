@@ -1,0 +1,62 @@
+from pithy import *
+import json 
+
+path = '/Users/j125mini/EASI/data/'
+
+pat = '''20160331-MotoATL-50cyc-CellB1-top
+20160331-MotoATL-50cyc-CellB1-mid
+20160331-MotoATL-50cyc-CellB1-bot'''
+
+# pat = "poooooooop"
+
+pat = pat.split('\n')
+
+for nm in pat:
+    top = glob(path + "%s*top*.json" % nm)
+    top.sort()
+    mid = glob(path + "%s*mid*.json" % nm)
+    mid.sort()
+    bot = glob(path + "%s*bot*.json" % nm)
+    bot.sort()
+    
+    print len(top)
+    print len(mid)
+    print len(bot)
+    
+    bigdextop = []
+    bigdexmid = []
+    bigdexbot = []
+    
+    for i in top:
+        ts = i.split("_")[-1].replace(".json","")
+        f = json.load(open(i))
+        bigdextop.append(abs(array(f['amp'])-127))
+    for i in mid:
+        ts = i.split("_")[-1].replace(".json","")
+        f = json.load(open(i))
+        bigdexmid.append(abs(array(f['amp'])-127))
+    for i in bot:
+        ts = i.split("_")[-1].replace(".json","")
+        f = json.load(open(i))
+        bigdexbot.append(abs(array(f['amp'])-127))
+    
+    subplot(311)
+    bigdextop = array(bigdextop).transpose()
+    pod = imshow(bigdextop,aspect="auto")
+    ylabel('Top Position')
+    title(nm)
+    
+    subplot(312)
+    bigdexmid = array(bigdexmid).transpose()
+    imshow(bigdexmid,aspect="auto")
+    ylabel('Middle Position')
+    
+    
+    subplot(312)
+    bigdexbot = array(bigdexbot).transpose()
+    imshow(bigdexbot,aspect="auto")
+    ylabel('Bottom Position')
+    xlabel('index')
+    
+    showme()
+    clf()

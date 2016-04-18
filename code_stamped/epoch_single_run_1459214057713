@@ -1,0 +1,10 @@
+from pithy import *
+from libacoustic import *
+
+a = Acoustics(etherurl="http://localhost:9002/acoustic.csv", muxurl="http://localhost:9003", pulser="epoch", pulserurl="http://localhost:9006")
+
+# a.ether.refresh()
+# r = a.ether.rows[1]
+# print r
+# a.getSingleData(r)
+a.beginRun()

@@ -1,0 +1,31 @@
+#whatever
+
+from urllib import urlopen as uo
+
+class Ether():
+    def __init__(self,url):
+        self.url =url
+        self.rows = self._parsecsv()
+        #this is a good start. but clean it up and make the interface better than
+        #calling ether.rows[2]['TR Gain (dB)']. That's ugly and annoying.
+
+    def _parsecsv(self):
+        splits = uo(self.url).read().split("\n")
+        header = splits.pop(0).replace('\"','')
+        cols = header.split(",")
+        out = []
+        for i in splits:
+            p = i.split(",")
+            if i.lower().find("skip") == -1 and p[0].isdigit():
+                #the above condition will fail if a filename has "skip" in it
+                out.append({})
+                for j in range(len(p)):
+                    out[-1][cols[j]] = p[j] 
+        print out
+        return out
+    
+    
+if __name__=="__main__":
+    e = Ether("http://localhost:9002/EPOCHmux.csv")
+    
+    

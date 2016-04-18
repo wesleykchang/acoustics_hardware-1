@@ -1,0 +1,65 @@
+from pithy import *
+from urllib import urlopen as uo
+import libEpoch
+import json
+
+csvurl = 'http://localhost:9002/EPOCHmux.csv'
+
+def parsecsv():
+    splits = uo(csvurl).read().split("\n")
+    header = splits.pop(0).replace('\"','')
+    cols = header.split(",")
+    out = []
+    for i in splits:
+        p = i.split(",")
+        if i.lower().find("skip") == -1 and p[0].isdigit():
+            out.append({})
+            for j in range(len(p)):
+                out[-1][cols[j]] = p[j] 
+    return out
+
+def switchmux(chan):
+    uo("http://localhost:9003/write/%i" % int(chan)).read()
+    #formerly 25.6.84.182:9002
+    
+
+ep = libEpoch.epoch("http://localhost:9004")
+
+#mux map -> fixed to whatever it is for real
+mm = {} 
+mm[1] = 31
+mm[2] = 33
+mm[3] = 35
+mm[4] = 37
+mm[5] = 39
+
+pre = "/home/pi/acoustic/data/"
+
+while True:
+    queue = parsecsv()
+    for q in queue:
+        try:
+            switchmux(mm[int(q['Channel'])])
+        except:
+            error = 'WARNING: No channel %s on this mux' % q['Channel']
+            print error
+        
+        # print q['Channel']
+        fn = pre+"%s_%s_TR_%i.json" % (q['Name'],q['Channel'],int(time.time()))
+        # try:
+        data = ep.commanderTrans(gain=float(q['TR Gain (dB)']),tus_scale=int(q['TR Time (us)']),freq=float(q['Freq (MHz)']))
+        json.dump(
+            {'time (us)':list(data[0]),'amp':list(data[1])},
+            open(fn,'w'))
+            # fn = pre+"%s_%s_PE_%i.json" % (q['Name'],q['Channel'],int(time.time()))
+        data = ep.commanderPE(gain=float(q['PE Gain (dB)']),tus_scale=int(q['PE Time (us)']),freq=float(q['Freq (MHz)']))
+        json.dump(
+            {'time (us)':list(data[0]),'amp':list(data[1])},
+            open(fn,'w'))
+        print data
+        quit()
+        # except Exception as err:
+        #     print err
+        #     error = 'Something bad happened on %s at %s' % (time.strftime("%a %b %d %Y", time.gmtime()), time.strftime("%H:%M:%S", time.gmtime()))
+        #     print error  
+        #     pass

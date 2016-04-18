@@ -1,0 +1,33 @@
+from pithy import *
+import json 
+from urllib import urlopen as uo
+
+gain = open("/home/lab/EASI/data/butt","r").read().split(",")
+wave = [x.strip().split(",") for x in open("/home/lab/EASI/data/shit","r").readlines()]
+
+gains = []
+for g in gain:
+    try:
+        gains.append(int(g))
+    except:
+        pass
+
+waves = []
+for w in wave:
+    ugh = []
+    for i in w:
+        try:
+            ugh.append(int(i))
+        except:
+            pass
+    waves.append(ugh)
+
+print gain
+
+subplot(211)
+imshow(waves,aspect="auto")
+subplot(212)
+plot(gains)
+
+showme()
+clf()
