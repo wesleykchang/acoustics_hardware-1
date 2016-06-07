@@ -1,0 +1,6 @@
+#vim droppings
+**/.*.sw*
+**/.*.un*
+
+#python droppings
+**/*.pyc
