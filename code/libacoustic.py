@@ -98,7 +98,7 @@ class Acoustics():
                     gain=float(q['Gain (dB)']),
                     tus_scale=int(q['Time (us)']),
                     freq=float(q['Freq (MHz)']),
-                    delay=float(q['Delay (us)']))
+                    delay=float(q['Delay (us)']),
                     filt=float(q['Filter Mode']))
                 json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(q['Gain (dB)'])}, open(fn,'w'))
                 return data
