@@ -57,7 +57,7 @@ class epoch():
         
         return rtime,first,second
     
-    def commander(self,isTR='tr',gain=25,tus_scale=40,freq=2.25,delay=0,filt=3):
+    def commander(self,isTR='tr',gain=25,tus_scale=40,freq=2.25,delay=0,filt=0):
         if isTR=='tr':
             return self.commanderTR(gain,tus_scale,freq,delay,filt)
         elif isTR=='pe':
