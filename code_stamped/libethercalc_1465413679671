@@ -28,11 +28,7 @@ class Ether():
             data = uo(self.url).read()
             open(self.backup,"w").write(data)
         except: #BZZT, get stored data
-            try:
-                data = open(self.backup,"r").read()
-            except IOError:
-                raise IOError("Can't read ethercalc and no backup exists!")
-                    
+            data = open(self.backup,"r").read()
             if not self.using_backup:
                 print "Ethercalc read failed, reading from last backup:"
                 print self.backup

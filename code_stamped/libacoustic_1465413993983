@@ -14,7 +14,7 @@ import libethercalc as ether
 from time import sleep
 
 def debug(s):
-    print "[libacoustic] "+s
+    print "[libethercalc] "+s
 
 class Acoustics():
     def __init__(self,muxurl=None,etherurl=None,pulser=None,pulserurl=None):
