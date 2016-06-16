@@ -1,8 +1,0 @@
-from pithy import *
-from libacoustic import *
-
-a = Acoustics(etherurl="http://localhost:9002/acoustic.csv",pulser="siui",pulserurl="http://localhost:9001")
-
-a.getSingleData({'Name':"pooooooop",'Channel':2,'Channel 2':8,'Gain (dB)':61,'Freq (MHz)':2.25,'Mode (tr/pe)':"TR",'Time (us)':12, 'Delay (us)':0})
-
-#a.beginRun()

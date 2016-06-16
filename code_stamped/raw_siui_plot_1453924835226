@@ -1,9 +1,0 @@
-from pithy import *
-import json 
-from urllib import urlopen as uo
-
-durr = [x.strip().split(',') for x in open("/home/lab/EASI/data/ugh","r").readlines()]
-        
-imshow(durr,aspect="auto")
-showme(kind="thing")
-clf()

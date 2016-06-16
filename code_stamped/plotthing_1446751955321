@@ -1,8 +1,0 @@
-from pithy import *
-import json
-import glob
-
-datat = json.load(open(glob.glob("/home/pi/acoustic/data/pooper_2_TR*")[-1],'r'))
-datap = json.load(open(glob.glob("/home/pi/acoustic/data/pooper_2_PE*")[-1],'r'))
-plot(datat[u'amp'],datat[u'time (us)'])
-showme()
