@@ -6,15 +6,6 @@ import sys
 import time
 import signal
 
-#class Supervisor(Daemon):
-#    def __init__(self):
-#        pass
-#    def spawn(self):
-#        pass
-#    def kill(self,pid):
-#        pass
-#    def list(self):
-#        pass
 
 class Daemon:
     def __init__(self,debugging=False,force=False):
@@ -117,6 +108,16 @@ class Daemon:
     def run(self):
         raise NotImplementedError
 
+class SupervisedDaemon(Daemon):
+    def __init__(self,debugging=False,force=False):
+        Daemon.__init__(debugging,force)
+    def spawn(self):
+        pass
+    def kill(self,pid):
+        pass
+    def list(self):
+        pass
+
 #writes to a file for a while then kills itself. useful for testing
 #daemon/supervisors
 class Tester(Daemon):
@@ -130,6 +131,6 @@ class Tester(Daemon):
                 self.stop()
             time.sleep(1)
 
-if __name__=="__main__":
+if False and __name__=="__main__":
     t = Tester()
     t.start()
