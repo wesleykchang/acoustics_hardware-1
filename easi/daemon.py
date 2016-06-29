@@ -5,22 +5,23 @@ import os
 import sys
 import time
 import signal
-
+import errno
 
 class Daemon:
-    def __init__(self,debugging=False,force=False):
-        self.pid_file = "pid"
+    def __init__(self, run, name, force=False):
+        self.pid_file = "pid_{}".format(name)
         self.pid = 0
-        self.debugging = debugging
         self.cleanup(force=force)
+        self.run = run
+        self.name = name
 
-    def cleanup(self,force=False):
+    def cleanup(self, force=False):
         if self.pid_file_exists():
-            pid = open(self.pid_file,"r").readlines()[0]
+            pid = open(self.pid_file, "r").readlines()[0]
             if self.pid_exists(pid):
                 if force:
                     self.debug("found old daemon at {}, killing.".format(pid))
-                    os.kill(pid,signal.SIGKILL)
+                    os.kill(pid, signal.SIGKILL)
                 else:
                     err = "Daemon is already running, PID: {}.".format(pid)\
                           + " Call with force=True if you want to kill it."
@@ -42,12 +43,12 @@ class Daemon:
             sys.exit()
         #first fork
         p = os.fork()
-        if p>0:
+        if p > 0:
             sys.exit(0)
         os.setsid() #also set umask?
         #second fork
         p = os.fork()
-        if p>0:
+        if p > 0:
             sys.exit(0)
         #okay, we're a daemon now
         pid = os.getpid()
@@ -68,12 +69,12 @@ class Daemon:
             raise IOError("pid file is here when it's not supposed to be.")
 
     #this is mostly-verbatim from SO
-    def pid_exists(pid):
-        if os.name!="posix": #TODO: put this higher up in the tree
+    def pid_exists(self,pid):
+        if os.name != "posix": #TODO: put this higher up in the tree
             raise OSError("Are you on Windows? this doesn't work on Windows")
         if pid < 0:
             return False
-        if pid == 0: 
+        if pid == 0:
             raise ValueError('invalid PID 0')
         try:
             os.kill(pid, 0)
@@ -92,29 +93,31 @@ class Daemon:
     def pid_file_exists(self):
         try:
             pid = open(self.pid_file,"r").read().strip()
-            if len(pid)>0:
-                return True
-            else:
-                return False
+            return len(pid) > 0
         except FileNotFoundError:
             return False
 
     #TODO: make this log somewhere, etc
-    def debug(self,msg):
-        if self.debugging:
+    def debug(self, msg):
+        if __debug__:
             print(msg)
         return
 
-    def run(self):
-        raise NotImplementedError
+class Supervisor():
+    """Essentially a wrapper around Daemon() that runs it with supervision. It will 
+    start the supplied `run` function as normal, but will also spawn a second 
+    supervisor Daemon() alongside it. Kind of Erlangy."""
 
-class SupervisedDaemon(Daemon):
-    def __init__(self,debugging=False,force=False):
-        Daemon.__init__(debugging,force)
+    def __init__(self, run, force=False):
+        self.force = force
+        self.run = run
+
     def spawn(self):
-        pass
+        sup = Daemon(self.supervisor)
+
     def kill(self,pid):
         pass
+
     def list(self):
         pass
 
@@ -125,12 +128,12 @@ class Tester(Daemon):
         print(self.pid)
         count = 0
         while True:
-            open("tester","a").write(str(count)+"\n")
+            open("tester", "a").write(str(count)+"\n")
             count += 1
-            if count>100:
+            if count > 100:
                 self.stop()
             time.sleep(1)
 
-if False and __name__=="__main__":
+if False and __name__ == "__main__":
     t = Tester()
     t.start()
