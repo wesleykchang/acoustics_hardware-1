@@ -12,7 +12,7 @@ class Daemon:
         self.pid_file = "pid_{}".format(name)
         self.pid = 0
         self.cleanup(force=force)
-        self.run = run
+        self.run_fn = run
         self.name = name
 
     def cleanup(self, force=False):
@@ -55,7 +55,7 @@ class Daemon:
         self.pid = pid
         self.write_pid(pid)
         try:
-            self.run()
+            self.run_fn()
         finally:
             try:
                 os.remove(self.pid_file)
@@ -104,16 +104,17 @@ class Daemon:
         return
 
 class Supervisor():
-    """Essentially a wrapper around Daemon() that runs it with supervision. It will 
-    start the supplied `run` function as normal, but will also spawn a second 
-    supervisor Daemon() alongside it. Kind of Erlangy."""
+    """Give it a PID and it'll spawn a Daemon() to watch the PID, and do any of
+    a number of possible things for you if it dies."""
 
-    def __init__(self, run, force=False):
-        self.force = force
-        self.run = run
+    def __init__(self, pid, restart=True, logfile=None, custom_fn=None, interval=1.0):
+        self.restart = restart
+        self.logfile = logfile
+        self.custom_fn = custom_fn
+        self.interval = interval
 
     def spawn(self):
-        sup = Daemon(self.supervisor)
+        sup = Daemon(self.supervisor,str(self.supervisor))
 
     def kill(self,pid):
         pass
