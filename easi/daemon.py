@@ -8,16 +8,16 @@ import signal
 import errno
 
 class Daemon:
-    def __init__(self, run, name, force=False):
+    def __init__(self, run_fn=None, name=None, force=False):
         self.pid_file = "pid_{}".format(name)
         self.pid = 0
         self.cleanup(force=force)
-        self.run_fn = run
+        self.run_fn = run_fn
         self.name = name
 
     def cleanup(self, force=False):
         if self.pid_file_exists():
-            pid = open(self.pid_file, "r").readlines()[0]
+            pid = int(open(self.pid_file, "r").readlines()[0])
             if self.pid_exists(pid):
                 if force:
                     self.debug("found old daemon at {}, killing.".format(pid))
@@ -49,7 +49,7 @@ class Daemon:
         #second fork
         p = os.fork()
         if p > 0:
-            sys.exit(0)
+            return p #return the pid before exiting second parent
         #okay, we're a daemon now
         pid = os.getpid()
         self.pid = pid
@@ -108,33 +108,47 @@ class Supervisor():
     a number of possible things for you if it dies."""
 
     def __init__(self, pid, restart=True, logfile=None, custom_fn=None, interval=1.0):
+        self.daemon = pid
         self.restart = restart
         self.logfile = logfile
         self.custom_fn = custom_fn
         self.interval = interval
+    
+    def supervisor(self):
+        open("butts","w").write(os.waitpid(self.daemon,0))
 
-    def spawn(self):
-        sup = Daemon(self.supervisor,str(self.supervisor))
+    def supervise(self):
+        if self.custom_fn is None:
+            sup = Daemon(run_fn=self.supervisor, name=str(self.supervisor))
+        else:
+            sup = Daemon(run_fn=self.custom_fn, name=str(self.supervisor))
+        sup.start()
 
     def kill(self,pid):
         pass
 
     def list(self):
         pass
+        
 
 #writes to a file for a while then kills itself. useful for testing
 #daemon/supervisors
 class Tester(Daemon):
-    def run(self):
+    def __init__(self):
+        Daemon.__init__(self, run_fn=self.run_fn, name="poop")
+    def run_fn(self):
         print(self.pid)
         count = 0
         while True:
             open("tester", "a").write(str(count)+"\n")
             count += 1
-            if count > 100:
+            if count > 10:
                 self.stop()
             time.sleep(1)
 
-if False and __name__ == "__main__":
+if __name__ == "__main__":
     t = Tester()
-    t.start()
+    pid = t.start()
+    s = Supervisor(pid)
+    s.supervise()
+
