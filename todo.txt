@@ -1,4 +1,6 @@
-- Finish adding "fake" epoch to libEpoch (and put a flag for it in libacoustic)
+- Finish adding "fake" epoch to libEpoch 
+
+- separate mux code into new file, add a fake for it
 
 - Add supervisory boilerplate inside acoustic daemon
 

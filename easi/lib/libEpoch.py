@@ -4,25 +4,38 @@ from time import sleep
 from numpy import *
 
 class epoch():
-    def __init__(self,site):
+    def __init__(self,site,fake=False):
         self.site = site
         self.delay = .25
+        self.fake = fake
+        self.fake_buffer = []
         
     def awrite(self,val,verbose=False):
         if verbose: print("Asking for",val,":")
-        uo(self.site+"/writecf/"+str(val)).read()
+        if self.fake:
+            self.fake_buffer.append(val)
+        else:
+            uo(self.site+"/writecf/"+str(val)).read()
         sleep(self.delay)
      
     def aread(self,split=None):
-        get = uo(self.site+"/read/").read()
-        if split != None:
-            for i in range(1,6):
-                out = get.split("OK")[-i]
-                if out=="\r\n": continue
-                else: break
-            # print(out)
-            return out.strip()
-            #return get.split("OK")[-2].strip()
+        if fake:
+            get = "" # :( add real (fake) data
+            for i in self.fake_buffer:
+                if i=="process_WaveForm?":
+                    get.append(""+"OK") #add real (fake) data
+                else:
+                    get.append("OK")
+        else:
+            get = uo(self.site+"/read/").read()
+            if split != None:
+                for i in range(1,6):
+                    out = get.split("OK")[-i]
+                    if out=="\r\n": continue
+                    else: break
+                # print(out)
+                return out.strip()
+                #return get.split("OK")[-2].strip()
         return get
 
     def getLast(self,ts=300):

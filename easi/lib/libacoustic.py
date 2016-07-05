@@ -16,7 +16,7 @@ def debug(s):
     print("[libacoustic] "+s)
 
 class Acoustics():
-    def __init__(self,muxurl=None,etherurl=None,pulser=None,pulserurl=None):
+    def __init__(self,muxurl=None,etherurl=None,pulser=None,pulserurl=None,fake=False):
         self.pre = "/Users/j125mini/EASI/data/"
         if muxurl:
             self.muxurl = self.cleanURL(muxurl)
@@ -38,9 +38,13 @@ class Acoustics():
         if pulser.lower()=="epoch":
             self.pulser="epoch"
             print("connecting to Epoch...")
-            self.p = libEpoch.epoch(pulserurl)
+            if fake:
+                self.p = libEpoch.epoch(pulserurl,fake=True)
+            else:
+                self.p = libEpoch.epoch(pulserurl)
             print("... done!")
         elif pulser.lower()=="siui":
+            if fake: raise NotImplementedError("can't fake SIUI hardware currently")
             self.pulser="siui"
             print("connecting to SIUI...")
             self.p = siui.SIUI(pulserurl)
