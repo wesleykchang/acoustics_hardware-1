@@ -1,6 +1,6 @@
 from numpy import *
 import time
-from urllib import urlopen as uo
+from urllib.request import urlopen as uo
 from struct import pack
 import requests
 import json
@@ -156,15 +156,15 @@ class SIUI():
         #vel
         vels = []
         for i in pack('f',self.params['vel']): vels.append(ord(i))
-        #print self.params['vel']
-        #print vels
+        #print(self.params['vel'])
+        #print(vels)
         a[168:168+4] = vels
         
 
         vels = []
         for i in pack('h',self.params['vel']): vels.append(ord(i))
-        #print self.params['vel']
-        #print vels
+        #print(self.params['vel'])
+        #print(vels)
         a[56:56+2] = vels
 
 
@@ -201,7 +201,7 @@ class SIUI():
         
         out['gain'] = out['gain']/10.
         #get mode
-        #print rsets
+        #print(rsets)
         if out['sets'][16] == 0: out['mode'] = 'PE'
         else: out['mode'] = 'TR'
 
@@ -228,7 +228,7 @@ class SIUI():
         b = ""
         for t in temp: b+=str(t)
         b = b[::-1]
-        #print b
+        #print(b)
         out['rect'] = self.rects[int(b,2)]
         
         #get freqs
@@ -267,7 +267,7 @@ class SIUI():
         l = self.dec[k]['bytes']
         for i in arr[s:s+l]:
             temp += chr(int(i))
-            #if k == "vel": print int(i),
+            #if k == "vel": print(int(i),)
         return fromstring(temp,dtype=self.dec[k]['type'])
 
     def shouldUpdateGain(self):
@@ -298,28 +298,28 @@ class SIUI():
         set1 = [int(x) for x in set1[:2]] + set1[2:]
         set2 = [data[p] for p in ps]
         set2 = [int(x) for x in set2[:2]] + set2[2:]
-        # print set1
-        # print set2
+        # print(set1)
+        # print(set2)
         if set1!=set2:
             return False
         else:
-            # print set1,
-            # print " ",
-            # print set2
+            # print(set1,)
+            # print(" ",)
+            # print(set2)
             return True
     
     def checkGain(self,a):
         b = int(a['gain'])==int(self.params['gain'])
         
         # if b:
-        #     print int(a['gain']),
-        #     print " ",
-        #     print int(self.params['gain'])
+        #     print(int(a['gain']),)
+        #     print(" ",)
+        #     print(int(self.params['gain']))
         return b
     
     #Now automatically avoid setting things if they don't need to be set
     def setGetCheck(self):
-        # print 'checking'
+        # print('checking')
         if self.shouldUpdateGain():
             self.setGain()
             # time.sleep(.2)
@@ -328,7 +328,7 @@ class SIUI():
                 if self.checkGain(a):
                     break
                 else:
-                    # print '.',
+                    # print('.',)
                     time.sleep(0.1)
         if self.shouldUpdateParams():
             self.setParams()
@@ -338,22 +338,22 @@ class SIUI():
                 if self.checkParams(a):
                     break
                 else:
-                    # print ',',
+                    # print(',',)
                     time.sleep(0.1)
         while True:
             a = self.getData()
             if self.checkParams(a) and self.checkGain(a):
                 break
             else:
-                # print ';',
+                # print(';',)
                 time.sleep(0.1)
-        # print 'cool'
+        # print('cool')
         self.lastParams = self.params.copy()
         return a
 
 if __name__ == "__main__":# and False:
     from pithy import *
-    print '1'
+    print('1')
     site = 'http://localhost:9001'
     s = SIUI(site)
     

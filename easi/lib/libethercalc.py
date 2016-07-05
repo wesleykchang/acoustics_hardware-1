@@ -1,11 +1,11 @@
 #whatever
 
-from urllib import urlopen as uo
+from urllib.request import urlopen as uo
 import os
 import sys
 
 def debug(s):
-    print "[libethercalc] "+s
+    print("[libethercalc] "+s)
 
 class Ether():
     def __init__(self,url):
@@ -34,12 +34,12 @@ class Ether():
                 raise IOError("Can't read ethercalc and no backup exists!")
                     
             if not self.using_backup:
-                print "Ethercalc read failed, reading from last backup:"
-                print self.backup
+                print("Ethercalc read failed, reading from last backup:")
+                print(self.backup)
                 self.using_backup = True
         else:
             if self.using_backup:
-                print "Ethercalc read successful. Going back to using it."
+                print("Ethercalc read successful. Going back to using it.")
                 self.using_backup = False
         return data
 
@@ -63,6 +63,6 @@ class Ether():
     
 if __name__=="__main__":
     e = Ether("http://localhost:9600/acoustic.csv")
-    print e.rows[1]
+    print(e.rows[1])
     
     

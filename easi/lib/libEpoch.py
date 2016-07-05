@@ -1,5 +1,5 @@
-from urllib import urlopen as uo
-from StringIO import StringIO
+from urllib.request import urlopen as uo
+from io import StringIO
 from time import sleep
 from numpy import *
 
@@ -9,7 +9,7 @@ class epoch():
         self.delay = .25
         
     def awrite(self,val,verbose=False):
-        if verbose: print "Asking for",val,":"
+        if verbose: print("Asking for",val,":")
         uo(self.site+"/writecf/"+str(val)).read()
         sleep(self.delay)
      
@@ -20,7 +20,7 @@ class epoch():
                 out = get.split("OK")[-i]
                 if out=="\r\n": continue
                 else: break
-            # print out
+            # print(out)
             return out.strip()
             #return get.split("OK")[-2].strip()
         return get
@@ -63,7 +63,7 @@ class epoch():
         elif isTR=='pe':
             return self.commanderPE(gain,tus_scale,freq,delay,filt)
         else:
-            print 'what mode you in?'
+            print('what mode you in?')
     
     def commanderPE(self,gain=25,tus_scale=40,freq=2.25,delay=0,filt=3):
         self.awrite("param_Freq=%f" % freq,verbose=False)
@@ -96,6 +96,6 @@ class epoch():
     def battstat(self):
         self.awrite("BATTSTAT?", verbose = False)
         ans = str(self.getLast(ts=5))
-        # print ans
+        # print(ans)
         return ans
 

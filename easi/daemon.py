@@ -7,13 +7,18 @@ import time
 import signal
 import errno
 
+__all__ = ["Daemon"]
+
 class Daemon:
-    def __init__(self, run_fn=None, name=None, handler=None, force=False):
-        self.pid_file = "pid_{}".format(name)
+    def __init__(self, run_fn, name=None, handler=None, force=False):
+        if name is None:
+            self.name = str(time.time())
+        else:
+            self.name = name
+        self.pid_file = "pid_{}".format(self.name)
         self.pid = 0
         self.cleanup(force=force)
         self.run_fn = run_fn
-        self.name = name
         if handler is None:
             self.handler = self.default_handler
         else:
@@ -27,7 +32,8 @@ class Daemon:
                     self.debug("found old daemon at {}, killing.".format(pid))
                     os.kill(pid, signal.SIGKILL)
                 else:
-                    err = "Daemon is already running, PID: {}.".format(pid)\
+                    err = "Daemon {} is already running, PID: {}.".format(\
+                            self.name,pid)\
                           + " Call with force=True if you want to kill it."
                     raise OSError(err)
             return
@@ -36,7 +42,11 @@ class Daemon:
 
     def stop(self):
         if self.pid_file_exists():
-            os.remove(self.pid_file)
+            try:
+                os.kill(self.get_pid_from_file(), signal.SIGKILL)
+                os.remove(self.pid_file)
+            except (ProcessLookupError,FileNotFoundError):
+                pass
             sys.exit(0)
         else: #wat?
             sys.exit(1)
@@ -59,7 +69,7 @@ class Daemon:
         self.pid = pid
         self.write_pid(pid)
         try:
-            self.handler(run_fn)
+            self.handler(self.run_fn)
         finally:
             try:
                 os.remove(self.pid_file)
@@ -80,6 +90,12 @@ class Daemon:
             open(self.pid_file,"w").write(str(pid))
         else:
             raise IOError("pid file is here when it's not supposed to be.")
+
+    def get_pid_from_file(self):
+        if self.pid_file_exists():
+            return int(open(self.pid_file, "r").readlines()[0])
+        else:
+            return
 
     def pid_exists(self,pid):
         if os.name != "posix": #TODO: put this higher up in the tree

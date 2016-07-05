@@ -5,8 +5,7 @@
 ###################################################
 ###################################################
 
-from pithy import *
-from urllib import urlopen as uo
+from urllib.request import urlopen as uo
 import json
 import libSIUI as siui
 import libEpoch
@@ -14,7 +13,7 @@ import libethercalc as ether
 from time import sleep
 
 def debug(s):
-    print "[libacoustic] "+s
+    print("[libacoustic] "+s)
 
 class Acoustics():
     def __init__(self,muxurl=None,etherurl=None,pulser=None,pulserurl=None):
@@ -28,24 +27,24 @@ class Acoustics():
         if etherurl is not None:
             self.ether = ether.Ether(etherurl)
         else:
-            print "-----------------------------------------"
-            print "WARNING: No ethercalc. Stuff might break."
-            print "-----------------------------------------"
+            print("-----------------------------------------")
+            print("WARNING: No ethercalc. Stuff might break.")
+            print("-----------------------------------------")
         if muxurl is None:
-            print "------------------------------------------------"
-            print "WARNING: No mux given. Ignoring channel numbers."
-            print "------------------------------------------------"
+            print("------------------------------------------------")
+            print("WARNING: No mux given. Ignoring channel numbers.")
+            print("------------------------------------------------")
             
         if pulser.lower()=="epoch":
             self.pulser="epoch"
-            print "connecting to Epoch..."
+            print("connecting to Epoch...")
             self.p = libEpoch.epoch(pulserurl)
-            print "... done!"
+            print("... done!")
         elif pulser.lower()=="siui":
             self.pulser="siui"
-            print "connecting to SIUI..."
+            print("connecting to SIUI...")
             self.p = siui.SIUI(pulserurl)
-            print "... done!"
+            print("... done!")
         else:
             raise AttributeError("no valid pulser type given!")
             
@@ -59,18 +58,18 @@ class Acoustics():
         try:
             if chan2 is None:
                 u = self.muxurl+"/write/%i" % int(chan)
-                print 'chan1=', chan , 'chan2=',chan2
+                print('chan1=', chan , 'chan2=',chan2)
             else:
                 u = self.muxurl+"/write/%i,%i" % (int(chan),int(chan2))
-                print 'chan1=', chan , 'chan2=',chan2
+                print('chan1=', chan , 'chan2=',chan2)
             uo(u).read()
             sleep(0.5)
         except:
-            print "problem with mux"
+            print("problem with mux")
 
     def mark_time(self):
         mark = time.time() - self.start_time
-        print mark
+        print(mark)
         return mark
     
     def getSingleData(self,row):
@@ -78,10 +77,10 @@ class Acoustics():
         
         q = row
         
-        # print q['Name']
-        #print q['Channel']
-        # print q['Mode (tr/pe)'].upper()
-        # print int(time.time())
+        # print(q['Name'])
+        #print(q['Channel'])
+        # print(q['Mode (tr/pe)'].upper())
+        # print(int(time.time()))
         fn = self.pre+"%s_%s_%s_%i.json" % (q['Name'],q['Channel'],q['Mode (tr/pe)'].upper(),int(time.time()))
         
         if self.muxurl is not None:
@@ -90,7 +89,7 @@ class Acoustics():
             else:
                 self.switchMux(q['Channel'])
         # else:
-        #     print 'nomux'
+        #     print('nomux')
         if self.pulser=="epoch":
             try:
                 data = self.p.commander(
@@ -103,9 +102,9 @@ class Acoustics():
                 json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(q['Gain (dB)'])}, open(fn,'w'))
                 return data
             except:
-                print '***ERROR***'
+                print('***ERROR***')
                 import traceback
-                print traceback.format_exc()
+                print(traceback.format_exc())
         elif self.pulser=="siui":
             vel = 4000 #m/s
             pw = 1/(float(q['Freq (MHz)'])*1E6)*1E9
@@ -126,9 +125,9 @@ class Acoustics():
             json.dump(out, open(fn,'w'))
             time.sleep(0.2)
             
-            # print "execution time: ",
+            # print("execution time: ",)
             # extime = self.mark_time()
-            # print extime
+            # print(extime)
             # open(self.pre + q['Name']+'extime',"a").write(str(extime)+",")
             
             return data
@@ -138,9 +137,9 @@ class Acoustics():
             self.ether.refresh()
             for i in range(len(self.ether.rows)-1):
                 r = self.ether.rows[i]
-                # print r
+                # print(r)
                 if r['Run (y/n)'].lower() == 'y':
-                    #print "Executing row "+str(i+1)
+                    #print("Executing row "+str(i+1))
                     self.getSingleData(r)
                 else:
                     pass
@@ -150,11 +149,11 @@ if __name__=="__main__":
     # a = Acoustics(pulser="siui",pulserurl="http://localhost:9000",muxurl="http://localhost:9001")
     
     # d1 = a.getSingleData({'Name':"fakefakefake",'Channel':2,'Channel 2':8,'Gain (dB)':62,'Freq (MHz)':2.25,'Mode (tr/pe)':"TR",'Time (us)':12, 'Delay (us)':0})
-    # # print d1[0]
+    # # print(d1[0])
     # plot(d1['x'],d1['wave'])
     # showme()
     # clf()
-    print 1
+    print(1)
 
 
 
