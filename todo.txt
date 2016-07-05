@@ -1,0 +1,7 @@
+- Finish adding "fake" epoch to libEpoch (and put a flag for it in libacoustic)
+
+- Add supervisory boilerplate inside acoustic daemon
+
+- create interface daemon
+
+
