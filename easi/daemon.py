@@ -8,12 +8,16 @@ import signal
 import errno
 
 class Daemon:
-    def __init__(self, run_fn=None, name=None, force=False):
+    def __init__(self, run_fn=None, name=None, handler=None, force=False):
         self.pid_file = "pid_{}".format(name)
         self.pid = 0
         self.cleanup(force=force)
         self.run_fn = run_fn
         self.name = name
+        if handler is None:
+            self.handler = self.default_handler
+        else:
+            self.handler = handler
 
     def cleanup(self, force=False):
         if self.pid_file_exists():
@@ -55,12 +59,21 @@ class Daemon:
         self.pid = pid
         self.write_pid(pid)
         try:
-            self.run_fn()
+            self.handler(run_fn)
         finally:
             try:
                 os.remove(self.pid_file)
             except FileNotFoundError:
                 pass
+
+    #hurr durr why am I bothering?
+    def default_handler(self,run_fn):
+        try:
+            run_fn()
+        except Exception as e:
+            raise e
+        finally:
+            pass
 
     def write_pid(self,pid):
         if not self.pid_file_exists():
@@ -68,27 +81,10 @@ class Daemon:
         else:
             raise IOError("pid file is here when it's not supposed to be.")
 
-    #this is mostly-verbatim from SO
     def pid_exists(self,pid):
         if os.name != "posix": #TODO: put this higher up in the tree
             raise OSError("Are you on Windows? this doesn't work on Windows")
-        if pid < 0:
-            return False
-        if pid == 0:
-            raise ValueError('invalid PID 0')
-        try:
-            os.kill(pid, 0)
-        except OSError as err:
-            if err.errno == errno.ESRCH:
-                # ESRCH == No such process
-                return False
-            elif err.errno == errno.EPERM:
-                # EPERM clearly means there's a process to deny access to
-                return True
-            else: # possibles: (EINVAL, EPERM, ESRCH)
-                raise
-        else:
-            return True
+        return os.path.exists("/proc/{}".format(pid))
 
     def pid_file_exists(self):
         try:
@@ -103,36 +99,7 @@ class Daemon:
             print(msg)
         return
 
-class Supervisor():
-    """Give it a PID and it'll spawn a Daemon() to watch the PID, and do any of
-    a number of possible things for you if it dies."""
-
-    def __init__(self, pid, restart=True, logfile=None, custom_fn=None, interval=1.0):
-        self.daemon = pid
-        self.restart = restart
-        self.logfile = logfile
-        self.custom_fn = custom_fn
-        self.interval = interval
-    
-    def supervisor(self):
-        open("butts","w").write(os.waitpid(self.daemon,0))
-
-    def supervise(self):
-        if self.custom_fn is None:
-            sup = Daemon(run_fn=self.supervisor, name=str(self.supervisor))
-        else:
-            sup = Daemon(run_fn=self.custom_fn, name=str(self.supervisor))
-        sup.start()
-
-    def kill(self,pid):
-        pass
-
-    def list(self):
-        pass
-        
-
-#writes to a file for a while then kills itself. useful for testing
-#daemon/supervisors
+#writes to a file for a while then kills itself. useful for testing daemon
 class Tester(Daemon):
     def __init__(self):
         Daemon.__init__(self, run_fn=self.run_fn, name="poop")
@@ -149,6 +116,4 @@ class Tester(Daemon):
 if __name__ == "__main__":
     t = Tester()
     pid = t.start()
-    s = Supervisor(pid)
-    s.supervise()
 
