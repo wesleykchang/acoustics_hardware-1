@@ -3,6 +3,8 @@ from io import StringIO
 from time import sleep
 from numpy import *
 
+import fakeEpoch
+
 class epoch():
     def __init__(self,site,fake=False):
         self.site = site
@@ -20,12 +22,12 @@ class epoch():
      
     def aread(self,split=None):
         if fake:
-            get = "" # :( add real (fake) data
+            get = ""
             for i in self.fake_buffer:
                 if i=="process_WaveForm?":
-                    get.append(""+"OK") #add real (fake) data
+                    get.append(get+"OK") #add real (fake) data
                 else:
-                    get.append("OK")
+                    get.append(fakeEpoch.param(0))
         else:
             get = uo(self.site+"/read/").read()
             if split != None:
@@ -111,4 +113,5 @@ class epoch():
         ans = str(self.getLast(ts=5))
         # print(ans)
         return ans
+
 

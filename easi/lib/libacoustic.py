@@ -44,7 +44,8 @@ class Acoustics():
                 self.p = libEpoch.epoch(pulserurl)
             print("... done!")
         elif pulser.lower()=="siui":
-            if fake: raise NotImplementedError("can't fake SIUI hardware currently")
+            if fake: 
+                raise NotImplementedError("can't fake SIUI hardware currently")
             self.pulser="siui"
             print("connecting to SIUI...")
             self.p = siui.SIUI(pulserurl)
