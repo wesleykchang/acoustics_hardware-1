@@ -5,12 +5,16 @@
 ###################################################
 ###################################################
 
+#normal libs
 from urllib.request import urlopen as uo
 import json
+from time import sleep
+
+#in this package
 import libSIUI as siui
 import libEpoch
 import libethercalc as ether
-from time import sleep
+from mux import Mux
 
 def debug(s):
     print("[libacoustic] "+s)
@@ -19,9 +23,9 @@ class Acoustics():
     def __init__(self,muxurl=None,etherurl=None,pulser=None,pulserurl=None,fake=False):
         self.pre = "/Users/j125mini/EASI/data/"
         if muxurl:
-            self.muxurl = self.cleanURL(muxurl)
+            self.mux = m.Mux(self.cleanURL(muxurl),fake=fake)
         else:
-            self.muxurl = None
+            self.mux = None
         if pulserurl:
             self.pulserurl = self.cleanURL(pulserurl)
         if etherurl is not None:
@@ -58,19 +62,6 @@ class Acoustics():
             return url[:-1]
         else:
             return url
-            
-    def switchMux(self,chan,chan2=None):
-        try:
-            if chan2 is None:
-                u = self.muxurl+"/write/%i" % int(chan)
-                print('chan1=', chan , 'chan2=',chan2)
-            else:
-                u = self.muxurl+"/write/%i,%i" % (int(chan),int(chan2))
-                print('chan1=', chan , 'chan2=',chan2)
-            uo(u).read()
-            sleep(0.5)
-        except:
-            print("problem with mux")
 
     def mark_time(self):
         mark = time.time() - self.start_time
@@ -88,11 +79,11 @@ class Acoustics():
         # print(int(time.time()))
         fn = self.pre+"%s_%s_%s_%i.json" % (q['Name'],q['Channel'],q['Mode (tr/pe)'].upper(),int(time.time()))
         
-        if self.muxurl is not None:
+        if self.mux is not None:
             if q['Channel 2']!="":
-                self.switchMux(q['Channel'],q['Channel 2'])
+                self.mux.switch(q['Channel'],q['Channel 2'])
             else:
-                self.switchMux(q['Channel'])
+                self.mux.switch(q['Channel'])
         # else:
         #     print('nomux')
         if self.pulser=="epoch":

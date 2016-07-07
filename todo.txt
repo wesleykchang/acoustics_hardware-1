@@ -1,6 +1,6 @@
-- Finish adding "fake" epoch to libEpoch 
+- test fake epoch/mux
 
-- separate mux code into new file, add a fake for it
+- add better error handling for mux
 
 - Add supervisory boilerplate inside acoustic daemon
 
