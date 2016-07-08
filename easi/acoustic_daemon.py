@@ -9,11 +9,13 @@ class AcousticDaemon(Daemon):
         Daemon.__init__(self,self.run,handler=self.handler)
 
     def run(self):
-        while True:
-            break
+        A.beginRun()#or wahtever it is
 
     def handler(self,fn):
         try:
             fn()
         except:
             pass 
+
+    def loadTools(self):
+        pass

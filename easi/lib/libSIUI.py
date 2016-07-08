@@ -2,7 +2,7 @@ from numpy import *
 import time
 from urllib.request import urlopen as uo
 from struct import pack
-import requests
+import urllib.request
 import json
 
 class SIUI():

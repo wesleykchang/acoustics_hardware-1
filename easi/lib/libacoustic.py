@@ -11,10 +11,10 @@ import json
 from time import sleep
 
 #in this package
-import libSIUI as siui
-import libEpoch
-import libethercalc as ether
-from mux import Mux
+import lib.libSIUI as siui
+import lib.libEpoch
+import lib.libethercalc as ether
+from lib.mux import Mux
 
 def debug(s):
     print("[libacoustic] "+s)

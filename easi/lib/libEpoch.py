@@ -3,7 +3,7 @@ from io import StringIO
 from time import sleep
 from numpy import *
 
-import fakeEpoch
+import lib.fakeEpoch
 
 class epoch():
     def __init__(self,site,fake=False):
