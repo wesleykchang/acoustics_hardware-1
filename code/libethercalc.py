@@ -44,7 +44,7 @@ class Ether():
         return data
 
     def _parsecsv(self):
-        splits = self._pullIfAvailable()
+        splits = self._pullIfAvailable().split("\n")
         header = splits.pop(0).replace('\"','')
         cols = header.split(",")
         out = []
