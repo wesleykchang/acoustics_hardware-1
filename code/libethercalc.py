@@ -26,7 +26,8 @@ class Ether():
            just continue to use the CSV and alert the user."""
         try:
             data = uo(self.url).read()
-            open(self.backup,"w").write(data)
+            if len(data) > 10: open(self.backup,"w").write(data)
+            else: data = open(self.backup).read()
         except: #BZZT, get stored data
             try:
                 data = open(self.backup,"r").read()
