@@ -11,6 +11,7 @@ import json
 import libSIUI as siui
 import libEpoch
 import libethercalc as ether
+import os
 from time import sleep
 
 def debug(s):
@@ -18,7 +19,8 @@ def debug(s):
 
 class Acoustics():
     def __init__(self,muxurl=None,etherurl=None,pulser=None,pulserurl=None):
-        self.pre = "/Users/j125mini/EASI/data/"
+        # self.pre = "/Users/j125mini/EASI/data/"
+        self.pre = os.getcwd()
         if muxurl:
             self.muxurl = self.cleanURL(muxurl)
         else:

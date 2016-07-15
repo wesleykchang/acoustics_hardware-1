@@ -32,7 +32,7 @@ else
 	blen = 10000
 }
 
-var app = require('express')();
+var app = require('express')(); //Javascript way of importing things
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 http.listen(hp);
@@ -44,7 +44,7 @@ var serialPort = new SerialPort(sp,{baudrate:baud});
 serialPort.on("open", function () { 
 	console.log('open');
     
-});  
+});  //opens communication with epoch
 
 //sleep for 5 seconds for arduino serialport purposes
 for (var i=0; i<5; i++ )
