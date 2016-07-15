@@ -15,7 +15,7 @@ class Daemon:
             self.name = str(time.time())
         else:
             self.name = name
-        self.pid_file = "pid_{}".format(self.name)
+        self.pid_file = os.path.join(os.getcwd(),"pid_{}".format(self.name))
         self.pid = 0
         self.cleanup(force=force)
         self.run_fn = run_fn
@@ -43,8 +43,8 @@ class Daemon:
     def stop(self):
         if self.pid_file_exists():
             try:
-                os.kill(self.get_pid_from_file(), signal.SIGKILL)
                 os.remove(self.pid_file)
+                os.kill(self.pid, signal.SIGKILL)
             except (ProcessLookupError,FileNotFoundError):
                 pass
             sys.exit(0)
@@ -63,6 +63,7 @@ class Daemon:
         #second fork
         p = os.fork()
         if p > 0:
+            self.pid = p
             return p #return the pid before exiting second parent
         #okay, we're a daemon now
         pid = os.getpid()
@@ -120,7 +121,6 @@ class Tester(Daemon):
     def __init__(self):
         Daemon.__init__(self, run_fn=self.run_fn, name="poop")
     def run_fn(self):
-        print(self.pid)
         count = 0
         while True:
             open("tester", "a").write(str(count)+"\n")
@@ -131,5 +131,9 @@ class Tester(Daemon):
 
 if __name__ == "__main__":
     t = Tester()
-    pid = t.start()
+    t.start()
+
+    # pid = t.start()
+    # t.cleanup(force=True)
+
 
