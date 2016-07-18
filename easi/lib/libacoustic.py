@@ -132,6 +132,9 @@ class Acoustics():
             # open(self.pre + q['Name']+'extime',"a").write(str(extime)+",")
             
             return data
+
+    def parseJSON(self,json_file):
+        return
     
     def beginRun(self,loop=True):
         while True: 

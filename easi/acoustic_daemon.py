@@ -19,3 +19,7 @@ class AcousticDaemon(Daemon):
 
     def loadTools(self):
         pass
+
+if __name__=="__main__":
+    # d = AcousticDaemon()
+    # d.start()
