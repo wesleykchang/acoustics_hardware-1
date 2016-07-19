@@ -15,52 +15,54 @@ import os
 from time import sleep
 
 #in this package
-import lib.libSIUI as siui
-import lib.libEpoch
-import lib.libethercalc as ether
-from lib.mux import Mux
+import libSIUI as siui
+import libEpoch
+import libethercalc as ether
+from mux import Mux
+from pprint import pprint
 
 def debug(s):
     print("[libacoustic] "+s)
 
 class Acoustics():
-    def __init__(self,muxurl=None,etherurl=None,pulser=None,pulserurl=None):
+    def __init__(self,muxurl=None,json_url=None,pulser=None,pulserurl=None):
         # self.pre = "/Users/j125mini/EASI/data/"
         self.pre = os.getcwd()
-        if muxurl:
-            self.mux = m.Mux(self.cleanURL(muxurl),fake=fake)
-        else:
-            self.mux = None
-        if pulserurl:
-            self.pulserurl = self.cleanURL(pulserurl)
-        if etherurl is not None:
-            self.ether = ether.Ether(etherurl)
-        else:
-            print("-----------------------------------------")
-            print("WARNING: No ethercalc. Stuff might break.")
-            print("-----------------------------------------")
-        if muxurl is None:
-            print("------------------------------------------------")
-            print("WARNING: No mux given. Ignoring channel numbers.")
-            print("------------------------------------------------")
+        self.json_url = json_url
+        # if muxurl:
+        #     self.mux = m.Mux(self.cleanURL(muxurl),fake=fake)
+        # else:
+        #     self.mux = None
+        # if pulserurl:
+        #     self.pulserurl = self.cleanURL(pulserurl)
+        # if etherurl is not None:
+        #     self.ether = ether.Ether(etherurl)
+        # else:
+        #     print("-----------------------------------------")
+        #     print("WARNING: No ethercalc. Stuff might break.")
+        #     print("-----------------------------------------")
+        # if muxurl is None:
+        #     print("------------------------------------------------")
+        #     print("WARNING: No mux given. Ignoring channel numbers.")
+        #     print("------------------------------------------------")
             
-        if pulser.lower()=="epoch":
-            self.pulser="epoch"
-            print("connecting to Epoch...")
-            if fake:
-                self.p = libEpoch.epoch(pulserurl,fake=True)
-            else:
-                self.p = libEpoch.epoch(pulserurl)
-            print("... done!")
-        elif pulser.lower()=="siui":
-            if fake: 
-                raise NotImplementedError("can't fake SIUI hardware currently")
-            self.pulser="siui"
-            print("connecting to SIUI...")
-            self.p = siui.SIUI(pulserurl)
-            print("... done!")
-        else:
-            raise AttributeError("no valid pulser type given!")
+        # if pulser.lower()=="epoch":
+        #     self.pulser="epoch"
+        #     print("connecting to Epoch...")
+        #     if fake:
+        #         self.p = libEpoch.epoch(pulserurl,fake=True)
+        #     else:
+        #         self.p = libEpoch.epoch(pulserurl)
+        #     print("... done!")
+        # elif pulser.lower()=="siui":
+        #     if fake: 
+        #         raise NotImplementedError("can't fake SIUI hardware currently")
+        #     self.pulser="siui"
+        #     print("connecting to SIUI...")
+        #     self.p = siui.SIUI(pulserurl)
+        #     print("... done!")
+        # else:
+        #     raise AttributeError("no valid pulser type given!")
             
     def cleanURL(self,url):
         if url[-1]=="/":
@@ -133,8 +135,19 @@ class Acoustics():
             
             return data
 
+    # def getJSON(self):
+    #     json_file = uo(self.json_url).read()
+    #     with open(json_file) as data_file:    
+    #         data = json.load(data_file)
+    #     pprint(data)
+    #     return data
+
+
     def parseJSON(self,json_file):
-        return
+        with open(json_file) as data_file:    
+            data = json.load(data_file)
+        # pprint(data)
+        return data
     
     def beginRun(self,loop=True):
         while True: 
@@ -151,14 +164,16 @@ class Acoustics():
 
 if __name__=="__main__":
     # a = Acoustics(pulser="siui",pulserurl="http://localhost:9000",muxurl="http://localhost:9001")
-    
     # d1 = a.getSingleData({'Name':"fakefakefake",'Channel':2,'Channel 2':8,'Gain (dB)':62,'Freq (MHz)':2.25,'Mode (tr/pe)':"TR",'Time (us)':12, 'Delay (us)':0})
     # # print(d1[0])
     # plot(d1['x'],d1['wave'])
     # showme()
     # clf()
-    print(1)
+    # print(1)
 
+    a = Acoustics(json_url= "http://feasible.pithy.io:4011/table_save")
+    a.parseJSON("FEASIBLE_ACQ_Setting.json")
+    # data = a.getJSON()
 
 
 

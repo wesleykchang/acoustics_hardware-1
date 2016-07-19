@@ -3,7 +3,7 @@ from io import StringIO
 from time import sleep
 from numpy import *
 
-import lib.fakeEpoch
+import fakeEpoch
 
 class epoch():
     def __init__(self,site, fake=False):
@@ -13,7 +13,7 @@ class epoch():
         self.fake_buffer = []
         
     def awrite(self,val,verbose=False):
-        if verbose: print "Asking for",val,":"
+        if verbose: print ("Asking for",val,":")
         uo("http://localhost:" + str(self.site)+"/writecf/"+str(val)).read()
         sleep(self.delay)
      
@@ -70,10 +70,10 @@ class epoch():
         self.awrite("param_WaveForm?",verbose=False)
         if isTR == 'tr':
             self.awrite("param_TransmissionMode=2",verbose=False)
-        else if isTR == 'pe':
+        elif isTR == 'pe':
             self.awrite("param_TransmissionMode=0",verbose=False)
         else:
-            print "what mode are you in?"
+            print ("what mode are you in?")
 
         raw = self.getLast()
         # open("epoch-emergency-log","a").write(str(freq)+","+str(tus_scale)+","+str(gain)+","+str(delay))

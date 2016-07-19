@@ -1,14 +1,17 @@
 
+import sys
+sys.path.append('lib') #tells python where to look for packages
 from daemon import Daemon
-import lib.libacoustic as A
+import libacoustic as A
 
 __all__ = ["AcousticDaemon"]
 
 class AcousticDaemon(Daemon):
     def __init__(self):
-        Daemon.__init__(self,self.run,handler=self.handler)
+        Daemon.__init__(self,self.run,handler=self.handler,name="easi_daemon")
 
     def run(self):
+        A = A.Acoustics()
         A.beginRun()#or wahtever it is
 
     def handler(self,fn):
@@ -21,5 +24,5 @@ class AcousticDaemon(Daemon):
         pass
 
 if __name__=="__main__":
-    # d = AcousticDaemon()
+    d = AcousticDaemon()
     # d.start()
