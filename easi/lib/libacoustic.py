@@ -135,19 +135,13 @@ class Acoustics():
             
             return data
 
-    # def getJSON(self):
-    #     json_file = uo(self.json_url).read()
-    #     with open(json_file) as data_file:    
-    #         data = json.load(data_file)
-    #     pprint(data)
-    #     return data
-
-
-    def parseJSON(self,json_file):
-        with open(json_file) as data_file:    
-            data = json.load(data_file)
-        # pprint(data)
-        return data
+    def getJSON(self):
+        """Reads in a json from json_file. JSON contains
+        parameter settings and experiment details"""
+        json_file = uo(self.json_url)
+        json_file_str = json_file.readall().decode('utf-8')
+        settings = json.loads(json_file_str)
+        return settings
     
     def beginRun(self,loop=True):
         while True: 
@@ -171,9 +165,10 @@ if __name__=="__main__":
     # clf()
     # print(1)
 
-    a = Acoustics(json_url= "http://feasible.pithy.io:4011/table_save")
-    a.parseJSON("FEASIBLE_ACQ_Setting.json")
-    # data = a.getJSON()
+    a = Acoustics(json_url= "http://feasible.pithy.io:4011/table_load")
+    params = a.getJSON()
+    pprint(params)
+    pprint(params["data"])
 
 
 
