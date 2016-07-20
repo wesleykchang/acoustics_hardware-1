@@ -12,8 +12,8 @@ import libSIUI as siui
 import libEpoch
 import libethercalc as ether
 import os
-from time import sleep
-
+import datetime
+import time
 #in this package
 import libSIUI as siui
 import libEpoch
@@ -24,45 +24,41 @@ from pprint import pprint
 def debug(s):
     print("[libacoustic] "+s)
 
+#URLs: Table URL is here: http://feasible.io:8180
+#JSON is output here: http://feasible.pithy.io:4011/table_load
+
+
 class Acoustics():
-    def __init__(self,muxurl=None,json_url=None,pulser=None,pulserurl=None):
-        # self.pre = "/Users/j125mini/EASI/data/"
-        self.pre = os.getcwd()
+    def __init__(self,muxurl=None,json_url=None,pulser="epoch",pulserurl=None):
+        self.path = os.getcwd()
         self.json_url = json_url
+        self.folder_name = str(datetime.date.today()) #might be a problem if multiple exps are run on same day
+        #can be fixed by checking if folder exists, and appending a number to the end
+
         # if muxurl:
         #     self.mux = m.Mux(self.cleanURL(muxurl),fake=fake)
         # else:
         #     self.mux = None
         # if pulserurl:
         #     self.pulserurl = self.cleanURL(pulserurl)
-        # if etherurl is not None:
-        #     self.ether = ether.Ether(etherurl)
-        # else:
-        #     print("-----------------------------------------")
-        #     print("WARNING: No ethercalc. Stuff might break.")
-        #     print("-----------------------------------------")
         # if muxurl is None:
         #     print("------------------------------------------------")
         #     print("WARNING: No mux given. Ignoring channel numbers.")
         #     print("------------------------------------------------")
             
-        # if pulser.lower()=="epoch":
-        #     self.pulser="epoch"
-        #     print("connecting to Epoch...")
-        #     if fake:
-        #         self.p = libEpoch.epoch(pulserurl,fake=True)
-        #     else:
-        #         self.p = libEpoch.epoch(pulserurl)
-        #     print("... done!")
-        # elif pulser.lower()=="siui":
-        #     if fake: 
-        #         raise NotImplementedError("can't fake SIUI hardware currently")
-        #     self.pulser="siui"
-        #     print("connecting to SIUI...")
-        #     self.p = siui.SIUI(pulserurl)
-        #     print("... done!")
-        # else:
-        #     raise AttributeError("no valid pulser type given!")
+        if pulser.lower()=="epoch":
+            self.pulser="epoch"
+            print("connecting to Epoch...")
+            self.p = libEpoch.Epoch(pulserurl)
+            print("... done!")
+
+    def getJSON(self):
+        """Reads in a json from json_file. JSON contains
+        parameter settings and experiment details"""
+        json_file = uo(self.json_url)
+        json_file_str = json_file.readall().decode('utf-8')
+        settings = json.loads(json_file_str)
+        return settings
             
     def cleanURL(self,url):
         if url[-1]=="/":
@@ -75,86 +71,53 @@ class Acoustics():
         print(mark)
         return mark
     
-    def getSingleData(self,row):
-        self.start_time = time.time()
+    def getSingleData(self,row, row_no):
+        """Processes a single row/test from the table. each row is a dictionary. Forwards command to
+        Epoch and stores a json waveform in a folder that corresponds to the row."""
+
+        ###Might be a better way to keep track of row number, maybe output it as part of the JSON.
+        ###
+
+        row_name = "Row_" + str(row_no)
+        os.mkdir(os.path.join(self.folder_name, row_name))
+        fname = os.path.join(self.path,self.folder_name,row_name,str(time.time()))
         
-        q = row
-        
-        # print(q['Name'])
-        #print(q['Channel'])
-        # print(q['Mode (tr/pe)'].upper())
-        # print(int(time.time()))
-        fn = self.pre+"%s_%s_%s_%i.json" % (q['Name'],q['Channel'],q['Mode (tr/pe)'].upper(),int(time.time()))
-        
-        if self.mux is not None:
-            if q['Channel 2']!="":
-                self.mux.switch(q['Channel'],q['Channel 2'])
-            else:
-                self.mux.switch(q['Channel'])
-        # else:
-        #     print('nomux')
+        # if self.mux is not None:
+        #     if row['channel2']!="":
+        #         self.mux.switch(row['channel'],row['channel2'])
+        #     else:
+        #         self.mux.switch(row['channel'])
+
         if self.pulser=="epoch":
             try:
                 data = self.p.commander(
-                    isTR=q['Mode (tr/pe)'].lower(),
-                    gain=float(q['Gain (dB)']),
-                    tus_scale=int(q['Time (us)']),
-                    freq=float(q['Freq (MHz)']),
-                    delay=float(q['Delay (us)']),
-                    filt=float(q['Filter Mode']))
-                json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(q['Gain (dB)'])}, open(fn,'w'))
+                    isTR=row['mode(tr/pe)'].lower(),
+                    gain=float(row['gain(db)']),
+                    tus_scale=int(row['time(us)']),
+                    freq=float(row['freq(mhz)']),
+                    delay=float(row['delay(us)']),
+                    filt=float(row['filtermode']))
+                json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
                 return data
             except:
                 print('***ERROR***')
                 import traceback
                 print(traceback.format_exc())
-        elif self.pulser=="siui":
-            vel = 4000 #m/s
-            pw = 1/(float(q['Freq (MHz)'])*1E6)*1E9
-            rng = (float(q['Time (us)'])/1E6)*vel*1000.0
-            self.p.params['range'] = int(rng)
-            self.p.params['vset'] = 400 #pulse voltage
-            self.p.params['pw'] = int(floor(pw/10)*10)
-            self.p.params['vel'] = int(vel)
-            #s.params['rect'] = 'rf'#rectification
-            self.p.params['prf'] = 400  #repitition frequency
-            self.p.params['gain'] = q['Gain (dB)']
-            self.p.params['mode'] = q['Mode (tr/pe)'].upper()
-            data = self.p.setGetCheck()
-            sleep(6)
-            data = self.p.getData()
-            rtime = [round(float(x)/(vel*1E3),3) for x in list(data['x'])]
-            out = {'time (us)':rtime,'amp':[int(x) for x in list(data['wave'])],'gain':q['Gain (dB)']}
-            json.dump(out, open(fn,'w'))
-            time.sleep(0.2)
-            
-            # print("execution time: ",)
-            # extime = self.mark_time()
-            # print(extime)
-            # open(self.pre + q['Name']+'extime',"a").write(str(extime)+",")
-            
-            return data
-
-    def getJSON(self):
-        """Reads in a json from json_file. JSON contains
-        parameter settings and experiment details"""
-        json_file = uo(self.json_url)
-        json_file_str = json_file.readall().decode('utf-8')
-        settings = json.loads(json_file_str)
-        return settings
     
     def beginRun(self,loop=True):
-        while True: 
-            self.ether.refresh()
-            for i in range(len(self.ether.rows)-1):
-                r = self.ether.rows[i]
-                # print(r)
-                if r['Run (y/n)'].lower() == 'y':
-                    #print("Executing row "+str(i+1))
-                    self.getSingleData(r)
-                else:
-                    pass
-            if not loop: break
+        """Loops through the rows and processes each one"""
+        index = 0 #counter to keep track of the row number. Temporary.
+        tests = self.getJSON()
+        os.mkdir(self.folder_name)
+        # while True: 
+        for row in tests['data']:
+            if (row['run(y/n)']).lower() == 'y':
+                #print("Executing row "+str(i+1))
+                self.getSingleData(row, index)
+            else:
+                pass
+            index += 1
+        # if not loop: break
 
 if __name__=="__main__":
     # a = Acoustics(pulser="siui",pulserurl="http://localhost:9000",muxurl="http://localhost:9001")
@@ -165,10 +128,11 @@ if __name__=="__main__":
     # clf()
     # print(1)
 
-    a = Acoustics(json_url= "http://feasible.pithy.io:4011/table_load")
-    params = a.getJSON()
-    pprint(params)
-    pprint(params["data"])
+    a = Acoustics(json_url= "http://feasible.pithy.io:4011/table_load",pulserurl="9003")
+    a.beginRun(loop=False)
+    # params = a.getJSON()
+    # pprint(params)
+    # pprint(params["data"])
 
 
 

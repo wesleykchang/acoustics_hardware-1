@@ -5,7 +5,7 @@ from numpy import *
 
 import fakeEpoch
 
-class epoch():
+class Epoch():
     def __init__(self,site, fake=False):
         self.site = site #localhost port for epoch. string.
         self.delay = .25
@@ -18,7 +18,7 @@ class epoch():
         sleep(self.delay)
      
     def aread(self,split=None):
-        get = uo("http://localhost:" + str(self.site)+"/read/").read()
+        get = uo("http://localhost:" + str(self.site)+"/read/").read().decode('utf-8') #need to decode for python3
         if split != None:
             for i in range(1,6):
                 out = get.split("OK")[-i]
