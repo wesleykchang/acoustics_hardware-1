@@ -106,7 +106,7 @@ class Acoustics():
     
     def beginRun(self,loop=True):
         """Loops through the rows and processes each one"""
-        index = 0 #counter to keep track of the row number. Temporary.
+        index = 0 #counter to keep track of the row number. Temporary, to be replaced with TestID
         tests = self.getJSON()
         os.mkdir(self.folder_name)
         # while True: 
