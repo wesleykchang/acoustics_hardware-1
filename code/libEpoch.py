@@ -5,16 +5,16 @@ from numpy import *
 
 class epoch():
     def __init__(self,site):
-        self.site = site
+        self.site = site #localhost port for epoch. string.
         self.delay = .25
         
     def awrite(self,val,verbose=False):
         if verbose: print "Asking for",val,":"
-        uo(self.site+"/writecf/"+str(val)).read()
+        uo("http://localhost:" + str(self.site)+"/writecf/"+str(val)).read()
         sleep(self.delay)
      
     def aread(self,split=None):
-        get = uo(self.site+"/read/").read()
+        get = uo("http://localhost:" + str(self.site)+"/read/").read()
         if split != None:
             for i in range(1,6):
                 out = get.split("OK")[-i]
@@ -54,18 +54,9 @@ class epoch():
         rng = float(self.getLast(ts=10))
         tim = linspace(dely,rng+dely,len(first))
         rtime = [round(x,3) for x in list(tim)]
-        
         return rtime,first,second
     
-    def commander(self,isTR='tr',gain=25,tus_scale=40,freq=2.25,delay=0,filt=0):
-        if isTR=='tr':
-            return self.commanderTR(gain,tus_scale,freq,delay,filt)
-        elif isTR=='pe':
-            return self.commanderPE(gain,tus_scale,freq,delay,filt)
-        else:
-            print 'what mode you in?'
-    
-    def commanderPE(self,gain=25,tus_scale=40,freq=2.25,delay=0,filt=3):
+    def commander(self,isTR='tr',gain=25,tus_scale=40,freq=2.25,delay=0,filt=3):
         self.awrite("param_Freq=%f" % freq,verbose=False)
         self.awrite("param_Range=%f" % tus_scale,verbose=False)
         self.awrite("param_BaseGain=%f" % gain,verbose=False)
@@ -73,26 +64,19 @@ class epoch():
         self.awrite("param_TransmissionMode=0",verbose=False)
         self.awrite("param_Delay=%f" % delay,verbose=False)
         self.awrite("param_WaveForm?",verbose=False)
+        if isTR == 'tr':
+            self.awrite("param_TransmissionMode=2",verbose=False)
+        else if isTR == 'pe':
+            self.awrite("param_TransmissionMode=0",verbose=False)
+        else:
+            print "what mode are you in?"
+
         raw = self.getLast()
         # open("epoch-emergency-log","a").write(str(freq)+","+str(tus_scale)+","+str(gain)+","+str(delay))
         # open("epoch-emergency-log","a").write(raw)
         data = self.processWaveform(raw)
         return data
 
-    def commanderTR(self,gain=25,tus_scale=40,freq=2.25,delay=0,filt=3):
-        self.awrite("param_Freq=%f" % freq,verbose=False)
-        self.awrite("param_Range=%f" % tus_scale,verbose=False)
-        self.awrite("param_BaseGain=%f" % gain,verbose=False)
-        self.awrite("param_FilterStandard=%i" % filt,verbose=False)
-        self.awrite("param_TransmissionMode=2",verbose=False)
-        self.awrite("param_Delay=%f" % delay,verbose=False)
-        self.awrite("param_WaveForm?",verbose=False)
-        raw = self.getLast()
-        # open("epoch-emergency-log","a").write(str(freq)+","+str(tus_scale)+","+str(gain)+","+str(delay))
-        # open("epoch-emergency-log","a").write(raw)
-        data = self.processWaveform(raw)
-        return data
-    
     def battstat(self):
         self.awrite("BATTSTAT?", verbose = False)
         ans = str(self.getLast(ts=5))

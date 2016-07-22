@@ -1,0 +1,9 @@
+- test fake epoch/mux
+
+- add better error handling for mux
+
+- Add supervisory boilerplate inside acoustic daemon
+
+- create interface daemon
+
+
