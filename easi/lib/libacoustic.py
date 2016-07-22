@@ -8,18 +8,16 @@
 #normal libs
 from urllib.request import urlopen as uo
 import json
-import libSIUI as siui
 import libEpoch
-import libethercalc as ether
 import os
 import datetime
 import time
 #in this package
-import libSIUI as siui
 import libEpoch
-import libethercalc as ether
 from mux import Mux
 from pprint import pprint
+from http.server import SimpleHTTPRequestHandler
+import socketserver
 
 def debug(s):
     print("[libacoustic] "+s)
@@ -52,6 +50,11 @@ class Acoustics():
             self.p = libEpoch.Epoch(pulserurl)
             print("... done!")
 
+         # if muxurl is None:
+         #    print("------------------------------------------------")
+         #    print("WARNING: No mux given. Ignoring channel numbers.")
+         #    print("------------------------------------------------")
+
     def getJSON(self):
         """Reads in a json from json_file. JSON contains
         parameter settings and experiment details"""
@@ -75,12 +78,15 @@ class Acoustics():
         """Processes a single row/test from the table. each row is a dictionary. Forwards command to
         Epoch and stores a json waveform in a folder that corresponds to the row."""
 
-        ###Might be a better way to keep track of row number, maybe output it as part of the JSON.
-        ###
+        ###Later row will be replaced with testID
 
         row_name = "Row_" + str(row_no)
-        os.mkdir(os.path.join(self.folder_name, row_name))
-        fname = os.path.join(self.path,self.folder_name,row_name,str(time.time()))
+        try:
+            os.mkdir(os.path.join(self.folder_name, row_name))
+        except FileExistsError:
+            pass
+        fname = os.path.join(self.path,self.folder_name,row_name,str(time.time()).replace(".","_") + ".json")
+        fname_current = os.path.join(self.path,self.folder_name,row_name,"current.json")
         
         # if self.mux is not None:
         #     if row['channel2']!="":
@@ -98,6 +104,7 @@ class Acoustics():
                     delay=float(row['delay(us)']),
                     filt=float(row['filtermode']))
                 json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
+                json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
                 return data
             except:
                 print('***ERROR***')
@@ -106,9 +113,12 @@ class Acoustics():
     
     def beginRun(self,loop=True):
         """Loops through the rows and processes each one"""
-        index = 0 #counter to keep track of the row number. Temporary.
+        index = 0 #counter to keep track of the row number. Temporary, to be replaced with TestID
         tests = self.getJSON()
-        os.mkdir(self.folder_name)
+        try:
+            os.mkdir(self.folder_name)
+        except FileExistsError:
+            pass
         # while True: 
         for row in tests['data']:
             if (row['run(y/n)']).lower() == 'y':
@@ -120,22 +130,8 @@ class Acoustics():
         # if not loop: break
 
 if __name__=="__main__":
-    # a = Acoustics(pulser="siui",pulserurl="http://localhost:9000",muxurl="http://localhost:9001")
-    # d1 = a.getSingleData({'Name':"fakefakefake",'Channel':2,'Channel 2':8,'Gain (dB)':62,'Freq (MHz)':2.25,'Mode (tr/pe)':"TR",'Time (us)':12, 'Delay (us)':0})
-    # # print(d1[0])
-    # plot(d1['x'],d1['wave'])
-    # showme()
-    # clf()
-    # print(1)
-
     a = Acoustics(json_url= "http://feasible.pithy.io:4011/table_load",pulserurl="9003")
-    a.beginRun(loop=False)
-    # params = a.getJSON()
-    # pprint(params)
-    # pprint(params["data"])
-
-
-
+    a.beginRun(loop=True)
 
 
 
