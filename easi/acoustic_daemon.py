@@ -4,6 +4,9 @@ sys.path.append('lib') #tells python where to look for packages
 from daemon import Daemon
 import libacoustic as A
 import time
+import argparse
+from http.server import SimpleHTTPRequestHandler
+import socketserver
 
 __all__ = ["AcousticDaemon"]
 
@@ -14,8 +17,7 @@ class AcousticDaemon(Daemon):
     def run(self):
         while True:
             a = A.Acoustics(json_url= "http://feasible.pithy.io:4011/table_load",pulserurl="9003")
-            a.beginRun(loop=False)
-            self.stop()
+            a.beginRun()
 
     def handler(self,fn):
         try:
@@ -26,20 +28,46 @@ class AcousticDaemon(Daemon):
     def loadTools(self):
         pass
 
-class Tester(Daemon):
-    def __init__(self):
-        Daemon.__init__(self, run_fn=self.run_fn, name="poop")
-    def run_fn(self):
-        count = 0
-        while True:
-            open("tester", "a").write(str(count)+"\n")
-            count += 1
-            if count > 10:
-                self.stop()
-            time.sleep(1)
+class WebDaemon(Daemon):
+    def __init__(self,port):
+        Daemon.__init__(self,self.run,name="web_daemon")
+        self.port= port
+
+    def start(self):
+        Handler = SimpleHTTPRequestHandler
+        self.httpd = socketserver.TCPServer(("", self.port), Handler)
+        print (time.asctime(), "Server Starts - %s:%s" % ("localhost", self.port))
+        return Daemon.start(self)
+
+    def stop(self):
+        self.httpd.server_close()
+        print (time.asctime(), "Server Stops - %s:%s" % ("localhost", self.port))
+        return Daemon.stop(self)
+
+    def run(self):
+        self.httpd.serve_forever()
+
+    def loadTools(self):
+        pass
 
 if __name__=="__main__":
-    d = AcousticDaemon()
+    d = WebDaemon(port=8001)
     d.start()
-    # t = Tester()
-    # t.start()
+
+    ad = AcousticDaemon()
+    ad.start()
+
+
+
+
+    #argparser from command line. to finish later.
+    # parser = argparse.ArgumentParser(description="Starts/Stops the acoustic daemon")
+    # parser.add_argument('start', help="Starts daemon")
+    # parser.add_argument('stop', help="Stops daemon")
+    # args = parser.parse_args()
+
+    # if args.start:
+    #     d.start()
+
+    # if args.stop:
+    #     d.stop()
