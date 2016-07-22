@@ -15,7 +15,13 @@ class Daemon:
             self.name = str(time.time())
         else:
             self.name = name
-        self.pid_file = os.path.join(os.getcwd(),"pid_{}".format(self.name))
+
+        try: #create folder to contain PIDs, if it doesn't exist already.
+            os.mkdir("Daemon_PIDs")
+        except FileExistsError:
+            pass
+
+        self.pid_file = os.path.join(os.getcwd(),"Daemon_PIDs","pid_{}".format(self.name))
         self.pid = 0
         self.cleanup(force=force)
         self.run_fn = run_fn

@@ -8,6 +8,7 @@ import argparse
 from http.server import SimpleHTTPRequestHandler
 import socketserver
 
+
 __all__ = ["AcousticDaemon"]
 
 class AcousticDaemon(Daemon):
@@ -19,7 +20,7 @@ class AcousticDaemon(Daemon):
             a = A.Acoustics(json_url= "http://feasible.pithy.io:4011/table_load",pulserurl="9003")
             a.beginRun()
 
-    def handler(self,fn):
+    def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
         try:
             fn()
         except:
@@ -54,8 +55,8 @@ if __name__=="__main__":
     d = WebDaemon(port=8001)
     d.start()
 
-    ad = AcousticDaemon()
-    ad.start()
+    # ad = AcousticDaemon()
+    # ad.start()
 
 
 
