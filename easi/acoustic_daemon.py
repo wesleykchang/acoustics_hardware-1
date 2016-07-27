@@ -33,6 +33,8 @@ class AcousticDaemon(Daemon):
         pass
 
 class WebDaemon(Daemon):
+    """We probably don't need this anymore. The UI Daemon can just pull directly from latest wforms
+    for sparkline"""
     def __init__(self,port):
         Daemon.__init__(self,self.run,name="web_daemon")
         self.port= port
@@ -56,6 +58,7 @@ class WebDaemon(Daemon):
 
 
 class UIDaemon(Daemon):
+    """Hosts an editable table at http://localhost:5000"""
     def __init__(self):
         Daemon.__init__(self,self.run,name="ui_daemon")
 
@@ -76,12 +79,13 @@ class UIDaemon(Daemon):
                 try:
                     test = request.get_data().decode('utf-8')
                     open("table_state.json",'w').write(test)
-                    open("table_state_%i.json" % int(time.time()),'w').write(test)
+                    # open("table_state_%i.json" % int(time.time()),'w').write(test)
                     out = json.loads(test)
-                    out['status'] = 'success IS THE BEST'
+                    out['status'] = 'success!'
                 except Exception as E: 
                     out['status'] = str(E)
                 return json.dumps(out)
+                
         while True:        
             app.run() #if you call this with debug=true, daemon will init twice. weird.
 
@@ -90,8 +94,8 @@ class UIDaemon(Daemon):
 
 
 if __name__=="__main__":
-    d = UIDaemon()
-    d.start()
+    # d = UIDaemon()
+    # d.start()
 
     # ad = AcousticDaemon()
     # ad.start()

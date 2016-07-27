@@ -30,7 +30,6 @@ class Acoustics():
     def __init__(self,muxurl=None,json_url=None,pulser="epoch",pulserurl=None):
         self.path = os.getcwd()
         self.json_url = json_url
-        self.folder_name = str(datetime.date.today()) #might be a problem if multiple exps are run on same day
         #can be fixed by checking if folder exists, and appending a number to the end
 
         # if muxurl:
@@ -61,6 +60,11 @@ class Acoustics():
         json_file = uo(self.json_url)
         json_file_str = json_file.readall().decode('utf-8')
         settings = json.loads(json_file_str)
+
+        #temporary until startdates are generated & sent by js file.
+        for row in settings['data']: 
+            row['start_date'] = str(datetime.date.today())
+        pprint(settings)
         return settings
             
     def cleanURL(self,url):
@@ -74,19 +78,20 @@ class Acoustics():
         print(mark)
         return mark
     
-    def getSingleData(self,row, row_no):
+    def getSingleData(self,row):
         """Processes a single row/test from the table. each row is a dictionary. Forwards command to
         Epoch and stores a json waveform in a folder that corresponds to the row."""
 
         ###Later row will be replaced with testID
 
-        row_name = "Row_" + str(row_no)
-        try:
-            os.mkdir(os.path.join(self.folder_name, row_name))
-        except FileExistsError:
-            pass
-        fname = os.path.join(self.path,self.folder_name,row_name,str(time.time()).replace(".","_") + ".json")
-        fname_current = os.path.join(self.path,self.folder_name,row_name,"current.json")
+        row_name = "TestID_" + row['testid']
+        # try:
+        #     os.mkdir(os.path.join(self.folder_name, row_name))
+        # except FileExistsError:
+        #     pass
+
+        fname = os.path.join(self.path,"Data",row['start_date'],row_name,str(time.time()).replace(".","_") + ".json")
+        fname_current = os.path.join(self.path,"Data",row['start_date'],row_name,"current.json")
         
         # if self.mux is not None:
         #     if row['channel2']!="":
@@ -103,8 +108,14 @@ class Acoustics():
                     freq=float(row['freq(mhz)']),
                     delay=float(row['delay(us)']),
                     filt=float(row['filtermode']))
-                json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
-                json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
+                try:
+                    json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
+                    json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
+                except FileNotFoundError:
+                    os.makedirs(os.path.join("Data",row['start_date'],row_name))
+                    json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
+                    json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
+
                 return data
             except:
                 print('***ERROR***')
@@ -115,23 +126,19 @@ class Acoustics():
         """Loops through the rows and processes each one"""
         index = 0 #counter to keep track of the row number. Temporary, to be replaced with TestID
         tests = self.getJSON()
-        try:
-            os.mkdir(self.folder_name)
-        except FileExistsError:
-            pass
         # while True: 
         for row in tests['data']:
             if (row['run(y/n)']).lower() == 'y':
                 #print("Executing row "+str(i+1))
-                self.getSingleData(row, index)
+                self.getSingleData(row)
             else:
                 pass
-            index += 1
         # if not loop: break
 
 if __name__=="__main__":
-    a = Acoustics(json_url= "http://feasible.pithy.io:4011/table_load",pulserurl="9003")
-    a.beginRun(loop=True)
+    a = Acoustics(json_url= "http://localhost:5000/table_load",pulserurl="9003")
+    a.beginRun(loop=False)
+    # a.getJSON()
 
 
 
