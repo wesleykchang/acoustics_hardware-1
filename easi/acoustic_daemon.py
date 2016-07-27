@@ -57,18 +57,3 @@ if __name__=="__main__":
 
     # ad = AcousticDaemon()
     # ad.start()
-
-
-
-
-    #argparser from command line. to finish later.
-    # parser = argparse.ArgumentParser(description="Starts/Stops the acoustic daemon")
-    # parser.add_argument('start', help="Starts daemon")
-    # parser.add_argument('stop', help="Stops daemon")
-    # args = parser.parse_args()
-
-    # if args.start:
-    #     d.start()
-
-    # if args.stop:
-    #     d.stop()

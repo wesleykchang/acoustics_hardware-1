@@ -20,7 +20,7 @@ def stop_all_daemons():
 		os.rmdir('Daemon_PIDs')
 	except(OSError):
 		pass
-		return
+	return
 
 if __name__ == "__main__":
 	stop_all_daemons()
