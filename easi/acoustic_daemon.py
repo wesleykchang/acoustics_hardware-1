@@ -94,8 +94,8 @@ class UIDaemon(Daemon):
 
 
 if __name__=="__main__":
-    # d = UIDaemon()
-    # d.start()
+    d = UIDaemon()
+    d.start()
 
     # ad = AcousticDaemon()
     # ad.start()

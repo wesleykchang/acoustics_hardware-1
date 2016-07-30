@@ -17,6 +17,19 @@ outline: 0px;
   color: #f00;
 }
 
+.test-start, .test-stop {
+  color: #000;
+  cursor: pointer;
+}
+
+.test-start:hover {
+  color: #0f0;
+}
+
+.test-stop:hover {
+  color: #f00;
+}
+
 .table-up, .table-down {
   color: #000;
   cursor: pointer;

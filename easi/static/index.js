@@ -1,6 +1,5 @@
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="TestID, Run (y/n), Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode"
-
+var fields ="Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');
@@ -11,7 +10,7 @@ fields = fields.split(",")
 for (f in fields) fields[f] = fields[f].replace(/\s+/g,"")
 fields.push("")
 fields.push("")
-header = ""
+header = "<th>Start Date</th><th>TestID</th>"
 for (f in fields) header += "<th>"+fields[f]+"</th>"
 $("#header").html(header)
 
@@ -22,15 +21,18 @@ $("#header").html(header)
 upbut =  '<span class="table-up glyphicon glyphicon-arrow-up">'
 updownbut = '<span class="table-up glyphicon glyphicon-arrow-up"></span> <span class="table-down glyphicon glyphicon-arrow-down"></span>'
 removebut =   "<span class='table-remove glyphicon glyphicon-remove'></span>"
+playbut = "<span class='test-start glyphicon glyphicon-play'></span>"
+playstopbut = "<span class='test-start glyphicon glyphicon-play'></span><span class = 'test-stop glyphicon glyphicon-stop'></span>"
 
 //make the clone structure the size of the fields
 clone_arr = [] 
 for (f in fields) clone_arr.push("")
+clone_arr[clone_arr.length-3] = playstopbut //add play button
 clone_arr[clone_arr.length-2] = removebut //add remove button
 clone_arr[clone_arr.length-1] = updownbut // add updown button
 
 //Turn the array into HTML
-cloner = ""
+cloner = "<td contenteditable=false></td><td contenteditable=false></td>"
 for (c in clone_arr) 
 {
     var ce = "false"
@@ -40,7 +42,7 @@ for (c in clone_arr)
 $("#cloner").html(cloner)
 
 //Load the data
-loadsettings()
+// loadsettings()
 
 
 //Ye Olde code (from https://codepen.io/anon/pen/PzEgLN)
@@ -65,10 +67,28 @@ $('.table-down').click(function () {
   $row.next().after($row.get(0));
 });
 
+$('.test-start').click(function () {
+  var d = new Date().toString(); //return current y,m,d
+  var $row = $(this).parents('tr');
+    $tds = $row.find("td:nth-child(1)"); //find startdate
+    $tid = $row.find("td:nth-child(2)"); //find testid
+
+    $.each($tds, function() {
+        $(this).html(d.slice(4,24));
+    });
+
+    $.each($tid, function() {
+        $(this).html("000000");
+    });
+  // alert(d);
+  // console.log($row.index());
+});
+
 // A few jQuery helpers for exporting only
 jQuery.fn.pop = [].pop;
 jQuery.fn.shift = [].shift;
 
+//export button
 $BTN.click(function () {
   var $rows = $TABLE.find('tr:not(:hidden)');
   var headers = [];
@@ -90,6 +110,7 @@ $BTN.click(function () {
     });
     
     data.push(h);
+    console.log($td)
   });
   
 
