@@ -1,5 +1,5 @@
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
+var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');
@@ -10,9 +10,11 @@ fields = fields.split(",")
 for (f in fields) fields[f] = fields[f].replace(/\s+/g,"")
 fields.push("")
 fields.push("")
-header = "<th>Start Date</th><th>TestID</th>"
+fields.push("")
+header = ""
 for (f in fields) header += "<th>"+fields[f]+"</th>"
 $("#header").html(header)
+
 
 //Make Clone Basis
 //This is a hack but so far it doesn't break.  The idea is that we create an empty hidden row that's read to go when we hit "add".  This has been modified to scale appropriately to the size of the header and autofill the table on load
@@ -26,7 +28,7 @@ playstopbut = "<span class='test-start glyphicon glyphicon-play'></span><span cl
 
 //make the clone structure the size of the fields
 clone_arr = [] 
-for (f in fields) clone_arr.push("")
+for (var i=2; i < fields.length-1; i++ ) clone_arr.push("")
 clone_arr[clone_arr.length-3] = playstopbut //add play button
 clone_arr[clone_arr.length-2] = removebut //add remove button
 clone_arr[clone_arr.length-1] = updownbut // add updown button
@@ -42,8 +44,8 @@ for (c in clone_arr)
 $("#cloner").html(cloner)
 
 //Load the data
-// loadsettings()
-
+loadsettings()
+last_tid = 000000
 
 //Ye Olde code (from https://codepen.io/anon/pen/PzEgLN)
 $('.table-add').click(function () {
@@ -77,9 +79,14 @@ $('.test-start').click(function () {
         $(this).html(d.slice(4,24));
     });
 
+    current_tid = last_tid + 1;
+
     $.each($tid, function() {
-        $(this).html("000000");
+        $(this).html((current_tid).toString());
     });
+
+    last_tid = current_tid;
+
   // alert(d);
   // console.log($row.index());
 });
@@ -149,7 +156,7 @@ function makerow(p)
     var $clone = $TABLE.find('tr.hide').clone(true).removeClass('hide table-line');
     
     //fill in the row with values
-    for (var i=0; i < fields.length-2; i++ ) $clone[0].cells[i].innerHTML = p[fields[i].toLowerCase()]
+    for (var i=0; i < fields.length-4; i++ ) $clone[0].cells[i].innerHTML = p[fields[i].toLowerCase()]
 
     //append the row to the table
     $TABLE.find('table').append($clone);
