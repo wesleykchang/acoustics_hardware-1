@@ -1,6 +1,12 @@
 ### EASI
 ___
 
+#Dependencies:
+
+- python 3 
+- flask (`sudo pip3 install flask`)
+- numpy (`sudo pip3 install numpy`)
+
 # How to start daemons
 
 - Navigate to the easi folder and open up acoustic_daemon.py. 
