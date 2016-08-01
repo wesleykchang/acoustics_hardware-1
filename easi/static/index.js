@@ -87,7 +87,18 @@ $('.test-start').click(function () {
 
     last_tid = current_tid;
 
+    $row[0].setAttribute('run','y')
+    console.log($row.attr('run'));
+
   // alert(d);
+  // console.log($row.index());
+});
+
+$('.test-stop').click(function () {
+  var d = new Date().toString(); //return current y,m,d
+  var $row = $(this).parents('tr');
+  $row[0].setAttribute('run','n');
+  console.log($row.attr('run'));
   // console.log($row.index());
 });
 
@@ -110,12 +121,11 @@ $BTN.click(function () {
   $rows.each(function () {
     var $td = $(this).find('td');
     var h = {};
-    
     // Use the headers from earlier to name our hash keys
     headers.forEach(function (header, i) {
-      h[header] = $td.eq(i).text();   
+      h[header] = $td.eq(i).text();
     });
-    
+    h["run(y/n)"] = $(this).attr('run')
     data.push(h);
     console.log($td)
   });
@@ -149,17 +159,24 @@ $.get("http://localhost:5000/table_load",
     })
 }
 
-//Function to turn JSON data into rows
-function makerow(p)
-{
-    //get the structure of the row
-    var $clone = $TABLE.find('tr.hide').clone(true).removeClass('hide table-line');
-    
-    //fill in the row with values
-    for (var i=0; i < fields.length-4; i++ ) $clone[0].cells[i].innerHTML = p[fields[i].toLowerCase()]
 
-    //append the row to the table
+function makerow(p) {
+
+    //get the structure of the row
+
+    var $clone = $TABLE.find('tr.hide').clone(true).removeClass('hide table-line');
+
+    //fill in the row with values
+
+    for (var i = 0; i < fields.length - 4; i++) $clone[0].cells[i].innerHTML = p[fields[i].toLowerCase()]
+
+        //append the row to the table
+
+    $clone[0].setAttribute('rowid',p['testid'])
+    $clone[0].setAttribute('run',p['run(y/n)'])
+
     $TABLE.find('table').append($clone);
+
 }
 
 
