@@ -97,11 +97,11 @@ class Acoustics():
         fname = os.path.join(self.path,"Data",row['start_date'],row_name,str(time.time()).replace(".","_") + ".json")
         fname_current = os.path.join(self.path,"Data",row['start_date'],row_name,"current.json")
         
-        # if self.mux is not None:
-        #     if row['channel2']!="":
-        #         self.mux.switch(row['channel'],row['channel2'])
-        #     else:
-        #         self.mux.switch(row['channel'])
+         if self.mux is not None:
+             if row['channel2']!="":
+                 self.mux.switch(row['channel'],row['channel2'])
+             else:
+                 self.mux.switch(row['channel'])
 
         if self.pulser=="epoch":
             try:
