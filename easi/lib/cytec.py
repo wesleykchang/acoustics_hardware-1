@@ -70,7 +70,7 @@ class Mux():
             cmdset.append(cmd)
         return self.sendCommands(cmdset,delay=delay)
         
-    def unlatch(self,channel_list,dealy=0.2):
+    def unlatch(self,channel_list,delay=0.2):
         #this should fail and give an error of 6 or 7, but
         #instead it just falls through. without it, the first real 
         #command isn't registered... TODO: Figure out why.
