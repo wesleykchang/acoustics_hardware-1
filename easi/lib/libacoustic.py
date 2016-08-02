@@ -14,7 +14,8 @@ import datetime
 import time
 #in this package
 import libEpoch
-from mux import Mux
+import oldmux as omux
+import cytec
 from pprint import pprint
 from http.server import SimpleHTTPRequestHandler
 import socketserver
@@ -27,21 +28,24 @@ def debug(s):
 
 
 class Acoustics():
-    def __init__(self,muxurl=None,json_url=None,pulser="epoch",pulserurl=None):
+    def __init__(self,muxurl=None,muxtype=None,json_url=None,pulser="epoch",pulserurl=None):
         self.path = os.getcwd()
         self.json_url = json_url
         #can be fixed by checking if folder exists, and appending a number to the end
 
-        # if muxurl:
-        #     self.mux = m.Mux(self.cleanURL(muxurl),fake=fake)
-        # else:
-        #     self.mux = None
-        # if pulserurl:
-        #     self.pulserurl = self.cleanURL(pulserurl)
-        # if muxurl is None:
-        #     print("------------------------------------------------")
-        #     print("WARNING: No mux given. Ignoring channel numbers.")
-        #     print("------------------------------------------------")
+         if muxurl is not None and muxtype is not None:
+             if muxtype.lower()=="cytec":
+                 self.mux = cytec.Mux(self.cleanURL(muxurl),fake=fake)
+             elif ["old","oldmux"].count(muxtype.lower())>0:
+                 self.mux = omux.Mux(self.cleanURL(muxurl),fake=fake)
+         else:
+             self.mux = None
+         if pulserurl:
+             self.pulserurl = self.cleanURL(pulserurl)
+         if muxurl is None:
+             print("------------------------------------------------")
+             print("WARNING: No mux given. Ignoring channel numbers.")
+             print("------------------------------------------------")
             
         if pulser.lower()=="epoch":
             self.pulser="epoch"
