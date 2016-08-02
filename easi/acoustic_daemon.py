@@ -17,7 +17,7 @@ app = Flask(__name__)
 pulseurl = 9003
 muxurl = 9002
 host = None
-
+port = 5000
 for i in sys.argv:
     if i.find("=") > 0: 
         print(i)
@@ -30,7 +30,7 @@ class AcousticDaemon(Daemon):
 
     def run(self):
         while True:
-            a = A.Acoustics(json_url= "http://feasible.pithy.io:4011/table_load",pulserurl=pulseurl,muxurl=muxurl)
+            a = A.Acoustics(json_url= "http://%s:%i/table_load" %("localhost",port),pulserurl=pulseurl,muxurl=muxurl)
             a.beginRun()
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
@@ -80,6 +80,10 @@ class UIDaemon(Daemon):
         @app.route('/table_load')
         def table_load():
             return open("table_state.json").read()
+        
+        @app.route('/<path:filename>')
+        def custom_static(filename):
+            return send_from_directory("", filename)
 
 
         @app.route('/table_save', methods=['GET', 'POST'])
@@ -97,7 +101,7 @@ class UIDaemon(Daemon):
                 return json.dumps(out)
                 
         while True:        
-            app.run(host=host) #if you call this with debug=true, daemon will init twice. weird.
+            app.run(host=host,port=port) #if you call this with debug=true, daemon will init twice. weird.
 
     def loadTools(self):
         pass
