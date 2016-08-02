@@ -103,3 +103,8 @@ input:focus
 {
     background:lightyellow;
 }
+
+[contenteditable="false"]
+{
+    background:#EEE;
+}

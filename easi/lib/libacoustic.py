@@ -62,9 +62,6 @@ class Acoustics():
         settings = json.loads(json_file_str)
 
         #temporary until startdates are generated & sent by js file.
-        for row in settings['data']: 
-            row['start_date'] = str(datetime.date.today())
-        pprint(settings)
         return settings
             
     def cleanURL(self,url):
@@ -90,8 +87,8 @@ class Acoustics():
         # except FileExistsError:
         #     pass
 
-        fname = os.path.join(self.path,"Data",row['start_date'],row_name,str(time.time()).replace(".","_") + ".json")
-        fname_current = os.path.join(self.path,"Data",row['start_date'],row_name,"current.json")
+        fname = os.path.join(self.path,"Data",row['startdate'],row_name,str(time.time()).replace(".","_") + ".json")
+        fname_current = os.path.join(self.path,"Data",row['startdate'],row_name,"current.json")
         
         # if self.mux is not None:
         #     if row['channel2']!="":

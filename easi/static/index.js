@@ -44,8 +44,8 @@ for (c in clone_arr)
 $("#cloner").html(cloner)
 
 //Load the data
+last_tid = 000000 //initialize the last testID to something
 loadsettings()
-last_tid = 000000
 
 //Ye Olde code (from https://codepen.io/anon/pen/PzEgLN)
 $('.table-add').click(function () {
@@ -72,34 +72,54 @@ $('.table-down').click(function () {
 $('.test-start').click(function () {
   var d = new Date().toString(); //return current y,m,d
   var $row = $(this).parents('tr');
-    $tds = $row.find("td:nth-child(1)"); //find startdate
-    $tid = $row.find("td:nth-child(2)"); //find testid
 
-    $.each($tds, function() {
-        $(this).html(d.slice(4,24));
+  // alert('Please stop test before starting a new one')
+  // alert($row[0].getAttribute('run'))
+  if ($row[0].getAttribute('run') == 'y'){
+    alert('Please stop current test before starting a new one')
+    return;
+  }
+
+  $tds = $row.find("td:nth-child(1)"); //find startdate
+  $tid = $row.find("td:nth-child(2)"); //find testid
+
+  $.each($tds, function() {
+      $(this).html(d.slice(4,24));
+  });
+
+  current_tid = last_tid + 1;
+
+  $.each($tid, function() {
+      $(this).html((current_tid).toString());
+  });
+
+  last_tid = current_tid;
+
+  //for exporting whether or not to run
+  $row[0].setAttribute('run','y')
+
+  //to 'lock' the row while a test is running
+  $row.each(function () {
+    var $td = $(this).find('td');
+    $td.each(function(){
+      $(this).attr('contenteditable','false')
     });
-
-    current_tid = last_tid + 1;
-
-    $.each($tid, function() {
-        $(this).html((current_tid).toString());
-    });
-
-    last_tid = current_tid;
-
-    $row[0].setAttribute('run','y')
-    console.log($row.attr('run'));
-
-  // alert(d);
-  // console.log($row.index());
+  });  
 });
 
 $('.test-stop').click(function () {
   var d = new Date().toString(); //return current y,m,d
   var $row = $(this).parents('tr');
   $row[0].setAttribute('run','n');
-  console.log($row.attr('run'));
   // console.log($row.index());
+
+  //to 'unlock' a row when a test is finished.
+  $row.each(function () {
+    var $td = $(this).find('td').slice(2,12);
+    $td.each(function(){
+      $(this).attr('contenteditable','true')
+    });
+  });
 });
 
 // A few jQuery helpers for exporting only
@@ -131,7 +151,7 @@ $BTN.click(function () {
   });
   
 
-sendsettings(data) //DS Addition
+sendsettings(data,last_tid) //DS Addition
 });
 
 //ye new code to make it rain
@@ -143,6 +163,8 @@ $.get("http://localhost:5000/table_load",
     function(data)
     {
         out = JSON.parse(data)
+
+        last_tid = (parseInt(out['last_tid']))
         
         //Attempt to fill ports based on JSON data
         ports = $('input[id$="_port"]')
@@ -175,13 +197,17 @@ function makerow(p) {
     $clone[0].setAttribute('rowid',p['testid'])
     $clone[0].setAttribute('run',p['run(y/n)'])
 
+    if (p['run(y/n)'] == 'y'){
+      for (var i = 0; i < fields.length - 4; i++) $clone[0].cells[i].setAttribute('contenteditable','false')
+    }
+
     $TABLE.find('table').append($clone);
 
 }
 
 
 //function to add data from rows to ports, make a JSON object, send off
-function sendsettings(setobj)
+function sendsettings(setobj,last_tid)
 {
   out = {} //define the output JSON
 
@@ -190,6 +216,7 @@ function sendsettings(setobj)
   for (p = 0; p < ports.length; p++){
     out[ports[p].id] = $('#'+ports[p].id).val()
   }
+  out['last_tid'] = last_tid
   out['data'] = setobj
   // Output the result
 
