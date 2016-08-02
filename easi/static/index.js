@@ -139,7 +139,7 @@ sendsettings(data) //DS Addition
 //Basic data read library
 function loadsettings()
 {
-$.get("http://localhost:5000/table_load",
+$.get("/table_load",
     function(data)
     {
         out = JSON.parse(data)
@@ -195,7 +195,7 @@ function sendsettings(setobj)
 
   json_str = JSON.stringify(out)
 
-  $.post("http://localhost:5000/table_save",json_str,
+  $.post("/table_save",json_str,
         function(data)
         {
          data = JSON.parse(data)
