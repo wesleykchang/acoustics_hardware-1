@@ -1,7 +1,7 @@
 ### EASI
 ___
 
-#Dependencies:
+# Dependencies:
 
 - python 3 
 - flask (`sudo pip3 install flask`)

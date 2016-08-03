@@ -1,5 +1,5 @@
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
+var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Cycler Code, Filter Mode, Run (y/n)"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');
@@ -188,7 +188,7 @@ function sendsettings(last_tid)
 //Basic data read library
 function loadsettings()
 {
-$.get("http://localhost:5000/table_load",
+$.get("/table_load",
     function(data)
     {
         out = JSON.parse(data)
@@ -233,7 +233,6 @@ function makerow(p) {
     $TABLE.find('table').append($clone);
 
 }
-
 
 function getlastwave()
 {

@@ -14,13 +14,17 @@ from flask import Flask, send_from_directory, request
 __all__ = ["AcousticDaemon"]
 app = Flask(__name__)
 
+
 class AcousticDaemon(Daemon):
-    def __init__(self):
+    def __init__(self,port=5000,muxurl=9002,pulserurl=9003):
         Daemon.__init__(self,self.run,name="easi_daemon")
+        self.port = port
+        self.muxurl = muxurl
+        self.pulserurl = pulserurl
 
     def run(self):
         while True:
-            a = A.Acoustics(json_url= "http://localhost:5000/table_load",pulserurl="9003")
+            a = A.Acoustics(json_url= "http://%s:%i/table_load" %("localhost",self.port),pulserurl=self.pulserurl,muxurl=self.muxurl)
             a.beginRun()
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
@@ -59,8 +63,10 @@ class WebDaemon(Daemon):
 
 class UIDaemon(Daemon):
     """Hosts an editable table at http://localhost:5000"""
-    def __init__(self):
+    def __init__(self,port=5000,host=None):
         Daemon.__init__(self,self.run,name="ui_daemon")
+        self.port = port
+        self.host = host
 
     def run(self):
         @app.route('/')
@@ -70,6 +76,10 @@ class UIDaemon(Daemon):
         @app.route('/table_load')
         def table_load():
             return open("table_state.json").read()
+        
+        @app.route('/<path:filename>')
+        def custom_static(filename):
+            return send_from_directory("", filename)
 
 
         @app.route('/table_save', methods=['GET', 'POST'])
@@ -87,15 +97,23 @@ class UIDaemon(Daemon):
                 return json.dumps(out)
                 
         while True:        
-            app.run() #if you call this with debug=true, daemon will init twice. weird.
+            app.run(host=host,port=port) #if you call this with debug=true, daemon will init twice. weird.
 
     def loadTools(self):
         pass
 
 
 if __name__=="__main__":
+    pulserurl = 9003
+    muxurl = 9002
+    host = None
+    port = 5000
+    for i in sys.argv:
+        if i.find("=") > 0: 
+            print(i)
+            exec(i)
     d = UIDaemon()
     d.start()
 
-    # ad = AcousticDaemon()
+    # ad = AcousticDaemon(port,muxurl,pulserurl)
     # ad.start()
