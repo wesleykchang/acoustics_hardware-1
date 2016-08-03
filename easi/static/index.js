@@ -104,7 +104,8 @@ $('.test-start').click(function () {
     $td.each(function(){
       $(this).attr('contenteditable','false')
     });
-  });  
+  }); 
+  sendsettings(last_tid) 
 });
 
 $('.test-stop').click(function () {
@@ -120,6 +121,7 @@ $('.test-stop').click(function () {
       $(this).attr('contenteditable','true')
     });
   });
+  sendsettings(last_tid)
 });
 
 // A few jQuery helpers for exporting only
@@ -128,6 +130,13 @@ jQuery.fn.shift = [].shift;
 
 //export button
 $BTN.click(function () {
+sendsettings(last_tid) //DS Addition
+});
+
+//function to add data from rows to ports, make a JSON object, send off
+function sendsettings(last_tid)
+{
+
   var $rows = $TABLE.find('tr:not(:hidden)');
   var headers = [];
   var data = [];
@@ -150,9 +159,29 @@ $BTN.click(function () {
     console.log($td)
   });
   
+  out = {} //define the output JSON
 
-sendsettings(data,last_tid) //DS Addition
-});
+  //Gets all ids matching "port" and fills JSON accordling
+  ports = $('input[id$="_port"]')
+  for (p = 0; p < ports.length; p++){
+    out[ports[p].id] = $('#'+ports[p].id).val()
+  }
+  out['last_tid'] = last_tid
+  out['data'] = data
+  // Output the result
+
+  json_str = JSON.stringify(out)
+
+  $.post("http://localhost:5000/table_save",json_str,
+        function(data)
+        {
+         data = JSON.parse(data)
+         $EXPORT.text(data['status'])
+         $EXPORT.fadeTo(200, 1).fadeTo(800, 0);
+        })
+
+}
+
 
 //ye new code to make it rain
 
@@ -202,33 +231,6 @@ function makerow(p) {
     }
 
     $TABLE.find('table').append($clone);
-
-}
-
-
-//function to add data from rows to ports, make a JSON object, send off
-function sendsettings(setobj,last_tid)
-{
-  out = {} //define the output JSON
-
-  //Gets all ids matching "port" and fills JSON accordling
-  ports = $('input[id$="_port"]')
-  for (p = 0; p < ports.length; p++){
-    out[ports[p].id] = $('#'+ports[p].id).val()
-  }
-  out['last_tid'] = last_tid
-  out['data'] = setobj
-  // Output the result
-
-  json_str = JSON.stringify(out)
-
-  $.post("http://localhost:5000/table_save",json_str,
-        function(data)
-        {
-         data = JSON.parse(data)
-         $EXPORT.text(data['status'])
-         $EXPORT.fadeTo(200, 1).fadeTo(800, 0);
-        })
 
 }
 

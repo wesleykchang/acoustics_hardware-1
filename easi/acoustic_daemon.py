@@ -20,7 +20,7 @@ class AcousticDaemon(Daemon):
 
     def run(self):
         while True:
-            a = A.Acoustics(json_url= "http://feasible.pithy.io:4011/table_load",pulserurl="9003")
+            a = A.Acoustics(json_url= "http://localhost:5000/table_load",pulserurl="9003")
             a.beginRun()
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
