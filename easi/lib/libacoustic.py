@@ -61,6 +61,11 @@ class Acoustics():
         json_file_str = json_file.readall().decode('utf-8')
         settings = json.loads(json_file_str)
 
+        #convert the start date to string with MM_DD to be used for filename
+        for row in settings['data']:
+            row['date_fname'] = (row['startdate'])[0:11].replace(" ", "_")
+
+
         #temporary until startdates are generated & sent by js file.
         return settings
             
@@ -79,17 +84,12 @@ class Acoustics():
         """Processes a single row/test from the table. each row is a dictionary. Forwards command to
         Epoch and stores a json waveform in a folder that corresponds to the row."""
 
-        ###Later row will be replaced with testID
-
+        #misc path generation
         row_name = "TestID_" + row['testid']
-        # try:
-        #     os.mkdir(os.path.join(self.folder_name, row_name))
-        # except FileExistsError:
-        #     pass
+        fname = os.path.join(self.path,"Data",row['date_fname'],row_name,str(time.time()).replace(".","_") + ".json")
+        fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
 
-        fname = os.path.join(self.path,"Data",row['startdate'],row_name,str(time.time()).replace(".","_") + ".json")
-        fname_current = os.path.join(self.path,"Data",row['startdate'],row_name,"current.json")
-        
+
         # if self.mux is not None:
         #     if row['channel2']!="":
         #         self.mux.switch(row['channel'],row['channel2'])
@@ -109,15 +109,30 @@ class Acoustics():
                     json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
                     json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
                 except FileNotFoundError:
-                    os.makedirs(os.path.join("Data",row['start_date'],row_name))
+                    #brand new row. initialize it and name it, then try dumping file
+                    os.makedirs(os.path.join("Data",row['date_fname'],row_name))
                     json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
                     json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
-
+                    self.writeLog(row) #since this is the first time a row is intialized, it enters it to logfile
                 return data
             except:
                 print('***ERROR***')
                 import traceback
                 print(traceback.format_exc())
+
+    def writeLog(self,row):
+        """Attempts to open a log file and add the row to it. If there is no logfile, creates one."""
+        logname = os.path.join(self.path,"Data",row['date_fname'],"logfile.json") #path to logfile
+        try:
+            info = json.load(open(logname))
+            info['data'].append(row) #append to the list of dicts
+            json.dump(info, open(logname, 'w'))
+
+        except FileNotFoundError: #first entry in the logfile, need to create one.
+            info = {'data' : []}
+            info['data'].append(row) #append to the list of dicts
+            json.dump(info, open(logname, 'w'))
+
     
     def beginRun(self,loop=True):
         """Loops through the rows and processes each one"""
