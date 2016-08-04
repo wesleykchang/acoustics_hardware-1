@@ -8,6 +8,7 @@ import argparse
 from http.server import SimpleHTTPRequestHandler
 import socketserver
 import json
+import os
 
 from flask import Flask, send_from_directory, request
 
@@ -76,11 +77,19 @@ class UIDaemon(Daemon):
         @app.route('/table_load')
         def table_load():
             return open("table_state.json").read()
-        
-        @app.route('/<path:filename>')
-        def custom_static(filename):
-            return send_from_directory("", filename)
 
+        @app.route('/fonts/<path:filename>') #important for being able to load font files
+        def custom_static(filename):
+            return send_from_directory("fonts", filename)
+
+        @app.route('/<startdate>/view')
+        def view_table(startdate):
+            # show the user profile for that user
+            return send_from_directory('static/tableviewer','index.html')
+
+        @app.route('/<startdate>/table_load')
+        def log_load(startdate):
+            return open(os.path.join("Data",startdate,"logfile.json")).read()
 
         @app.route('/table_save', methods=['GET', 'POST'])
         def table_save():
@@ -96,7 +105,7 @@ class UIDaemon(Daemon):
                     out['status'] = str(E)
                 return json.dumps(out)
                 
-        while True:        
+        while True:  
             app.run(host=host,port=port) #if you call this with debug=true, daemon will init twice. weird.
 
     def loadTools(self):
