@@ -1,0 +1,31 @@
+.table-editable {
+  position: relative;
+outline: 0px;
+
+}
+.table-editable .glyphicon {
+  font-size: 15px;
+}
+
+
+td
+{
+    outline: 0px solid transparent
+}
+
+
+input
+{
+    outline: 0px solid transparent;
+    border: 0px;
+    border-bottom: 1px solid silver;
+    width: 50px;
+    text-align:center;
+
+}
+
+
+[contenteditable="false"]
+{
+    background:#EEE;
+}
