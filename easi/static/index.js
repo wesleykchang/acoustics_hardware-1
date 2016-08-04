@@ -1,5 +1,5 @@
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Cycler Code, Filter Mode, Run (y/n)"
+var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');
@@ -44,8 +44,8 @@ for (c in clone_arr)
 $("#cloner").html(cloner)
 
 //Load the data
+last_tid = 000000 //initialize the last testID to something
 loadsettings()
-last_tid = 000000
 
 //Ye Olde code (from https://codepen.io/anon/pen/PzEgLN)
 $('.table-add').click(function () {
@@ -72,34 +72,56 @@ $('.table-down').click(function () {
 $('.test-start').click(function () {
   var d = new Date().toString(); //return current y,m,d
   var $row = $(this).parents('tr');
-    $tds = $row.find("td:nth-child(1)"); //find startdate
-    $tid = $row.find("td:nth-child(2)"); //find testid
 
-    $.each($tds, function() {
-        $(this).html(d.slice(4,24));
+  // alert('Please stop test before starting a new one')
+  // alert($row[0].getAttribute('run'))
+  if ($row[0].getAttribute('run') == 'y'){
+    alert('Please stop current test before starting a new one')
+    return;
+  }
+
+  $tds = $row.find("td:nth-child(1)"); //find startdate
+  $tid = $row.find("td:nth-child(2)"); //find testid
+
+  $.each($tds, function() {
+      $(this).html(d.slice(4,24));
+  });
+
+  current_tid = last_tid + 1;
+
+  $.each($tid, function() {
+      $(this).html((current_tid).toString());
+  });
+
+  last_tid = current_tid;
+
+  //for exporting whether or not to run
+  $row[0].setAttribute('run','y')
+
+  //to 'lock' the row while a test is running
+  $row.each(function () {
+    var $td = $(this).find('td');
+    $td.each(function(){
+      $(this).attr('contenteditable','false')
     });
-
-    current_tid = last_tid + 1;
-
-    $.each($tid, function() {
-        $(this).html((current_tid).toString());
-    });
-
-    last_tid = current_tid;
-
-    $row[0].setAttribute('run','y')
-    console.log($row.attr('run'));
-
-  // alert(d);
-  // console.log($row.index());
+  }); 
+  sendsettings(last_tid) 
 });
 
 $('.test-stop').click(function () {
   var d = new Date().toString(); //return current y,m,d
   var $row = $(this).parents('tr');
   $row[0].setAttribute('run','n');
-  console.log($row.attr('run'));
   // console.log($row.index());
+
+  //to 'unlock' a row when a test is finished.
+  $row.each(function () {
+    var $td = $(this).find('td').slice(2,12);
+    $td.each(function(){
+      $(this).attr('contenteditable','true')
+    });
+  });
+  sendsettings(last_tid)
 });
 
 // A few jQuery helpers for exporting only
@@ -108,6 +130,13 @@ jQuery.fn.shift = [].shift;
 
 //export button
 $BTN.click(function () {
+sendsettings(last_tid) //DS Addition
+});
+
+//function to add data from rows to ports, make a JSON object, send off
+function sendsettings(last_tid)
+{
+
   var $rows = $TABLE.find('tr:not(:hidden)');
   var headers = [];
   var data = [];
@@ -130,9 +159,29 @@ $BTN.click(function () {
     console.log($td)
   });
   
+  out = {} //define the output JSON
 
-sendsettings(data) //DS Addition
-});
+  //Gets all ids matching "port" and fills JSON accordling
+  ports = $('input[id$="_port"]')
+  for (p = 0; p < ports.length; p++){
+    out[ports[p].id] = $('#'+ports[p].id).val()
+  }
+  out['last_tid'] = last_tid
+  out['data'] = data
+  // Output the result
+
+  json_str = JSON.stringify(out)
+
+  $.post("http://localhost:5000/table_save",json_str,
+        function(data)
+        {
+         data = JSON.parse(data)
+         $EXPORT.text(data['status'])
+         $EXPORT.fadeTo(200, 1).fadeTo(800, 0);
+        })
+
+}
+
 
 //ye new code to make it rain
 
@@ -143,6 +192,8 @@ $.get("/table_load",
     function(data)
     {
         out = JSON.parse(data)
+
+        last_tid = (parseInt(out['last_tid']))
         
         //Attempt to fill ports based on JSON data
         ports = $('input[id$="_port"]')
@@ -175,36 +226,13 @@ function makerow(p) {
     $clone[0].setAttribute('rowid',p['testid'])
     $clone[0].setAttribute('run',p['run(y/n)'])
 
+    if (p['run(y/n)'] == 'y'){
+      for (var i = 0; i < fields.length - 4; i++) $clone[0].cells[i].setAttribute('contenteditable','false')
+    }
+
     $TABLE.find('table').append($clone);
 
 }
-
-
-//function to add data from rows to ports, make a JSON object, send off
-function sendsettings(setobj)
-{
-  out = {} //define the output JSON
-
-  //Gets all ids matching "port" and fills JSON accordling
-  ports = $('input[id$="_port"]')
-  for (p = 0; p < ports.length; p++){
-    out[ports[p].id] = $('#'+ports[p].id).val()
-  }
-  out['data'] = setobj
-  // Output the result
-
-  json_str = JSON.stringify(out)
-
-  $.post("/table_save",json_str,
-        function(data)
-        {
-         data = JSON.parse(data)
-         $EXPORT.text(data['status'])
-         $EXPORT.fadeTo(200, 1).fadeTo(800, 0);
-        })
-
-}
-
 
 function getlastwave()
 {

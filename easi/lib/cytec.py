@@ -50,9 +50,9 @@ class Mux():
         urls = self._prepCmdURLs(cmds)
         reads = []
         for u in urls:
-            uo(self.url+"write/"+u).read()
+            uo(self.url+"/write/"+u).read()
             sleep(delay) #hope this is long enough! try 0.2
-            red = uo(self.url+"read/").read()
+            red = uo(self.url+"/read/").read()
             if u!="%0D%0A": #don't bother reporting blank cmds
                 reads.append(red)
         return reads
@@ -87,18 +87,19 @@ class Mux():
 
     def switch(self,chan,chan2=None,delay=0.2):
         try:
-            realchan = self.channel_map[chan]
+            realchan = self.channel_map[int(chan)]
             if chan2 is None:
-                chan2 = []
                 realchan2 = []
             else:
-                realchan2 = self.channel_map[chan2]
+                realchan2 = self.channel_map[int(chan2)]
             self.latch(realchan+realchan2,delay=delay,clear_first=True)
-            self.on = chan+chan2
-        except: #TODO: custom errors and handlers. FIX THIS don't be lazy
+            self.on = [chan,chan2]
+            return self.on
+        except Exception as E: #TODO: custom errors and handlers. FIX THIS don't be lazy
             print("problem with mux")
+            raise(E)
 
 if __name__=="__main__":
     m = Mux("http://localhost:9000/")
-    print(m.latch([(0,0)]))
-    print(m.unlatch([(0,0)]))
+    print(m.switch(1))
+    print(m.clearAll())

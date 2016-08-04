@@ -14,23 +14,17 @@ from flask import Flask, send_from_directory, request
 __all__ = ["AcousticDaemon"]
 app = Flask(__name__)
 
-pulseurl = 9003
-muxurl = 9002
-host = None
-port = 5000
-for i in sys.argv:
-    if i.find("=") > 0: 
-        print(i)
-        exec(i)
-
 
 class AcousticDaemon(Daemon):
-    def __init__(self):
+    def __init__(self,port=5000,muxurl=9002,pulserurl=9003):
         Daemon.__init__(self,self.run,name="easi_daemon")
+        self.port = port
+        self.muxurl = muxurl
+        self.pulserurl = pulserurl
 
     def run(self):
         while True:
-            a = A.Acoustics(json_url= "http://%s:%i/table_load" %("localhost",port),pulserurl=pulseurl,muxurl=muxurl)
+            a = A.Acoustics(json_url= "http://localhost:5000/table_load",muxurl="localhost:9000", muxtype="cytec", pulserurl="localhost:9001")
             a.beginRun()
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
@@ -69,8 +63,10 @@ class WebDaemon(Daemon):
 
 class UIDaemon(Daemon):
     """Hosts an editable table at http://localhost:5000"""
-    def __init__(self):
+    def __init__(self,port=5000,host=None):
         Daemon.__init__(self,self.run,name="ui_daemon")
+        self.port = port
+        self.host = host
 
     def run(self):
         @app.route('/')
@@ -108,6 +104,14 @@ class UIDaemon(Daemon):
 
 
 if __name__=="__main__":
+    pulserurl = 9001
+    muxurl = 9002
+    host = None
+    port = 5000
+    for i in sys.argv:
+        if i.find("=") > 0: 
+            print(i)
+            exec(i)
     d = UIDaemon()
     d.start()
 
