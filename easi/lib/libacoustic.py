@@ -61,7 +61,7 @@ class Acoustics():
     def getJSON(self):
         """Reads in a json from json_file. JSON contains
         parameter settings and experiment details"""
-        json_file = uo(self.json_url)
+        json_file = uo(self.json_url + '/table_load')
         json_file_str = json_file.readall().decode('utf-8')
         settings = json.loads(json_file_str)
 

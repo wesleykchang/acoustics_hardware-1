@@ -8,6 +8,7 @@ import argparse
 from http.server import SimpleHTTPRequestHandler
 import socketserver
 import json
+import utils
 
 from flask import Flask, send_from_directory, request
 
@@ -16,15 +17,15 @@ app = Flask(__name__)
 
 
 class AcousticDaemon(Daemon):
-    def __init__(self,port=5000,muxurl=9002,pulserurl=9003):
+    def __init__(self,uiurl=5000,muxurl=9002,pulserurl=9003):
         Daemon.__init__(self,self.run,name="easi_daemon")
-        self.port = port
-        self.muxurl = muxurl
-        self.pulserurl = pulserurl
+        self.uiurl =  utils.parse_URL(uiurl)
+        self.muxurl =  utils.parse_URL(muxurl)
+        self.pulserurl =  utils.parse_URL(pulserurl)
 
     def run(self):
         while True:
-            a = A.Acoustics(json_url= "http://localhost:5000/table_load",muxurl="localhost:9000", muxtype="cytec", pulserurl="localhost:9001")
+            a = A.Acoustics(json_url= self.uiurl,pulserurl=self.pulserurl,muxurl=self.muxurl)
             a.beginRun()
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
@@ -104,7 +105,7 @@ class UIDaemon(Daemon):
 
 
 if __name__=="__main__":
-    pulserurl = 9001
+    pulserurl = 9003
     muxurl = 9002
     host = None
     port = 5000
@@ -112,8 +113,9 @@ if __name__=="__main__":
         if i.find("=") > 0: 
             print(i)
             exec(i)
-    d = UIDaemon()
+            
+    d = UIDaemon(port=5000)
     d.start()
 
-    # ad = AcousticDaemon()
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,pulserurl=pulserurl)
+    ad.start()
