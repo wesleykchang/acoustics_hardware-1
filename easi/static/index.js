@@ -172,7 +172,7 @@ function sendsettings(last_tid)
 
   json_str = JSON.stringify(out)
 
-  $.post("http://localhost:5000/table_save",json_str,
+  $.post("/table_save",json_str,
         function(data)
         {
          data = JSON.parse(data)

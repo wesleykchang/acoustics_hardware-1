@@ -22,11 +22,11 @@ class AcousticDaemon(Daemon):
         self.uiurl =  utils.parse_URL(uiurl)
         self.muxurl =  utils.parse_URL(muxurl)
         self.pulserurl =  utils.parse_URL(pulserurl)
+        self.acous = A.Acoustics(json_url= self.uiurl,pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype="cytec")
 
     def run(self):
         while True:
-            a = A.Acoustics(json_url= self.uiurl,pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype="cytec")
-            a.beginRun()
+            self.acous.beginRun()
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
         try:
@@ -100,6 +100,6 @@ if __name__=="__main__":
             
     d = UIDaemon(port,host)
     d.start()
-
+    time.sleep(1)
     ad = AcousticDaemon(uiurl=port,muxurl=muxurl,pulserurl=pulserurl)
     ad.start()
