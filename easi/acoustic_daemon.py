@@ -17,6 +17,7 @@ app = Flask(__name__)
 
 
 class AcousticDaemon(Daemon):
+    """Responsible for controlling the Mux and the EPoch"""
     def __init__(self,uiurl=5000,muxurl=9002,pulserurl=9003):
         Daemon.__init__(self,self.run,name="easi_daemon")
         self.uiurl =  utils.parse_URL(uiurl)
@@ -39,7 +40,7 @@ class AcousticDaemon(Daemon):
 
 
 class UIDaemon(Daemon):
-    """Hosts an editable table at http://localhost:5000"""
+    """Responsible for hosting the web interface."""
     def __init__(self,port=5000,host=None):
         Daemon.__init__(self,self.run,name="ui_daemon")
         self.port = port
