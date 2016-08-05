@@ -61,7 +61,8 @@ class Acoustics():
     def getJSON(self):
         """Reads in a json from json_file. JSON contains
         parameter settings and experiment details"""
-        json_file = uo(self.json_url + '/table_load')
+        print(self.json_url + '/table_load')
+        json_file = uo((self.json_url + '/table_load'))
         json_file_str = json_file.readall().decode('utf-8')
         settings = json.loads(json_file_str)
 
@@ -158,7 +159,7 @@ class Acoustics():
         # if not loop: break
 
 if __name__=="__main__":
-    a = Acoustics(json_url= "http://localhost:5000/table_load", pulserurl="9001", muxurl="http://localhost:9000", muxtype="cytec")
+    a = Acoustics(json_url= "http://localhost:5000", pulserurl="9001", muxurl="http://localhost:9000", muxtype="cytec")
     a.beginRun(loop=False)
     # a.getJSON()
 

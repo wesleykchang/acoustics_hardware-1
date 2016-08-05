@@ -14,11 +14,11 @@ class Epoch():
         
     def awrite(self,val,verbose=False):
         if verbose: print ("Asking for",val,":")
-        uo("http://localhost:" + str(self.site)+"/writecf/"+str(val)).read()
+        uo(self.site+"/writecf/"+str(val)).read()
         sleep(self.delay)
      
     def aread(self,split=None):
-        get = uo("http://localhost:" + str(self.site)+"/read/").read().decode('utf-8') #need to decode for python3
+        get = uo(self.site+"/read/").read().decode('utf-8') #need to decode for python3
         if split != None:
             for i in range(1,6):
                 out = get.split("OK")[-i]

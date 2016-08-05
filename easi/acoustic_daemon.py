@@ -1,4 +1,3 @@
-
 import sys
 sys.path.append('lib') #tells python where to look for packages
 from daemon import Daemon
@@ -26,7 +25,7 @@ class AcousticDaemon(Daemon):
 
     def run(self):
         while True:
-            a = A.Acoustics(json_url= self.uiurl,pulserurl=self.pulserurl,muxurl=self.muxurl)
+            a = A.Acoustics(json_url= self.uiurl,pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype="cytec")
             a.beginRun()
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
@@ -34,30 +33,6 @@ class AcousticDaemon(Daemon):
             fn()
         except:
             pass 
-
-    def loadTools(self):
-        pass
-
-class WebDaemon(Daemon):
-    """We probably don't need this anymore. The UI Daemon can just pull directly from latest wforms
-    for sparkline"""
-    def __init__(self,port):
-        Daemon.__init__(self,self.run,name="web_daemon")
-        self.port= port
-
-    def start(self):
-        Handler = SimpleHTTPRequestHandler
-        self.httpd = socketserver.TCPServer(("", self.port), Handler)
-        print (time.asctime(), "Server Starts - %s:%s" % ("localhost", self.port))
-        return Daemon.start(self)
-
-    def stop(self):
-        self.httpd.server_close()
-        print (time.asctime(), "Server Stops - %s:%s" % ("localhost", self.port))
-        return Daemon.stop(self)
-
-    def run(self):
-        self.httpd.serve_forever()
 
     def loadTools(self):
         pass
@@ -114,8 +89,8 @@ class UIDaemon(Daemon):
 
 
 if __name__=="__main__":
-    pulserurl = 9003
-    muxurl = 9002
+    pulserurl = 9001
+    muxurl = 9000
     host = None
     port = 5000
     for i in sys.argv:
