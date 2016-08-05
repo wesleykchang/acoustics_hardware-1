@@ -23,10 +23,6 @@ import socketserver
 def debug(s):
     print("[libacoustic] "+s)
 
-#URLs: Table URL is here: http://feasible.io:8180
-#JSON is output here: http://feasible.pithy.io:4011/table_load
-
-
 class Acoustics():
     def __init__(self,muxurl=None,muxtype=None,json_url=None,pulser="epoch",pulserurl=None):
         self.path = os.getcwd()
@@ -61,17 +57,13 @@ class Acoustics():
     def getJSON(self):
         """Reads in a json from json_file. JSON contains
         parameter settings and experiment details"""
-        print(self.json_url + '/table_load')
-        json_file = uo((self.json_url + '/table_load'))
-        json_file_str = json_file.readall().decode('utf-8')
-        settings = json.loads(json_file_str)
+        #no real reason to do this via web if the file is local
+
+        settings = json.loads(open("table_state.json").read())
 
         #convert the start date to string with MM_DD to be used for filename
         for row in settings['data']:
             row['date_fname'] = (row['startdate'])[0:11].replace(" ", "_")
-
-
-        #temporary until startdates are generated & sent by js file.
         return settings
             
     def cleanURL(self,url):
