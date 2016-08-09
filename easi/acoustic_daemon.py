@@ -17,12 +17,13 @@ app = Flask(__name__)
 
 
 class AcousticDaemon(Daemon):
-    def __init__(self,uiurl=5000,muxurl=9002,pulserurl=9003):
+    def __init__(self,uiurl=5000,muxurl=9002,muxtype="cytec",pulserurl=9003):
         Daemon.__init__(self,self.run,name="easi_daemon")
         self.uiurl =  utils.parse_URL(uiurl)
         self.muxurl =  utils.parse_URL(muxurl)
+        self.muxtype = muxtype
         self.pulserurl =  utils.parse_URL(pulserurl)
-        self.acous = A.Acoustics(json_url= self.uiurl,pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype="cytec")
+        self.acous = A.Acoustics(json_url= self.uiurl,pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype=muxtype)
 
     def run(self):
         while True:
@@ -91,7 +92,7 @@ class UIDaemon(Daemon):
 if __name__=="__main__":
     pulserurl = 9001
     muxurl = 9000
-    host = None
+    host = "0.0.0.0"
     port = 5000
     for i in sys.argv:
         if i.find("=") > 0: 
@@ -101,5 +102,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,pulserurl=pulserurl)
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="old",pulserurl=pulserurl)
     ad.start()

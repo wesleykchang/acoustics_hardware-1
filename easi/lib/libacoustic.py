@@ -38,6 +38,8 @@ class Acoustics():
                 self.mux = cytec.Mux(self.cleanURL(muxurl))
             elif ["old","oldmux"].count(muxtype.lower())>0:
                 self.mux = omux.Mux(self.cleanURL(muxurl))
+            else:
+                self.mux = None
         else:
            self.mux = None
         if pulserurl:
