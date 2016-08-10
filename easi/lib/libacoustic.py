@@ -19,14 +19,15 @@ import cytec
 from pprint import pprint
 from http.server import SimpleHTTPRequestHandler
 import socketserver
+from socketIO_client import SocketIO, LoggingNamespace
 
 def debug(s):
     print("[libacoustic] "+s)
 
 class Acoustics():
-    def __init__(self,muxurl=None,muxtype=None,json_url=None,pulser="epoch",pulserurl=None):
+    def __init__(self,muxurl=None,muxtype=None,pulser="epoch",pulserurl=None):
         self.path = os.getcwd()
-        self.json_url = json_url
+        self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
         #can be fixed by checking if folder exists, and appending a number to the end
 
         if muxurl is not None and muxtype is not None:
@@ -76,7 +77,7 @@ class Acoustics():
         mark = time.time() - self.start_time
         print(mark)
         return mark
-    
+
     def getSingleData(self,row):
         """Processes a single row/test from the table. each row is a dictionary. Forwards command to
         Epoch and stores a json waveform in a folder that corresponds to the row."""
@@ -145,13 +146,15 @@ class Acoustics():
         for row in tests['data']:
             if (row['run(y/n)']).lower() == 'y':
                 #print("Executing row "+str(i+1))
-                self.getSingleData(row)
+                data = self.getSingleData(row)
+                self.socketIO.emit('test',{"rowid":row["testid"],"amp":list(data[1])},broadcast=True)
+                self.socketIO.wait(seconds=1)
             else:
                 pass
         # if not loop: break
 
 if __name__=="__main__":
-    a = Acoustics(json_url= "http://localhost:5000", pulserurl="9001", muxurl="http://localhost:9000", muxtype="cytec")
+    a = Acoustics(pulserurl="http://localhost:9001", muxurl="http://localhost:9000", muxtype="cytec")
     a.beginRun(loop=False)
     # a.getJSON()
 

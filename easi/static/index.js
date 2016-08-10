@@ -1,5 +1,5 @@
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
+var fields ="Start Date, Test ID, LastWaveform, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');
@@ -15,7 +15,6 @@ header = ""
 for (f in fields) header += "<th>"+fields[f]+"</th>"
 $("#header").html(header)
 
-
 //Make Clone Basis
 //This is a hack but so far it doesn't break.  The idea is that we create an empty hidden row that's read to go when we hit "add".  This has been modified to scale appropriately to the size of the header and autofill the table on load
 
@@ -28,13 +27,13 @@ playstopbut = "<span class='test-start glyphicon glyphicon-play'></span><span cl
 
 //make the clone structure the size of the fields
 clone_arr = [] 
-for (var i=2; i < fields.length-1; i++ ) clone_arr.push("")
+for (var i=3; i < fields.length-1; i++ ) clone_arr.push("")
 clone_arr[clone_arr.length-3] = playstopbut //add play button
 clone_arr[clone_arr.length-2] = removebut //add remove button
 clone_arr[clone_arr.length-1] = updownbut // add updown button
 
 //Turn the array into HTML
-cloner = "<td contenteditable=false></td><td contenteditable=false></td>"
+cloner = "<td contenteditable=false></td><td contenteditable=false></td><td kind=LastWaveform contenteditable=false></td>"
 for (c in clone_arr) 
 {
     var ce = "false"
@@ -56,17 +55,20 @@ $('.table-add').click(function () {
 $('.table-remove').click(function () {
     console.log(this)
   $(this).parents('tr').detach();
+  sendsettings(last_tid)
 });
 
 $('.table-up').click(function () {
   var $row = $(this).parents('tr');
   if ($row.index() === 1) return; // Don't go above the header
   $row.prev().before($row.get(0));
+  sendsettings(last_tid)
 });
 
 $('.table-down').click(function () {
   var $row = $(this).parents('tr');
   $row.next().after($row.get(0));
+  sendsettings(last_tid)
 });
 
 $('.test-start').click(function () {
@@ -97,6 +99,8 @@ $('.test-start').click(function () {
 
   //for exporting whether or not to run
   $row[0].setAttribute('run','y')
+  $row[0].setAttribute('rowid',current_tid.toString())
+  $row[0].setAttribute('active','false')
 
   //to 'lock' the row while a test is running
   $row.each(function () {
@@ -225,6 +229,7 @@ function makerow(p) {
 
     $clone[0].setAttribute('rowid',p['testid'])
     $clone[0].setAttribute('run',p['run(y/n)'])
+    $clone[0].setAttribute('active','false')
 
     if (p['run(y/n)'] == 'y'){
       for (var i = 0; i < fields.length - 4; i++) $clone[0].cells[i].setAttribute('contenteditable','false')
@@ -234,11 +239,38 @@ function makerow(p) {
 
 }
 
-function getlastwave()
-{
-    $.get(URLHERE,
-    function(data)
-    {
-        //int
-    })
+function setbackground(rowid, color) {
+    $('tr[rowid="' + rowid + '"]').css('background', color)
 }
+
+function clearbackgrounds() {
+    $TABLE.find('tr:not(:hidden)').css('background', 'none')
+}
+
+last_rowid = 0;
+
+var socket = io.connect('http://' + document.domain + ':' + location.port);
+socket.on('update',function(data){
+    current_rowid = data['rowid']
+    if (last_rowid != current_rowid){
+      $('[rowid="' + last_rowid + '"]').attr('active','false'); //turn off previous active row
+    }
+    $('[rowid="' + current_rowid + '"]').attr('active','true');
+
+    last_rowid = current_rowid
+
+    ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"
+    $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").html(ins)
+    $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").sparkline(data['amp'], {
+            type: 'line',
+            width: '100',
+            height: '50',
+            fillColor: false,
+            lineColor: "black",
+            lineWidth: 1.5,
+            spotRadius: 2,
+            chartRangeMin: 0,
+            chartRangeMax: 255
+        });
+});
+

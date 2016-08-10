@@ -9,11 +9,15 @@ import socketserver
 import json
 import utils
 import os
+from flask_socketio import SocketIO, send, emit
 
 from flask import Flask, send_from_directory, request
 
 __all__ = ["AcousticDaemon"]
 app = Flask(__name__)
+app.config['DEBUG'] = False
+app.config['SERVER_NAME'] = "localhost:5000"  #can change this to whatever
+socketio = SocketIO(app, binary=True)
 
 
 class AcousticDaemon(Daemon):
@@ -24,7 +28,7 @@ class AcousticDaemon(Daemon):
         self.muxurl =  utils.parse_URL(muxurl)
         self.pulserurl =  utils.parse_URL(pulserurl)
         self.acous = A.Acoustics(json_url= self.uiurl,pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype="cytec")
-
+        
     def run(self):
         while True:
             self.acous.beginRun()
@@ -61,12 +65,11 @@ class UIDaemon(Daemon):
 
         @app.route('/<startdate>/view')
         def view_table(startdate):
-            # show the user profile for that user
-            return send_from_directory('static/tableviewer','index.html')
+            return send_from_directory('static/tableviewer','index.html') #show logfile
 
         @app.route('/<startdate>/table_load')
         def log_load(startdate):
-            return open(os.path.join("Data",startdate,"logfile.json")).read()
+            return open(os.path.join("Data",startdate,"logfile.json")).read() #get data for a given log
 
         @app.route('/table_save', methods=['GET', 'POST'])
         def table_save():
@@ -81,9 +84,13 @@ class UIDaemon(Daemon):
                 except Exception as E: 
                     out['status'] = str(E)
                 return json.dumps(out)
-                
-        while True:  
-            app.run(host=host,port=port) #if you call this with debug=true, daemon will init twice. weird.
+
+        @socketio.on('test')
+        def handle_test(data):
+            socketio.emit('update', data) #tell the JS to update.
+                        
+        while True:
+            socketio.run(app)  
 
     def loadTools(self):
         pass
@@ -102,5 +109,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,pulserurl=pulserurl)
-    ad.start()
+    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,pulserurl=pulserurl)
+    # ad.start()

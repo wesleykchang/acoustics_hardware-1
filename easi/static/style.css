@@ -99,12 +99,18 @@ input:focus
   background:lightgreen;
 }
 
-[contenteditable="true"]:focus
+tr td[contenteditable="true"]:focus
 {
     background:lightyellow;
 }
 
-[contenteditable="false"]
+
+[active = "true"]
+{
+    background:pink;
+}
+
+[active = "false"] [contenteditable = "false"]
 {
     background:#EEE;
 }
