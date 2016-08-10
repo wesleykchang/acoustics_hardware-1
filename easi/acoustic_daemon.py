@@ -40,7 +40,7 @@ class AcousticDaemon(Daemon):
 
 
 class UIDaemon(Daemon):
-    """Hosts an editable table at http://localhost:5000"""
+    """Responsible for hosting the web interface."""
     def __init__(self,port=5000,host=None):
         Daemon.__init__(self,self.run,name="ui_daemon")
         self.port = port
