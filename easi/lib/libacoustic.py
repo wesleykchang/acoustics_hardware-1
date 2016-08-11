@@ -27,7 +27,6 @@ def debug(s):
 class Acoustics():
     def __init__(self,muxurl=None,muxtype=None,pulser="epoch",pulserurl=None):
         self.path = os.getcwd()
-        self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
         #can be fixed by checking if folder exists, and appending a number to the end
 
         if muxurl is not None and muxtype is not None:
@@ -35,6 +34,8 @@ class Acoustics():
                 self.mux = cytec.Mux(self.cleanURL(muxurl))
             elif ["old","oldmux"].count(muxtype.lower())>0:
                 self.mux = omux.Mux(self.cleanURL(muxurl))
+            else:
+                self.mux = None
         else:
            self.mux = None
         if pulserurl:
@@ -60,7 +61,7 @@ class Acoustics():
         parameter settings and experiment details"""
         #no real reason to do this via web if the file is local
 
-        settings = json.loads(open("table_state.json").read())
+        settings = json.load(open("table_state.json"))
 
         #convert the start date to string with MM_DD to be used for filename
         for row in settings['data']:
@@ -147,8 +148,17 @@ class Acoustics():
             if (row['run(y/n)']).lower() == 'y':
                 #print("Executing row "+str(i+1))
                 data = self.getSingleData(row)
-                self.socketIO.emit('test',{"rowid":row["testid"],"amp":list(data[1])},broadcast=True)
-                self.socketIO.wait(seconds=1)
+                try:
+                    #self.socketIO.emit('test',{"rowid":str(row["testid"]),"amp":data[1]},broadcast=True)
+                    self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
+                    # self.socketIO.emit('test',{"rowid":"23","amp":[0,0,0,6,4,2]},broadcast=True)
+                    self.socketIO.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True)
+                    self.socketIO.wait(seconds=1)
+                except:
+                    import sys
+                    t,v,tb = sys.exc_info()
+                    print(t)
+                    print(v)
             else:
                 pass
         # if not loop: break

@@ -1,4 +1,7 @@
 
+from urllib.request import urlopen as uo
+from time import sleep
+
 __all__ = ["Mux"]
 
 class Mux():
@@ -18,13 +21,14 @@ class Mux():
         try:
             if chan2 is None:
                 u = self.url+"/write/%i" % int(chan)
-                debug('chan1=', chan , 'chan2=',chan2)
+                #self.debug('chan1='+str(chan)+', chan2='+str(chan2))
             else:
                 u = self.url+"/write/%i,%i" % (int(chan),int(chan2))
-                debug('chan1=', chan , 'chan2=',chan2)
+                #self.debug('chan1='+str(chan)+', chan2='+str(chan2))
             uo(u).read() #TODO: check the result
             self.on = [x for x in [chan,chan2] if x is not None and x is not 0]
             sleep(delay)
-        except: #TODO: custom errors and handlers
+        except Exception as E: #TODO: custom errors and handlers
+            raise(E)
             print("problem with mux")
             
