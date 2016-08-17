@@ -79,52 +79,6 @@ class Acoustics():
         print(mark)
         return mark
 
-    def getSingleData(self,row):
-        """Processes a single row/test from the table. each row is a dictionary. Forwards command to
-        Epoch and stores a json waveform in a folder that corresponds to the row."""
-
-        #misc path generation
-        row_name = "TestID_" + row['testid']
-
-        # try:
-        #    os.mkdir(os.path.join(self.folder_name, row_name))
-        # except FileExistsError:
-        #    pass
-
-        row_name = "TestID_" + row['testid']
-        fname = os.path.join(self.path,"Data",row['date_fname'],row_name,str(time.time()).replace(".","_") + ".json")
-        fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
-        
-        if self.mux is not None:
-            if row['channel2']!="":
-                self.mux.switch(row['channel'],row['channel2'])
-            else:
-                self.mux.switch(row['channel'])
-
-        if self.pulser=="epoch":
-            try:
-                data = self.p.commander(
-                    isTR=row['mode(tr/pe)'].lower(),
-                    gain=float(row['gain(db)']),
-                    tus_scale=int(row['time(us)']),
-                    freq=float(row['freq(mhz)']),
-                    delay=float(row['delay(us)']),
-                    filt=float(row['filtermode']))
-                try:
-                    json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
-                    json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
-                except FileNotFoundError:
-                    #brand new row. initialize it and name it, then try dumping file
-                    os.makedirs(os.path.join("Data",row['date_fname'],row_name))
-                    json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
-                    json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
-                    self.writeLog(row) #since this is the first time a row is intialized, it enters it to logfile
-                return data
-            except:
-                print('***ERROR***')
-                import traceback
-                print(traceback.format_exc())
-
     def writeLog(self,row):
         """Attempts to open a log file and add the row to it. If there is no logfile, creates one."""
         logname = os.path.join(self.path,"Data",row['date_fname'],"logfile.json") #path to logfile
@@ -137,6 +91,44 @@ class Acoustics():
             info = {'data' : []}
             info['data'].append(row) #append to the list of dicts
             json.dump(info, open(logname, 'w'))
+
+    def saveData(self,data,row):
+        """Stores data as JSON files named by time in Data/StartDate/TestID"""
+        #misc path generation
+        row_name = "TestID_" + row['testid']
+        fname = os.path.join(self.path,"Data",row['date_fname'],row_name,str(time.time()).replace(".","_") + ".json")
+        fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
+
+        try:
+            json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
+            json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
+        except FileNotFoundError:
+            #brand new row. initialize it and name it, then try dumping file
+            os.makedirs(os.path.join("Data",row['date_fname'],row_name))
+            json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
+            json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname_current,'w'))
+            self.writeLog(row) #since this is the first time a row is intialized, it enters it to logfile
+
+
+    def getSingleData(self,row):
+        """Processes a single row/test from the table. each row is a dictionary. Forwards command to
+        Epoch and stores a json waveform in a folder that corresponds to the row."""
+        
+        if self.mux is not None:
+            if row['channel2']!="":
+                self.mux.switch(row['channel'],row['channel2'])
+            else:
+                self.mux.switch(row['channel'])
+
+        try:
+            data = self.p.commander(row)
+            self.saveData(data,row)
+            return data
+        except:
+            print('***ERROR***')
+            import traceback
+            print(traceback.format_exc())
+
 
     
     def beginRun(self,loop=True):

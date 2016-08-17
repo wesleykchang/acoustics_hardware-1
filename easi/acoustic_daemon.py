@@ -85,6 +85,11 @@ class UIDaemon(Daemon):
                     out['status'] = str(E)
                 return json.dumps(out)
 
+        @app.route('/fsweep')
+        def table_save():
+            return send_from_directory('static/fsweep','index.html')
+
+
         @socketio.on('test')
         def handle_test(data):
             socketio.emit('update', data) #tell the JS to update.
@@ -109,5 +114,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="old",pulserurl=pulserurl)
-    ad.start()
+    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="old",pulserurl=pulserurl)
+    # ad.start()

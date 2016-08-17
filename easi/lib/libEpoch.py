@@ -12,7 +12,7 @@ class Epoch():
         self.fake = fake
         self.fake_buffer = []
         
-    def awrite(self,val,verbose=False):
+    def awrite(self,val):
         if verbose: print ("Asking for",val,":")
         uo(self.site+"/writecf/"+str(val)).read()
         sleep(self.delay)
@@ -60,18 +60,29 @@ class Epoch():
         rtime = [round(x,3) for x in list(tim)]
         return rtime,first,second
     
-    def commander(self,isTR='tr',gain=25,tus_scale=40,freq=2.25,delay=0,filt=3):
-        self.awrite("param_Freq=%f" % freq,verbose=False)
-        self.awrite("param_Range=%f" % tus_scale,verbose=False)
-        self.awrite("param_BaseGain=%f" % gain,verbose=False)
-        self.awrite("param_FilterStandard=%i" % filt,verbose=False)
-        self.awrite("param_TransmissionMode=0",verbose=False)
-        self.awrite("param_Delay=%f" % delay,verbose=False)
-        self.awrite("param_WaveForm?",verbose=False)
+    def commander(self,row):
+        defaults ={'isTR':'tr',"gain" : "25","tus_scale" :"40","freq":"2.25","delay":"0","filt":"3"}
+        try:
+            isTR=row['mode(tr/pe)'].lower(),
+            gain=float(row['gain(db)']),
+            tus_scale=int(row['time(us)']),
+            freq=float(row['freq(mhz)']),
+            delay=float(row['delay(us)']),
+            filt=float(row['filtermode'])
+        except KeyError as e:
+            row[e.args[0]]=defaults[e.args[0]] #sets to a default if no value is found for a row.
+
+        self.awrite("param_Freq=%f" % freq)
+        self.awrite("param_Range=%f" % tus_scale)
+        self.awrite("param_BaseGain=%f" % gain)
+        self.awrite("param_FilterStandard=%i" % filt)
+        self.awrite("param_TransmissionMode=0")
+        self.awrite("param_Delay=%f" % delay)
+        self.awrite("param_WaveForm?")
         if isTR == 'tr':
-            self.awrite("param_TransmissionMode=2",verbose=False)
+            self.awrite("param_TransmissionMode=2")
         elif isTR == 'pe':
-            self.awrite("param_TransmissionMode=0",verbose=False)
+            self.awrite("param_TransmissionMode=0")
         else:
             print ("what mode are you in?")
 
