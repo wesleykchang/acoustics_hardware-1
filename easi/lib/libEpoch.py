@@ -12,7 +12,7 @@ class Epoch():
         self.fake = fake
         self.fake_buffer = []
         
-    def awrite(self,val):
+    def awrite(self,val,verbose=False):
         if verbose: print ("Asking for",val,":")
         uo(self.site+"/writecf/"+str(val)).read()
         sleep(self.delay)
@@ -82,7 +82,7 @@ class Epoch():
         self.awrite("param_Delay=%f" % delay)
         self.awrite(settings[row['mode(tr/pe)']]) #sets the mode
         self.awrite("param_WaveForm?")
-    
+
         raw = self.getLast()
         # open("epoch-emergency-log","a").write(str(freq)+","+str(tus_scale)+","+str(gain)+","+str(delay))
         # open("epoch-emergency-log","a").write(raw)
