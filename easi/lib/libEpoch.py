@@ -62,6 +62,8 @@ class Epoch():
     
     def commander(self,row):
         defaults ={'isTR':'tr',"gain" : "25","tus_scale" :"40","freq":"2.25","delay":"0","filt":"3"}
+        settings = {"tr" : "param_TransmissionMode=2", "pe" : "param_TransmissionMode=0"}
+
         try:
             isTR=row['mode(tr/pe)'].lower(),
             gain=float(row['gain(db)']),
@@ -72,20 +74,15 @@ class Epoch():
         except KeyError as e:
             row[e.args[0]]=defaults[e.args[0]] #sets to a default if no value is found for a row.
 
+
         self.awrite("param_Freq=%f" % freq)
         self.awrite("param_Range=%f" % tus_scale)
         self.awrite("param_BaseGain=%f" % gain)
         self.awrite("param_FilterStandard=%i" % filt)
-        self.awrite("param_TransmissionMode=0")
         self.awrite("param_Delay=%f" % delay)
+        self.awrite(settings[row['mode(tr/pe)']]) #sets the mode
         self.awrite("param_WaveForm?")
-        if isTR == 'tr':
-            self.awrite("param_TransmissionMode=2")
-        elif isTR == 'pe':
-            self.awrite("param_TransmissionMode=0")
-        else:
-            print ("what mode are you in?")
-
+    
         raw = self.getLast()
         # open("epoch-emergency-log","a").write(str(freq)+","+str(tus_scale)+","+str(gain)+","+str(delay))
         # open("epoch-emergency-log","a").write(raw)
