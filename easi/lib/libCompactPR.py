@@ -32,7 +32,7 @@ class CP():
         settings = {"tr" : "M1", "pe" : "M0"}
 
         self.write("G%i" % int(row["gain"]*10)) #gain is measured in 10th of dB 34.9 dB =349
-        self.write(settings['mode(tr/pe)'])
+        self.write(settings[row['mode(tr/pe)']])
         self.write("L%i" % int(row['lpf']))
         self.write("H%i" % int(row['hpf']))
         self.write("V%i" % int(row['voltage']))
@@ -46,10 +46,6 @@ class CP():
         pass
 
 if __name__ == "__main__":
-
-    site = "http://25.68.137.216:9000"
-    c = CP(site)
-    l = "DGHLMPQRSTVW"
 
     #Write a few settings
     #Damping
