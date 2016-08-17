@@ -61,18 +61,26 @@ class Epoch():
         return rtime,first,second
     
     def commander(self,row):
-        defaults ={'isTR':'tr',"gain" : "25","tus_scale" :"40","freq":"2.25","delay":"0","filt":"3"}
+        defaults ={'isTR':'tr',"gain(db)" : "25","time(us)" :"40","freq(mhz)":"2.25","delay(us)":"0","filtermode":"3"}
         settings = {"tr" : "param_TransmissionMode=2", "pe" : "param_TransmissionMode=0"}
 
-        try:
-            isTR=row['mode(tr/pe)'].lower(),
-            gain=float(row['gain(db)']),
-            tus_scale=int(row['time(us)']),
-            freq=float(row['freq(mhz)']),
-            delay=float(row['delay(us)']),
-            filt=float(row['filtermode'])
-        except KeyError as e:
-            row[e.args[0]]=defaults[e.args[0]] #sets to a default if no value is found for a row.
+        try:             isTR=row['mode(tr/pe)'].lower(),
+        except KeyError: isTR=defaults['isTR']
+
+        try:             gain=float(row['gain(db)']),
+        except KeyError: gain=float(defaults['gain(db)'])
+
+        try:             tus_scale=int(row['time(us)']),
+        except KeyError: tus_scale=int(defaults['time(us)'])
+
+        try:             freq=float(row['freq(mhz)']),
+        except KeyError: freq=float(defaults['freq(mhz)'])
+
+        try:             delay=float(row['delay(us)']),
+        except KeyError: delay=float(defaults['delay(us)'])
+
+        try:             filt=float(row['filtermode'])
+        except KeyError: filt=float(defaults['filtermode'])
 
 
         self.awrite("param_Freq=%f" % freq)
