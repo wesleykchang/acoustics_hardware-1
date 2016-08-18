@@ -10,6 +10,7 @@ import bisect
 class CP():
     def __init__(self,site):
         self.site = site
+        self.lut = pickle.load(open('CP_LUT','rb'))
 
     def write(self,s):
         out = uo(self.site+"/writecf/%s"%s).read()
@@ -31,15 +32,14 @@ class CP():
     def convertFreq(self, freq):
         """Takes a frequency(in MHz) and converts it to a CP setting"""
         pw = int(1/(float(freq)*1e-3))
-        lut = pickle.load(open('CP_LUT','rb'))
         # print(pw)
         if pw <= 484:
             wide = "X0"
-            val = self.returnNearest(list(sorted(lut.values())),pw)
+            val = self.returnNearest(list(sorted(self.lut.values())),pw)
             CPval = "W%i" % val
         else:
             wide = "X1"
-            keys = (list(lut.keys())) #keys are ordered in incremental fashion
+            keys = (list(self.lut.keys())) #keys are ordered in incremental fashion
             val = self.returnNearest(keys,pw)
             CPval = "W%i" % lut[val]
         return [CPval,wide]
@@ -93,7 +93,7 @@ class CP():
 if __name__ == "__main__":
 
     test = CP("yolo")
-    print(test.convertFilt("12"))
+    print(test.convertFreq("2.25"))
 
     # #Write a few settings
     # #Damping
