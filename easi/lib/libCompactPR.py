@@ -29,32 +29,36 @@ class CP():
         return last
 
     def convertFreq(self, freq):
+        """Takes a frequency(in MHz) and converts it to a CP setting"""
         pw = int(1/(freq*1e-3))
-        print(pw)
         lut = pickle.load(open('CP_LUT','rb'))
+        print(pw)
         if pw <= 484:
-            wide = False
-            print(sorted(lut.values()))
+            wide = "X0"
             val = self.returnNearest(list(sorted(lut.values())),pw)
-            CPval = val
+            CPval = "W%i" % val
         else:
-            wide = True
+            wide = "X1"
             keys = (list(lut.keys())) #keys are ordered in incremental fashion
             val = self.returnNearest(keys,pw)
-            CPval = lut[val]
+            CPval = "W%i" % lut[val]
         return [CPval,wide]
 
     def returnNearest(self,l,pw):
+        """Takes an int and a list of ints, and finds the closest list value to the int"""
+        # print(l)
         ind = (bisect.bisect_left(l, pw))
-        try:
-            val = (min([l[ind],l[ind-1]], key=lambda k: abs(k-pw)))
-        except IndexError:
+        if pw >= 2285:
             val = 2285
             print ("Frequency is lower than lowest possible. setting frequency to .437 MHz")
+        else:
+            val = (min([l[ind],l[ind-1]], key=lambda k: abs(k-pw)))       
         return val
 
 
     def commander(self,row):
+        self.convertFreq(row["freq(mhz)"])
+
         settings = {"tr" : "M1", "pe" : "M0"}
 
         self.write("G%i" % int(row["gain"]*10)) #gain is measured in 10th of dB 34.9 dB =349
@@ -65,17 +69,16 @@ class CP():
         self.write("P%i" % int(row['prf'])) #pulse repitition freq
         self.write("W%i" % int(row['pwidth'])) #wide pulse mode will need a LUT
 
-        data = self.pitaya(delay,range)
+        data = self.pitaya(delay,rang)
         return data
 
-    def pitaya(delay,range):
-        return data
+    def pitaya(delay,rang):
         pass
 
 if __name__ == "__main__":
 
     test = CP("yolo")
-    print(test.convertFreq(.5))
+    print(test.convertFreq(.435))
 
     # #Write a few settings
     # #Damping
