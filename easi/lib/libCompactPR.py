@@ -30,9 +30,9 @@ class CP():
 
     def convertFreq(self, freq):
         """Takes a frequency(in MHz) and converts it to a CP setting"""
-        pw = int(1/(freq*1e-3))
+        pw = int(1/(float(freq)*1e-3))
         lut = pickle.load(open('CP_LUT','rb'))
-        print(pw)
+        # print(pw)
         if pw <= 484:
             wide = "X0"
             val = self.returnNearest(list(sorted(lut.values())),pw)
@@ -44,9 +44,18 @@ class CP():
             CPval = "W%i" % lut[val]
         return [CPval,wide]
 
+    def convertFilt(self,filtmode):
+        """Takes a filtermode with the 1st digit as the hp filter and the 2nd digit as the lp filter"""
+        hpf = "H0"
+        lpf = "L0"
+        settings = list(filtmode)
+        if len(settings) == 2:
+            hpf = "H%i" % int(settings[0])
+            lpf = "L%i" % int(settings[1])
+        return [hpf,lpf]
+
     def returnNearest(self,l,pw):
         """Takes an int and a list of ints, and finds the closest list value to the int"""
-        # print(l)
         ind = (bisect.bisect_left(l, pw))
         if pw >= 2285:
             val = 2285
@@ -57,28 +66,34 @@ class CP():
 
 
     def commander(self,row):
-        self.convertFreq(row["freq(mhz)"])
+        """Takes a row of settings and sets params on CompactPulser"""
 
+        #anne's note to self: add some defaults
+        [pwidth,widemode] = self.convertFreq(row["freq(mhz)"])
+        [hpf, lpf] = self.convertFilt(row["filtermode"])
         settings = {"tr" : "M1", "pe" : "M0"}
 
-        self.write("G%i" % int(row["gain"]*10)) #gain is measured in 10th of dB 34.9 dB =349
         self.write(settings[row['mode(tr/pe)']])
-        self.write("L%i" % int(row['lpf']))
-        self.write("H%i" % int(row['hpf']))
-        self.write("V%i" % int(row['voltage']))
-        self.write("P%i" % int(row['prf'])) #pulse repitition freq
-        self.write("W%i" % int(row['pwidth'])) #wide pulse mode will need a LUT
+        self.write(hpf)
+        self.write(lpf)
+        self.write("G%i" % int(row["gain(db)"]*10)) #gain is measured in 10th of dB 34.9 dB =349
+        self.write(widemode)
+        self.write(pwidth) #wide pulse mode will need a LUT
 
-        data = self.pitaya(delay,rang)
+        ##for now we don't care about Voltage or PRF
+        # self.write("V%i" % int(row['voltage'])) 
+        # self.write("P%i" % int(row['prf'])) #pulse repitition freq
+
+        data = self.pitaya(row["delay(us)"],row["time(us)"])
         return data
 
-    def pitaya(delay,rang):
+    def pitaya(delay,time):
         pass
 
 if __name__ == "__main__":
 
     test = CP("yolo")
-    print(test.convertFreq(.435))
+    print(test.convertFilt("12"))
 
     # #Write a few settings
     # #Damping
