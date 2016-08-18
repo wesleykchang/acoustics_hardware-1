@@ -16,7 +16,7 @@ from flask import Flask, send_from_directory, request
 __all__ = ["AcousticDaemon"]
 app = Flask(__name__)
 app.config['DEBUG'] = False
-app.config['SERVER_NAME'] = "localhost:5000"  #can change this to whatever
+#app.config['HOST'] = "0.0.0.0"  #can change this to whatever
 socketio = SocketIO(app, binary=True)
 
 
@@ -95,7 +95,7 @@ class UIDaemon(Daemon):
             socketio.emit('update', data) #tell the JS to update.
                         
         while True:
-            socketio.run(app)  
+            socketio.run(app,host="0.0.0.0",port=5000)  
 
     def loadTools(self):
         pass
