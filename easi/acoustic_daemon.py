@@ -95,6 +95,7 @@ class UIDaemon(Daemon):
             socketio.emit('update', data) #tell the JS to update.
                         
         while True:
+            # socketio.run(app,host="0.0.0.0",port=5000)  
             socketio.run(app,host="0.0.0.0",port=5000)  
 
     def loadTools(self):

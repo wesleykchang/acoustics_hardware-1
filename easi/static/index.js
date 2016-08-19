@@ -205,10 +205,10 @@ function sendsettings(last_tid)
     });
     h["run(y/n)"] = $(this).attr('run')
 
-    //might not need this.
-    // if (this.hasAttribute('singleshot')){
-    //   h["singleshot"] = $(this).attr('singleshot')
-    // }
+    //yes we need this.
+    if (this.hasAttribute('singleshot')){
+      h["singleshot"] = $(this).attr('singleshot')
+    }
 
     data.push(h);
   });
@@ -280,6 +280,10 @@ function makerow(p) {
     $clone[0].setAttribute('rowid',p['testid'])
     $clone[0].setAttribute('run',p['run(y/n)'])
     $clone[0].setAttribute('active','false')
+    console.log(p['singleshot'])
+    if (p['singleshot'] != undefined){
+      $clone[0].setAttribute('singleshot',p['singleshot'])
+    }
 
     if (p['run(y/n)'] == 'y'){
       for (var i = 0; i < fields.length - 4; i++) $clone[0].cells[i].setAttribute('contenteditable','false')
@@ -292,17 +296,22 @@ function makerow(p) {
 
 last_rowid = 0;
 
+
 var socket = io.connect('http://' + document.domain + ':' + location.port);
 socket.on('update',function(data){
     current_rowid = data['rowid']
-    if (last_rowid != current_rowid){
-      var $last_row = $('[rowid="' + last_rowid + '"]') 
-      last_row.attr('active','false'); //turn off previous active row
-      if (last_row.hasAttribute('singleshot')){
-          stopRow(last_row);
-          last_row.removeAttribute('singleshot')
+    if (last_rowid != current_rowid){ 
+      var $last_row = $('[rowid="' + last_rowid + '"]')     
+      $last_row.attr('active','false'); //turn off previous active row
+      var attr = $last_row.attr('singleshot');
+
+      if (typeof attr !== typeof undefined && attr !== false) {
+         console.log('hi')
+            stopRow($last_row);
+            $last_row.removeAttr('singleshot')
       }
     }
+
     $('[rowid="' + current_rowid + '"]').attr('active','true');
 
     last_rowid = current_rowid
@@ -321,4 +330,3 @@ socket.on('update',function(data){
             chartRangeMax: 255
         });
 });
-
