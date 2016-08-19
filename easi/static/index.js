@@ -23,7 +23,7 @@ upbut =  '<span class="table-up glyphicon glyphicon-arrow-up">'
 updownbut = '<span class="table-up glyphicon glyphicon-arrow-up"></span> <span class="table-down glyphicon glyphicon-arrow-down"></span>'
 removebut =   "<span class='table-remove glyphicon glyphicon-remove'></span>"
 playbut = "<span class='test-start glyphicon glyphicon-play'></span>"
-playstopbut = "<span class='test-start glyphicon glyphicon-play'></span><span class = 'test-stop glyphicon glyphicon-stop'></span>"
+playstopbut = "<span class='test-start glyphicon glyphicon-play'></span><span class = 'test-singleshot glyphicon glyphicon-chevron-right'></span><span class = 'test-stop glyphicon glyphicon-stop'></span>"
 
 //make the clone structure the size of the fields
 clone_arr = [] 
@@ -126,6 +126,47 @@ $('.test-stop').click(function () {
     });
   });
   sendsettings(last_tid)
+});
+
+$('.test-singleshot').click(function () {
+  var d = new Date().toString(); //return current y,m,d
+  var $row = $(this).parents('tr');
+
+  // alert('Please stop test before starting a new one')
+  // alert($row[0].getAttribute('run'))
+  if ($row[0].getAttribute('run') == 'y'){
+    alert('Please stop current test before starting a new one')
+    return;
+  }
+
+  $tds = $row.find("td:nth-child(1)"); //find startdate
+  $tid = $row.find("td:nth-child(2)"); //find testid
+
+  $.each($tds, function() {
+      $(this).html(d.slice(4,24));
+  });
+
+  current_tid = last_tid + 1;
+
+  $.each($tid, function() {
+      $(this).html((current_tid).toString());
+  });
+
+  last_tid = current_tid;
+
+  //for exporting whether or not to run
+  $row[0].setAttribute('run','y')
+  $row[0].setAttribute('rowid',current_tid.toString())
+  $row[0].setAttribute('active','false')
+
+  //to 'lock' the row while a test is running
+  $row.each(function () {
+    var $td = $(this).find('td');
+    $td.each(function(){
+      $(this).attr('contenteditable','false')
+    });
+  }); 
+  sendsettings(last_tid) 
 });
 
 // A few jQuery helpers for exporting only

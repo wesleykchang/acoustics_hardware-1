@@ -86,7 +86,7 @@ class UIDaemon(Daemon):
                 return json.dumps(out)
 
         @app.route('/fsweep')
-        def table_save():
+        def freq_sweep():
             return send_from_directory('static/fsweep','index.html')
 
 

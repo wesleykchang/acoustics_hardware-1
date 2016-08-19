@@ -17,7 +17,7 @@ outline: 0px;
   color: #f00;
 }
 
-.test-start, .test-stop {
+.test-start, .test-stop, .test-singleshot {
   color: #000;
   cursor: pointer;
 }
@@ -28,6 +28,10 @@ outline: 0px;
 
 .test-stop:hover {
   color: #f00;
+}
+
+.test-singleshot:hover {
+  color: #00f;
 }
 
 .table-up, .table-down {
