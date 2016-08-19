@@ -113,20 +113,23 @@ $('.test-start').click(function () {
 });
 
 $('.test-stop').click(function () {
-  var d = new Date().toString(); //return current y,m,d
   var $row = $(this).parents('tr');
-  $row[0].setAttribute('run','n');
-  // console.log($row.index());
+  stopRow($row)
+});
+
+function stopRow(row){
+  row[0].setAttribute('run','n');
 
   //to 'unlock' a row when a test is finished.
-  $row.each(function () {
-    var $td = $(this).find('td').slice(2,12);
+  row.each(function () {
+    var $td = row.find('td').slice(3,13);
     $td.each(function(){
       $(this).attr('contenteditable','true')
     });
   });
   sendsettings(last_tid)
-});
+  }
+
 
 $('.test-singleshot').click(function () {
   var d = new Date().toString(); //return current y,m,d
@@ -158,6 +161,7 @@ $('.test-singleshot').click(function () {
   $row[0].setAttribute('run','y')
   $row[0].setAttribute('rowid',current_tid.toString())
   $row[0].setAttribute('active','false')
+  $row[0].setAttribute('singleshot',true)
 
   //to 'lock' the row while a test is running
   $row.each(function () {
@@ -200,8 +204,13 @@ function sendsettings(last_tid)
       h[header] = $td.eq(i).text();
     });
     h["run(y/n)"] = $(this).attr('run')
+
+    //might not need this.
+    // if (this.hasAttribute('singleshot')){
+    //   h["singleshot"] = $(this).attr('singleshot')
+    // }
+
     data.push(h);
-    console.log($td)
   });
   
   out = {} //define the output JSON
@@ -280,13 +289,6 @@ function makerow(p) {
 
 }
 
-function setbackground(rowid, color) {
-    $('tr[rowid="' + rowid + '"]').css('background', color)
-}
-
-function clearbackgrounds() {
-    $TABLE.find('tr:not(:hidden)').css('background', 'none')
-}
 
 last_rowid = 0;
 
@@ -294,7 +296,12 @@ var socket = io.connect('http://' + document.domain + ':' + location.port);
 socket.on('update',function(data){
     current_rowid = data['rowid']
     if (last_rowid != current_rowid){
-      $('[rowid="' + last_rowid + '"]').attr('active','false'); //turn off previous active row
+      var $last_row = $('[rowid="' + last_rowid + '"]') 
+      last_row.attr('active','false'); //turn off previous active row
+      if (last_row.hasAttribute('singleshot')){
+          stopRow(last_row);
+          last_row.removeAttribute('singleshot')
+      }
     }
     $('[rowid="' + current_rowid + '"]').attr('active','true');
 
