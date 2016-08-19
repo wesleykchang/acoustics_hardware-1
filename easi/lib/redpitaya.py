@@ -56,6 +56,8 @@ class RedPitaya():
 
     def get_waveform(self,channel=1,wait_for_trigger=True):
         """
+        If this hangs while testing, try setting wait_for_trigger to False.
+
         The maximum sampling rate of the Pitaya is 125MHz (8ns resolution).
         By default, it is set to that. The buffer len is 16385. This means 
         the range is 134us and will stay that way unless we lower the
