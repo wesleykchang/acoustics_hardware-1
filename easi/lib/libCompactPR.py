@@ -93,7 +93,7 @@ class CP():
         data = self.pitaya(row["delay(us)"],row["time(us)"])
         return data
 
-    def pitaya(delay,time):
+    def pitaya(self,delay,time):
         """Get waveform from red pitaya"""
         if self.rp is None:
             return {} #should this raise an exception?

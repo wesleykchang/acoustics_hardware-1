@@ -86,7 +86,7 @@ class UIDaemon(Daemon):
                 return json.dumps(out)
 
         @app.route('/fsweep')
-        def table_save():
+        def sweep_fs():
             return send_from_directory('static/fsweep','index.html')
 
 
@@ -114,5 +114,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="old",pulserurl=pulserurl)
+    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype="old",pulserurl=pulserurl)
     ad.start()
