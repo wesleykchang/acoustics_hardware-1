@@ -84,23 +84,19 @@ class RedPitaya():
         
         This may be better to implement in hardware, but for now we'll
         do it here."""
-        try:
-            data['amp']
-            data['time (us)']
-        except KeyError:
-            raise(ValueError("Waveform given is malformed"))
 
-        new_wf = {'amp':[],'time (us)':[]}
-        for i in range(len(data['amp'])):
-            t = data['time (us)'][i]
+        new_waves = []
+        new_times = []
+        for i in range(len(data[0])):
+            t = data[0][i]
             if t < delay:
                 continue
-            elif t > delay + time:
+            elif time>0 and t > delay + time:
                 break
-            wave = data['amp'][i]
-            new_wf['amp'].append(wave)
-            new_wf['time (us)'].append(t)
-        return new_wf
+            wave = data[1][i]
+            new_waves.append(wave)
+            new_times.append(t)
+        return [new_times,new_waves]
 
     def _parse_acq(self,acq,timestep=8,delay=0):
         """Takes acq, which should be a string like "{0.1,0.34..}" from
@@ -117,12 +113,11 @@ class RedPitaya():
             raise(error)
         raw = "".join([x for x in acq[start:end+1] if ['{','}'].count(x)==0])
         amp = [float(x) for x in raw.split(",")] #let this fail if bad data?
-        times = [(x*timestep)+delay for x in range(len(amp))]
+        times = [((x*timestep)+delay)/1000.0 for x in range(len(amp))]
         return [times,amp]
 
 
 if __name__=="__main__":
     r = RedPitaya("169.254.134.177")
-    r.trigger_now()
-    print(r.get_waveform(wait_for_trigger=False))
+    print(r.get_waveform(delay=5,time=10,wait_for_trigger=False))
         
