@@ -29,7 +29,7 @@ class Epoch():
             #return get.split("OK")[-2].strip()
         return get
 
-    def getLast(self,ts=300):
+    def getLast(self,ts=100):
         global last
         ticks = 0
         while ticks < ts: 

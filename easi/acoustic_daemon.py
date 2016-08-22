@@ -93,6 +93,11 @@ class UIDaemon(Daemon):
         @socketio.on('test')
         def handle_test(data):
             socketio.emit('update', data) #tell the JS to update.
+
+        @socketio.on('highlight')
+        def active_row(rowid):
+            print('yolo')
+            socketio.emit('active', rowid)
                         
         while True:
             # socketio.run(app,host="0.0.0.0",port=5000)  
@@ -115,5 +120,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="old",pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype=None,pulserurl=pulserurl)
+    ad.start()

@@ -138,14 +138,12 @@ class Acoustics():
         # while True: 
         for row in tests['data']:
             if (row['run(y/n)']).lower() == 'y':
-                #print("Executing row "+str(i+1))
+                self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
+                self.socketIO.emit('highlight',{"rowid":row["testid"]}, broadcast=True)
                 data = self.getSingleData(row)
                 try:
-                    #self.socketIO.emit('test',{"rowid":str(row["testid"]),"amp":data[1]},broadcast=True)
-                    self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
-                    # self.socketIO.emit('test',{"rowid":"23","amp":[0,0,0,6,4,2]},broadcast=True)
-                    self.socketIO.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True)
-                    self.socketIO.wait(seconds=1)
+                    self.socketIO.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True) #send sparkline
+                    # self.socketIO.wait(seconds=1)
                 except:
                     import sys
                     t,v,tb = sys.exc_info()

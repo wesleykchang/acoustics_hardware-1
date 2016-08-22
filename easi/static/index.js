@@ -161,7 +161,7 @@ $('.test-singleshot').click(function () {
   $row[0].setAttribute('run','y')
   $row[0].setAttribute('rowid',current_tid.toString())
   $row[0].setAttribute('active','false')
-  $row[0].setAttribute('singleshot',true)
+  $row[0].setAttribute('singleshot','true')
 
   //to 'lock' the row while a test is running
   $row.each(function () {
@@ -206,9 +206,9 @@ function sendsettings(last_tid)
     h["run(y/n)"] = $(this).attr('run')
 
     //yes we need this.
-    if (this.hasAttribute('singleshot')){
-      h["singleshot"] = $(this).attr('singleshot')
-    }
+    // if (this.hasAttribute('singleshot')){
+    //   h["singleshot"] = $(this).attr('singleshot')
+    // }
 
     data.push(h);
   });
@@ -280,10 +280,9 @@ function makerow(p) {
     $clone[0].setAttribute('rowid',p['testid'])
     $clone[0].setAttribute('run',p['run(y/n)'])
     $clone[0].setAttribute('active','false')
-    console.log(p['singleshot'])
-    if (p['singleshot'] != undefined){
-      $clone[0].setAttribute('singleshot',p['singleshot'])
-    }
+    // if (p['singleshot'] != undefined){
+    //   $clone[0].setAttribute('singleshot',p['singleshot'])
+    // }
 
     if (p['run(y/n)'] == 'y'){
       for (var i = 0; i < fields.length - 4; i++) $clone[0].cells[i].setAttribute('contenteditable','false')
@@ -298,23 +297,27 @@ last_rowid = 0;
 
 
 var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+socket.on('active',function(data){
+    current_rowid = data['rowid']
+    if (last_rowid != current_rowid){          
+      $('[rowid="' + last_rowid + '"]').attr('active','false'); //turn off previous active row
+    }
+    $('[rowid="' + current_rowid + '"]').attr('active','true');
+});
+
+
 socket.on('update',function(data){
     current_rowid = data['rowid']
-    if (last_rowid != current_rowid){ 
-      var $last_row = $('[rowid="' + last_rowid + '"]')     
-      $last_row.attr('active','false'); //turn off previous active row
-      var attr = $last_row.attr('singleshot');
+    var $current_row = $('[rowid="' + current_rowid + '"]')
+      var attr = $current_row.attr('singleshot');
+      console.log(attr);
 
       if (typeof attr !== typeof undefined && attr !== false) {
          console.log('hi')
-            stopRow($last_row);
-            $last_row.removeAttr('singleshot')
+          stopRow($last_row);
+          $current_row.removeAttr('singleshot')
       }
-    }
-
-    $('[rowid="' + current_rowid + '"]').attr('active','true');
-
-    last_rowid = current_rowid
 
     ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"
     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").html(ins)
@@ -328,5 +331,43 @@ socket.on('update',function(data){
             spotRadius: 2,
             chartRangeMin: 0,
             chartRangeMax: 255
-        });
+        });  
+
+    last_rowid = current_rowid
 });
+
+
+
+// socket.on('update',function(data){
+//     current_rowid = data['rowid']
+//     if (last_rowid != current_rowid){ 
+//       var $last_row = $('[rowid="' + last_rowid + '"]')     
+//       $last_row.attr('active','false'); //turn off previous active row
+//       var attr = $last_row.attr('singleshot');
+//       console.log(attr);
+
+//       if (typeof attr !== typeof undefined && attr !== false) {
+//          console.log('hi')
+//           stopRow($last_row);
+//           $last_row.removeAttr('singleshot')
+//       }
+//     }
+
+//     $('[rowid="' + current_rowid + '"]').attr('active','true');
+
+//     last_rowid = current_rowid
+
+//     ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"
+//     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").html(ins)
+//     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").sparkline(data['amp'], {
+//             type: 'line',
+//             width: '100',
+//             height: '50',
+//             fillColor: false,
+//             lineColor: "black",
+//             lineWidth: 1.5,
+//             spotRadius: 2,
+//             chartRangeMin: 0,
+//             chartRangeMax: 255
+//         });
+// });
