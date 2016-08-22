@@ -133,11 +133,10 @@ class Acoustics():
     
     def beginRun(self,loop=True):
         """Loops through the rows and processes each one"""
-        index = 0 #counter to keep track of the row number. Temporary, to be replaced with TestID
         tests = self.getJSON()
-        # while True: 
         for row in tests['data']:
             if (row['run(y/n)']).lower() == 'y':
+                print("testing%s" % str(row['testid']))
                 self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
                 self.socketIO.emit('highlight',{"rowid":row["testid"]}, broadcast=True)
                 data = self.getSingleData(row)
@@ -149,6 +148,7 @@ class Acoustics():
                     t,v,tb = sys.exc_info()
                     print(t)
                     print(v)
+                time.sleep(.1) #needed to give the table_state a chance to update
             else:
                 pass
         # if not loop: break

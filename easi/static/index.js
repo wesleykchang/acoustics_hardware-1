@@ -309,14 +309,15 @@ socket.on('active',function(data){
 
 socket.on('update',function(data){
     current_rowid = data['rowid']
-    var $current_row = $('[rowid="' + current_rowid + '"]')
-      var attr = $current_row.attr('singleshot');
+    var current_row = $('[rowid="' + current_rowid + '"]')
+    console.log(current_rowid)
+      var attr = current_row.attr('singleshot');
       console.log(attr);
 
       if (typeof attr !== typeof undefined && attr !== false) {
          console.log('hi')
-          stopRow($last_row);
-          $current_row.removeAttr('singleshot')
+          stopRow(current_row);
+          current_row.removeAttr('singleshot')
       }
 
     ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"

@@ -96,7 +96,6 @@ class UIDaemon(Daemon):
 
         @socketio.on('highlight')
         def active_row(rowid):
-            print('yolo')
             socketio.emit('active', rowid)
                         
         while True:
