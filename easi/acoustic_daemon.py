@@ -86,15 +86,20 @@ class UIDaemon(Daemon):
                 return json.dumps(out)
 
         @app.route('/fsweep')
-        def table_save():
+        def freq_sweep():
             return send_from_directory('static/fsweep','index.html')
 
 
         @socketio.on('test')
         def handle_test(data):
             socketio.emit('update', data) #tell the JS to update.
+
+        @socketio.on('highlight')
+        def active_row(rowid):
+            socketio.emit('active', rowid)
                         
         while True:
+            # socketio.run(app,host="0.0.0.0",port=5000)  
             socketio.run(app,host="0.0.0.0",port=5000)  
 
     def loadTools(self):
@@ -114,5 +119,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="old",pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype=None,pulserurl=pulserurl)
+    ad.start()

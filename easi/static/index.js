@@ -23,7 +23,7 @@ upbut =  '<span class="table-up glyphicon glyphicon-arrow-up">'
 updownbut = '<span class="table-up glyphicon glyphicon-arrow-up"></span> <span class="table-down glyphicon glyphicon-arrow-down"></span>'
 removebut =   "<span class='table-remove glyphicon glyphicon-remove'></span>"
 playbut = "<span class='test-start glyphicon glyphicon-play'></span>"
-playstopbut = "<span class='test-start glyphicon glyphicon-play'></span><span class = 'test-stop glyphicon glyphicon-stop'></span>"
+playstopbut = "<span class='test-start glyphicon glyphicon-play'></span><span class = 'test-singleshot glyphicon glyphicon-chevron-right'></span><span class = 'test-stop glyphicon glyphicon-stop'></span>"
 
 //make the clone structure the size of the fields
 clone_arr = [] 
@@ -113,19 +113,64 @@ $('.test-start').click(function () {
 });
 
 $('.test-stop').click(function () {
-  var d = new Date().toString(); //return current y,m,d
   var $row = $(this).parents('tr');
-  $row[0].setAttribute('run','n');
-  // console.log($row.index());
+  stopRow($row)
+});
+
+function stopRow(row){
+  row[0].setAttribute('run','n');
 
   //to 'unlock' a row when a test is finished.
-  $row.each(function () {
-    var $td = $(this).find('td').slice(2,12);
+  row.each(function () {
+    var $td = row.find('td').slice(3,13);
     $td.each(function(){
       $(this).attr('contenteditable','true')
     });
   });
   sendsettings(last_tid)
+  }
+
+
+$('.test-singleshot').click(function () {
+  var d = new Date().toString(); //return current y,m,d
+  var $row = $(this).parents('tr');
+
+  // alert('Please stop test before starting a new one')
+  // alert($row[0].getAttribute('run'))
+  if ($row[0].getAttribute('run') == 'y'){
+    alert('Please stop current test before starting a new one')
+    return;
+  }
+
+  $tds = $row.find("td:nth-child(1)"); //find startdate
+  $tid = $row.find("td:nth-child(2)"); //find testid
+
+  $.each($tds, function() {
+      $(this).html(d.slice(4,24));
+  });
+
+  current_tid = last_tid + 1;
+
+  $.each($tid, function() {
+      $(this).html((current_tid).toString());
+  });
+
+  last_tid = current_tid;
+
+  //for exporting whether or not to run
+  $row[0].setAttribute('run','y')
+  $row[0].setAttribute('rowid',current_tid.toString())
+  $row[0].setAttribute('active','false')
+  $row[0].setAttribute('singleshot','true')
+
+  //to 'lock' the row while a test is running
+  $row.each(function () {
+    var $td = $(this).find('td');
+    $td.each(function(){
+      $(this).attr('contenteditable','false')
+    });
+  }); 
+  sendsettings(last_tid) 
 });
 
 // A few jQuery helpers for exporting only
@@ -159,8 +204,13 @@ function sendsettings(last_tid)
       h[header] = $td.eq(i).text();
     });
     h["run(y/n)"] = $(this).attr('run')
+
+    //yes we need this.
+    // if (this.hasAttribute('singleshot')){
+    //   h["singleshot"] = $(this).attr('singleshot')
+    // }
+
     data.push(h);
-    console.log($td)
   });
   
   out = {} //define the output JSON
@@ -230,6 +280,9 @@ function makerow(p) {
     $clone[0].setAttribute('rowid',p['testid'])
     $clone[0].setAttribute('run',p['run(y/n)'])
     $clone[0].setAttribute('active','false')
+    // if (p['singleshot'] != undefined){
+    //   $clone[0].setAttribute('singleshot',p['singleshot'])
+    // }
 
     if (p['run(y/n)'] == 'y'){
       for (var i = 0; i < fields.length - 4; i++) $clone[0].cells[i].setAttribute('contenteditable','false')
@@ -239,25 +292,33 @@ function makerow(p) {
 
 }
 
-function setbackground(rowid, color) {
-    $('tr[rowid="' + rowid + '"]').css('background', color)
-}
-
-function clearbackgrounds() {
-    $TABLE.find('tr:not(:hidden)').css('background', 'none')
-}
 
 last_rowid = 0;
 
+
 var socket = io.connect('http://' + document.domain + ':' + location.port);
-socket.on('update',function(data){
+
+socket.on('active',function(data){
     current_rowid = data['rowid']
-    if (last_rowid != current_rowid){
+    if (last_rowid != current_rowid){          
       $('[rowid="' + last_rowid + '"]').attr('active','false'); //turn off previous active row
     }
     $('[rowid="' + current_rowid + '"]').attr('active','true');
+});
 
-    last_rowid = current_rowid
+
+socket.on('update',function(data){
+    current_rowid = data['rowid']
+    var current_row = $('[rowid="' + current_rowid + '"]')
+    console.log(current_rowid)
+      var attr = current_row.attr('singleshot');
+      console.log(attr);
+
+      if (typeof attr !== typeof undefined && attr !== false) {
+         console.log('hi')
+          stopRow(current_row);
+          current_row.removeAttr('singleshot')
+      }
 
     ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"
     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").html(ins)
@@ -271,6 +332,43 @@ socket.on('update',function(data){
             spotRadius: 2,
             chartRangeMin: 0,
             chartRangeMax: 255
-        });
+        });  
+
+    last_rowid = current_rowid
 });
 
+
+
+// socket.on('update',function(data){
+//     current_rowid = data['rowid']
+//     if (last_rowid != current_rowid){ 
+//       var $last_row = $('[rowid="' + last_rowid + '"]')     
+//       $last_row.attr('active','false'); //turn off previous active row
+//       var attr = $last_row.attr('singleshot');
+//       console.log(attr);
+
+//       if (typeof attr !== typeof undefined && attr !== false) {
+//          console.log('hi')
+//           stopRow($last_row);
+//           $last_row.removeAttr('singleshot')
+//       }
+//     }
+
+//     $('[rowid="' + current_rowid + '"]').attr('active','true');
+
+//     last_rowid = current_rowid
+
+//     ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"
+//     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").html(ins)
+//     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").sparkline(data['amp'], {
+//             type: 'line',
+//             width: '100',
+//             height: '50',
+//             fillColor: false,
+//             lineColor: "black",
+//             lineWidth: 1.5,
+//             spotRadius: 2,
+//             chartRangeMin: 0,
+//             chartRangeMax: 255
+//         });
+// });
