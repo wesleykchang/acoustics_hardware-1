@@ -8,7 +8,7 @@
 #normal libs
 from urllib.request import urlopen as uo
 import json
-import libEpoch
+import libEpoch, libCompactPR
 import os
 import datetime
 import time
@@ -27,6 +27,7 @@ def debug(s):
 class Acoustics():
     def __init__(self,muxurl=None,muxtype=None,pulser="epoch",pulserurl=None):
         self.path = os.getcwd()
+        self.pulser = pulser.lower()
         #can be fixed by checking if folder exists, and appending a number to the end
 
         if muxurl is not None and muxtype is not None:
@@ -45,11 +46,12 @@ class Acoustics():
            print("WARNING: No mux given. Ignoring channel numbers.")
            print("------------------------------------------------")
            
-        if pulser.lower()=="epoch":
-            self.pulser="epoch"
+        if self.pulser=="epoch":
             print("connecting to Epoch...")
             self.p = libEpoch.Epoch(pulserurl)
             print("... done!")
+        else if self.pulser == "compact":
+            self.p = libCompactPR.CP(pulserurl)
 
          # if muxurl is None:
          #  print("------------------------------------------------")
