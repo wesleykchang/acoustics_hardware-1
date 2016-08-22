@@ -54,7 +54,7 @@ class RedPitaya():
     def trigger_now(self):
         self.write("ACQ:TRIG NOW")
 
-    def get_waveform(self,channel=1,wait_for_trigger=True):
+    def get_waveform(self,channel=1,delay=0,time=0, wait_for_trigger=True):
         """
         If this hangs while testing, try setting wait_for_trigger to False.
 
@@ -73,7 +73,30 @@ class RedPitaya():
             continue
         self.write("ACQ:SOUR{}:DATA?".format(channel))
         wave = self.read()
-        return self._parse_acq(wave)
+        data = self._parse_acq(wave)
+        return self._clip_waveform(data,delay,time)
+
+    def _clip_waveform(self,data,delay,time):
+        """Takes a wave ({'amp':[..], 'time (us)':[..]}) and clips it given
+        the delay and time. Time indicates the total length of the returned
+        waveform, and delay is how long after the trigger even the desired
+        range begins.
+        
+        This may be better to implement in hardware, but for now we'll
+        do it here."""
+
+        new_waves = []
+        new_times = []
+        for i in range(len(data[0])):
+            t = data[0][i]
+            if t < delay:
+                continue
+            elif time>0 and t > delay + time:
+                break
+            wave = data[1][i]
+            new_waves.append(wave)
+            new_times.append(t)
+        return [new_times,new_waves]
 
     def _parse_acq(self,acq,timestep=8,delay=0):
         """Takes acq, which should be a string like "{0.1,0.34..}" from
@@ -83,19 +106,16 @@ class RedPitaya():
         acq = str(acq) #convert from bytes
         start = acq.find("{")
         end = acq.find("}")
-        print(start)
-        print(end)
         if start==-1 or end==-1:
             error = ValueError("Bad waveform string")
             raise(error)
         raw = "".join([x for x in acq[start:end+1] if ['{','}'].count(x)==0])
         amp = [float(x) for x in raw.split(",")] #let this fail if bad data?
-        times = [(x*timestep)+delay for x in range(len(amp))]
+        times = [((x*timestep)+delay)/1000.0 for x in range(len(amp))]
         return [times,amp]
 
 
 if __name__=="__main__":
     r = RedPitaya("169.254.134.177")
-    r.trigger_now()
-    print(r.get_waveform(wait_for_trigger=False))
+    print(r.get_waveform(delay=5,time=10,wait_for_trigger=False))
         
