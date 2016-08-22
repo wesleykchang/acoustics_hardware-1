@@ -54,7 +54,7 @@ class RedPitaya():
     def trigger_now(self):
         self.write("ACQ:TRIG NOW")
 
-    def get_waveform(self,channel=1,wait_for_trigger=True):
+    def get_waveform(self,channel=1,delay=0,time=0, wait_for_trigger=True):
         """
         If this hangs while testing, try setting wait_for_trigger to False.
 
@@ -73,7 +73,34 @@ class RedPitaya():
             continue
         self.write("ACQ:SOUR{}:DATA?".format(channel))
         wave = self.read()
-        return self._parse_acq(wave)
+        data = self._parse_acq(wave)
+        return self._clip_waveform(data,delay,time)
+
+    def _clip_waveform(self,data,delay,time):
+        """Takes a wave ({'amp':[..], 'time (us)':[..]}) and clips it given
+        the delay and time. Time indicates the total length of the returned
+        waveform, and delay is how long after the trigger even the desired
+        range begins.
+        
+        This may be better to implement in hardware, but for now we'll
+        do it here."""
+        try:
+            data['amp']
+            data['time (us)']
+        except KeyError:
+            raise(ValueError("Waveform given is malformed"))
+
+        new_wf = {'amp':[],'time (us)':[]}
+        for i in range(len(data['amp'])):
+            t = data['time (us)'][i]
+            if t < delay:
+                continue
+            elif t > delay + time:
+                break
+            wave = data['amp'][i]
+            new_wf['amp'].append(wave)
+            new_wf['time (us)'].append(t)
+        return new_wf
 
     def _parse_acq(self,acq,timestep=8,delay=0):
         """Takes acq, which should be a string like "{0.1,0.34..}" from

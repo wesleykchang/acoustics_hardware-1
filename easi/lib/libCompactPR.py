@@ -7,10 +7,16 @@ from time import sleep
 import pickle
 import bisect
 
+import redpitaya as rp
+
 class CP():
-    def __init__(self,site):
+    def __init__(self,site,rp_url=None,rp_port=5000):
         self.site = site
         self.lut = pickle.load(open('CP_LUT','rb'))
+        if rp_url is None:
+            self.rp = None
+        else:
+            self.rp = rp.RedPitaya(rp_url,rp_port)
 
     def write(self,s):
         out = uo(self.site+"/writecf/%s"%s).read()
@@ -88,7 +94,12 @@ class CP():
         return data
 
     def pitaya(delay,time):
-        pass
+        """Get waveform from red pitaya"""
+        if self.rp is None:
+            return {} #should this raise an exception?
+        else:
+            data = self.rp.get_waveform(delay,time)
+        return data
 
 if __name__ == "__main__":
 
