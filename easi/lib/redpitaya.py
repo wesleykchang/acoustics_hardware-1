@@ -106,8 +106,6 @@ class RedPitaya():
         acq = str(acq) #convert from bytes
         start = acq.find("{")
         end = acq.find("}")
-        print(start)
-        print(end)
         if start==-1 or end==-1:
             error = ValueError("Bad waveform string")
             raise(error)
