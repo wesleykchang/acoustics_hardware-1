@@ -20,6 +20,7 @@ from pprint import pprint
 from http.server import SimpleHTTPRequestHandler
 import socketserver
 from socketIO_client import SocketIO, LoggingNamespace
+import matplotlib.pyplot as plt
 
 def debug(s):
     print("[libacoustic] "+s)
@@ -52,7 +53,7 @@ class Acoustics():
             self.p = libEpoch.Epoch(pulserurl)
             print("... done!")
         elif self.pulser == "compact":
-            self.p = libCompactPR.CP(pulserurl)
+            self.p = libCompactPR.CP(pulserurl,rp_url="169.254.134.177")
 
          # if muxurl is None:
          #  print("------------------------------------------------")
@@ -125,7 +126,6 @@ class Acoustics():
 
         try:
             data = self.p.commander(row)
-            print(data)
             self.saveData(data,row)
             return data
         except:
@@ -137,9 +137,9 @@ class Acoustics():
     
     def beginRun(self,loop=True):
         """Loops through the rows and processes each one"""
-        index = 0 #counter to keep track of the row number. Temporary, to be replaced with TestID
         tests = self.getJSON()
         # while True: 
+        counter = 0 #keeps track of inactive rows
         for row in tests['data']:
             if (row['run(y/n)']).lower() == 'y':
                 #print("Executing row "+str(i+1))
@@ -155,7 +155,10 @@ class Acoustics():
                     t,v,tb = sys.exc_info()
                     print(t)
                     print(v)
-            else:
+            elif row['run(y/n)'] == 'n':
+                counter += 1
+                if counter==(len(tests['data'])):
+                    time.sleep(1) #artificial delay. if all the rows are set to 'n'. otherwise it dies
                 pass
         # if not loop: break
 
