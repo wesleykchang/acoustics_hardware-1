@@ -6,7 +6,7 @@ from urllib.request import urlopen as uo
 from time import sleep
 import pickle
 import bisect
-
+import matplotlib.pyplot as plt
 import redpitaya as rp
 
 class CP():
@@ -46,7 +46,8 @@ class CP():
         else:
             wide = "X1"
             keys = (list(self.lut.keys())) #keys are ordered in incremental fashion val = self.returnNearest(keys,pw)
-            CPval = "W%i" % lut[val]
+            val = self.returnNearest(keys,pw)
+            CPval = "W%i" % self.lut[val]
         return [CPval,wide]
 
     def convertFilt(self,filtmode):
@@ -89,7 +90,7 @@ class CP():
         # self.write("V%i" % int(row['voltage'])) 
         # self.write("P%i" % int(row['prf'])) #pulse repitition freq
 
-        data = self.pitaya(row["delay(us)"],row["time(us)"])
+        data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
         return data
 
     def pitaya(self,delay,time):
@@ -104,5 +105,7 @@ class CP():
 if __name__ == "__main__":
 
     cp = CP("http://localhost:9003",rp_url="169.254.134.177")
-    data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":100,"delay(us)":0,"time(us)":0})
+    data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":10,"delay(us)":0,"time(us)":0})
     print(data)
+    plt.plot(data[0],data[1])
+    plt.show()

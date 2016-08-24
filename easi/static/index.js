@@ -259,6 +259,9 @@ socket.on('update',function(data){
 
     last_rowid = current_rowid
 
+    var ymin = Math.min.apply(Math, data['amp'])
+    var ymax = Math.max.apply(Math, data['amp'])
+
     ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"
     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").html(ins)
     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").sparkline(data['amp'], {
@@ -269,8 +272,8 @@ socket.on('update',function(data){
             lineColor: "black",
             lineWidth: 1.5,
             spotRadius: 2,
-            chartRangeMin: 0,
-            chartRangeMax: 255
+            chartRangeMin: ymin,
+            chartRangeMax: ymax
         });
 });
 
