@@ -32,8 +32,7 @@ class RedPitaya():
         """Turns off acquisition and resets all ACQ params
         to their Pitaya-given defaults."""
         self.write("ACQ:RST")
-        self._set_trig_mode("CH2_PE")
-        self.write("ACQ:START")
+        self.write("ACQ:TRIG:LEV 200 mV")
 
     def _set_trig_mode(self,mode,noread=False):
         """
@@ -66,11 +65,13 @@ class RedPitaya():
         sampling rate (stupid) or truncate the buffer (in post-processing or
         by only accessing part of the buffer).
         """
+        self.write("ACQ:START") #reset/prime acquisition and trigger
+        self.write("ACQ:TRIG CH2_PE")
         if [1,2].count(channel)==0:
             error = ValueError("Channel must be an integer, either 1 or 2")
             raise(error)
 
-        while wait_for_trigger and self._trigger_status()!="TR":
+        while wait_for_trigger and self._trigger_status()!="TD".encode("UTF-8"):
             sleep(0.01)
             continue
         self.write("ACQ:SOUR{}:DATA?".format(channel))
@@ -123,4 +124,5 @@ if __name__=="__main__":
     # plt = plt.plot()
     plt.plot(data[0],data[1])
     plt.show()
+
         

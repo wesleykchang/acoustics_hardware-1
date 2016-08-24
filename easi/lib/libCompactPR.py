@@ -16,7 +16,7 @@ class CP():
         if rp_url is None:
             self.rp = None
         else:
-            self.rp = rp.RedPitaya(rp_url,rp_port)
+            self.rp = rp.RedPitaya(rp_url,port=rp_port)
 
     def write(self,s):
         out = uo(self.site+"/writecf/%s"%s).read()
@@ -45,8 +45,7 @@ class CP():
             CPval = "W%i" % val
         else:
             wide = "X1"
-            keys = (list(self.lut.keys())) #keys are ordered in incremental fashion
-            val = self.returnNearest(keys,pw)
+            keys = (list(self.lut.keys())) #keys are ordered in incremental fashion val = self.returnNearest(keys,pw)
             CPval = "W%i" % lut[val]
         return [CPval,wide]
 
@@ -98,64 +97,12 @@ class CP():
         if self.rp is None:
             return {} #should this raise an exception?
         else:
-            data = self.rp.get_waveform(delay,time)
+            data = self.rp.get_waveform(channel=1,delay=delay,time=time)
+            #data = self.rp.get_waveform(channel=1,delay=delay,time=time,wait_for_trigger=False)
         return data
 
 if __name__ == "__main__":
 
-    test = CP("http://localhost:9003")
-    # test.write("P30")
-    test.write("V?")
-    print (test.read())
-
-    test.write("P?")
-    print (test.read())
-
-    # test.write("D5")
-    test.write("D?")
-    print (test.read())
-
-    # test.write("G500")
-    test.write("G?")
-    print (test.read())
-
-    test.write("M?")
-    print (test.read())
-
-    test.write("W?")
-    print (test.read())
-
-    for k in [0,1,2,3,4]:
-        test.write("L"+str(k))
-        test.write("l%s?"%k)
-        print (test.read())
-
-    test.write("hd?")
-    print (test.read())
-
-
-
-
-    # #Write a few settings
-    # #Damping
-    # print "Adjusting some settings"
-    # c.write("D5")
-    # #Voltage
-    # c.write("V100")
-    # #Transducer mode - 1 = TR, 2 = PE
-    # c.write("M0")
-    # #Gain GXYZ = XY.Z dB
-    # c.write("G080")
-    # c.write("H0")
-    # c.write("L7")
-    # c.write("P10")
-    # c.write("Q500")
-    # c.write("W200")
-
-
-
-    # #Show All Settings
-    # print "Showing settings:"
-    # for i in l: 
-    #     c.write("%s?"%i)
-    #     print c.read()
+    cp = CP("http://localhost:9003",rp_url="169.254.134.177")
+    data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":100,"delay(us)":0,"time(us)":0})
+    print(data)
