@@ -24,7 +24,7 @@ class CP():
         return out
 
     def read(self):
-        return uo(self.site+"/read/").read().split("\r")[-2]
+        return uo(self.site+"/read/").read().decode('utf-8').split("\r")[-2]
 
     def getLast(self,ts=300):
         global last
@@ -82,7 +82,7 @@ class CP():
         self.write(settings[row['mode(tr/pe)']])
         self.write(hpf)
         self.write(lpf)
-        self.write("G%i" % int(row["gain(db)"]*10)) #gain is measured in 10th of dB 34.9 dB =349
+        self.write("G%i" % (int(row["gain(db)"])*10)) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
         self.write(pwidth) #wide pulse mode will need a LUT
 
@@ -103,8 +103,38 @@ class CP():
 
 if __name__ == "__main__":
 
-    test = CP("yolo")
-    print(test.convertFreq("2.25"))
+    test = CP("http://localhost:9003")
+    # test.write("P30")
+    test.write("V?")
+    print (test.read())
+
+    test.write("P?")
+    print (test.read())
+
+    # test.write("D5")
+    test.write("D?")
+    print (test.read())
+
+    # test.write("G500")
+    test.write("G?")
+    print (test.read())
+
+    test.write("M?")
+    print (test.read())
+
+    test.write("W?")
+    print (test.read())
+
+    for k in [0,1,2,3,4]:
+        test.write("L"+str(k))
+        test.write("l%s?"%k)
+        print (test.read())
+
+    test.write("hd?")
+    print (test.read())
+
+
+
 
     # #Write a few settings
     # #Damping

@@ -87,7 +87,7 @@ class UIDaemon(Daemon):
 
         @app.route('/fsweep')
         def sweep_fs():
-            return send_from_directory('static/fsweep','index.html')
+            return send_from_directory('static','sweepdex.html')
 
 
         @socketio.on('test')
@@ -113,6 +113,6 @@ if __name__=="__main__":
             
     d = UIDaemon(port,host)
     d.start()
-    time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype="old",pulserurl=pulserurl)
-    ad.start()
+    # time.sleep(1)
+    # ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype="old",pulserurl=pulserurl)
+    # ad.start()

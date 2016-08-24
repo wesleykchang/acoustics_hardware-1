@@ -2,6 +2,8 @@ import scpi
 import sys
 from json import dumps
 from time import sleep
+import matplotlib.pyplot as plt
+
 
 class RedPitaya():
     """
@@ -117,5 +119,8 @@ class RedPitaya():
 
 if __name__=="__main__":
     r = RedPitaya("169.254.134.177")
-    print(r.get_waveform(delay=5,time=10,wait_for_trigger=False))
+    data = r.get_waveform(delay=5,time=10,wait_for_trigger=True)
+    # plt = plt.plot()
+    plt.plot(data[0],data[1])
+    plt.show()
         
