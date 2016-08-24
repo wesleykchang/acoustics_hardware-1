@@ -6,11 +6,17 @@ from urllib.request import urlopen as uo
 from time import sleep
 import pickle
 import bisect
+import matplotlib.pyplot as plt
+import redpitaya as rp
 
 class CP():
-    def __init__(self,site):
+    def __init__(self,site,rp_url=None,rp_port=5000):
         self.site = site
         self.lut = pickle.load(open('CP_LUT','rb'))
+        if rp_url is None:
+            self.rp = None
+        else:
+            self.rp = rp.RedPitaya(rp_url,port=rp_port)
 
     def write(self,s):
         out = uo(self.site+"/writecf/%s"%s).read()
@@ -18,7 +24,7 @@ class CP():
         return out
 
     def read(self):
-        return uo(self.site+"/read/").read().split("\r")[-2]
+        return uo(self.site+"/read/").read().decode('utf-8').split("\r")[-2]
 
     def getLast(self,ts=300):
         global last
@@ -39,9 +45,9 @@ class CP():
             CPval = "W%i" % val
         else:
             wide = "X1"
-            keys = (list(self.lut.keys())) #keys are ordered in incremental fashion
+            keys = (list(self.lut.keys())) #keys are ordered in incremental fashion val = self.returnNearest(keys,pw)
             val = self.returnNearest(keys,pw)
-            CPval = "W%i" % lut[val]
+            CPval = "W%i" % self.lut[val]
         return [CPval,wide]
 
     def convertFilt(self,filtmode):
@@ -76,7 +82,7 @@ class CP():
         self.write(settings[row['mode(tr/pe)']])
         self.write(hpf)
         self.write(lpf)
-        self.write("G%i" % int(row["gain(db)"]*10)) #gain is measured in 10th of dB 34.9 dB =349
+        self.write("G%i" % (int(row["gain(db)"])*10)) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
         self.write(pwidth) #wide pulse mode will need a LUT
 
@@ -84,37 +90,22 @@ class CP():
         # self.write("V%i" % int(row['voltage'])) 
         # self.write("P%i" % int(row['prf'])) #pulse repitition freq
 
-        data = self.pitaya(row["delay(us)"],row["time(us)"])
+        data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
         return data
 
-    def pitaya(delay,time):
-        pass
+    def pitaya(self,delay,time):
+        """Get waveform from red pitaya"""
+        if self.rp is None:
+            return {} #should this raise an exception?
+        else:
+            data = self.rp.get_waveform(channel=1,delay=delay,time=time)
+            #data = self.rp.get_waveform(channel=1,delay=delay,time=time,wait_for_trigger=False)
+        return data
 
 if __name__ == "__main__":
 
-    test = CP("yolo")
-    print(test.convertFreq("2.25"))
-
-    # #Write a few settings
-    # #Damping
-    # print "Adjusting some settings"
-    # c.write("D5")
-    # #Voltage
-    # c.write("V100")
-    # #Transducer mode - 1 = TR, 2 = PE
-    # c.write("M0")
-    # #Gain GXYZ = XY.Z dB
-    # c.write("G080")
-    # c.write("H0")
-    # c.write("L7")
-    # c.write("P10")
-    # c.write("Q500")
-    # c.write("W200")
-
-
-
-    # #Show All Settings
-    # print "Showing settings:"
-    # for i in l: 
-    #     c.write("%s?"%i)
-    #     print c.read()
+    cp = CP("http://localhost:9003",rp_url="169.254.134.177")
+    data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":10,"delay(us)":0,"time(us)":0})
+    print(data)
+    plt.plot(data[0],data[1])
+    plt.show()

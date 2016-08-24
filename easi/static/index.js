@@ -320,6 +320,9 @@ socket.on('update',function(data){
           current_row.removeAttr('singleshot')
       }
 
+    var ymin = Math.min.apply(Math, data['amp'])
+    var ymax = Math.max.apply(Math, data['amp'])
+
     ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"
     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").html(ins)
     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").sparkline(data['amp'], {
@@ -330,45 +333,9 @@ socket.on('update',function(data){
             lineColor: "black",
             lineWidth: 1.5,
             spotRadius: 2,
-            chartRangeMin: 0,
-            chartRangeMax: 255
-        });  
+            chartRangeMin: ymin,
+            chartRangeMax: ymax
+        });
 
     last_rowid = current_rowid
 });
-
-
-
-// socket.on('update',function(data){
-//     current_rowid = data['rowid']
-//     if (last_rowid != current_rowid){ 
-//       var $last_row = $('[rowid="' + last_rowid + '"]')     
-//       $last_row.attr('active','false'); //turn off previous active row
-//       var attr = $last_row.attr('singleshot');
-//       console.log(attr);
-
-//       if (typeof attr !== typeof undefined && attr !== false) {
-//          console.log('hi')
-//           stopRow($last_row);
-//           $last_row.removeAttr('singleshot')
-//       }
-//     }
-
-//     $('[rowid="' + current_rowid + '"]').attr('active','true');
-
-//     last_rowid = current_rowid
-
-//     ins = "<div style='text-align:right; vertical-align:middle;'><span class='inlinespark'></span></div>"
-//     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").html(ins)
-//     $("tr[rowid='" + current_rowid + "'] td[kind='LastWaveform']").sparkline(data['amp'], {
-//             type: 'line',
-//             width: '100',
-//             height: '50',
-//             fillColor: false,
-//             lineColor: "black",
-//             lineWidth: 1.5,
-//             spotRadius: 2,
-//             chartRangeMin: 0,
-//             chartRangeMax: 255
-//         });
-// });

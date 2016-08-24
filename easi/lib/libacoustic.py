@@ -8,7 +8,7 @@
 #normal libs
 from urllib.request import urlopen as uo
 import json
-import libEpoch
+import libCompactPR
 import os
 import datetime
 import time
@@ -20,13 +20,16 @@ from pprint import pprint
 from http.server import SimpleHTTPRequestHandler
 import socketserver
 from socketIO_client import SocketIO, LoggingNamespace
+import matplotlib.pyplot as plt
 
 def debug(s):
     print("[libacoustic] "+s)
 
 class Acoustics():
-    def __init__(self,muxurl=None,muxtype=None,pulser="epoch",pulserurl=None):
+    def __init__(self,muxurl=None,muxtype=None,pulser="compact",pulserurl=None):
         self.path = os.getcwd()
+        self.pulser = pulser.lower()
+        print(self.pulser)
         #can be fixed by checking if folder exists, and appending a number to the end
 
         if muxurl is not None and muxtype is not None:
@@ -45,11 +48,12 @@ class Acoustics():
            print("WARNING: No mux given. Ignoring channel numbers.")
            print("------------------------------------------------")
            
-        if pulser.lower()=="epoch":
-            self.pulser="epoch"
+        if self.pulser=="epoch":
             print("connecting to Epoch...")
             self.p = libEpoch.Epoch(pulserurl)
             print("... done!")
+        elif self.pulser == "compact":
+            self.p = libCompactPR.CP(pulserurl,rp_url="169.254.134.177")
 
          # if muxurl is None:
          #  print("------------------------------------------------")
@@ -134,6 +138,8 @@ class Acoustics():
     def beginRun(self,loop=True):
         """Loops through the rows and processes each one"""
         tests = self.getJSON()
+        # while True: 
+        counter = 0 #keeps track of inactive rows
         for row in tests['data']:
             if (row['run(y/n)']).lower() == 'y':
                 print("testing%s" % str(row['testid']))
@@ -149,8 +155,12 @@ class Acoustics():
                     print(t)
                     print(v)
                 time.sleep(.1) #needed to give the table_state a chance to update
-            else:
-                pass
+
+            elif row['run(y/n)'] == 'n':
+                counter += 1
+                if counter==(len(tests['data'])):
+                    time.sleep(1) #artificial delay. if all the rows are set to 'n'. otherwise it dies
+
         # if not loop: break
 
 if __name__=="__main__":
