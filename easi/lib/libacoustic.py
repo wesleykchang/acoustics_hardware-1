@@ -21,6 +21,7 @@ from http.server import SimpleHTTPRequestHandler
 import socketserver
 from socketIO_client import SocketIO, LoggingNamespace
 import matplotlib.pyplot as plt
+import numpy as np
 
 def debug(s):
     print("[libacoustic] "+s)
@@ -130,24 +131,12 @@ class Acoustics():
         try:
             data = self.p.commander(row)
             self.saveData(data,row,fsweep)
-            try:
-                self.socketIO.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True) #send sparkline
+            self.socketIO.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True) #send sparkline
             return data
         except:
             print('***ERROR***')
             import traceback
             print(traceback.format_exc())
-
-    def parseFreq(self,freq):
-        """determines if it's a single freq or fsweep"""
-        fs = freq.split(",")
-        if len(fs) == 1:
-            out = int(fs[0])
-            commander
-        elif len fs == 3:
-            out = np.linspace(int(fs[0]),int(fs[1]),int(fs[2]))
-        return out
-
     
     def beginRun(self,loop=True):
         """Loops through the rows and processes each one"""
@@ -156,19 +145,21 @@ class Acoustics():
         counter = 0 #keeps track of inactive rows
         for row in tests['data']:
             if (row['run(y/n)']).lower() == 'y':
-                print("testing%s" % str(row['testid']))
-                self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
-                self.socketIO.emit('highlight',{"rowid":row["testid"]}, broadcast=True)
+                try:
+                    print("testing%s" % str(row['testid']))
+                    self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
+                    self.socketIO.emit('highlight',{"rowid":row["testid"]}, broadcast=True)
 
-                fs = row["freq(mhz)"].split(",")
+                    fs = row["freq(mhz)"].split(",")
 
-                if len(fs) == 1:
-                    self.getSingleData(row)
-                elif len fs == 3:
-                    flist = np.linspace(int(fs[0]),int(fs[1]),int(fs[2]))
-                    for freq in flist:
-                        row["freq(mhz)"] = freq
-                        self.getSingleData(row,fsweep=True)
+                    if len(fs) == 1:
+                        self.getSingleData(row)
+                    elif len(fs) == 3:
+                        flist = np.linspace(int(fs[0]),int(fs[1]),int(fs[2]))
+                        for freq in flist:
+                            row["freq(mhz)"] = freq
+                            print(row["freq(mhz)"])
+                            self.getSingleData(row,fsweep=True)
                 except:
                     import sys
                     t,v,tb = sys.exc_info()
