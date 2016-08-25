@@ -96,12 +96,15 @@ class Acoustics():
             info['data'].append(row) #append to the list of dicts
             json.dump(info, open(logname, 'w'))
 
-    def saveData(self,data,row):
+    def saveData(self,data,row,fsweep):
         """Stores data as JSON files named by time in Data/StartDate/TestID"""
         #misc path generation
         row_name = "TestID_" + row['testid']
         fname = os.path.join(self.path,"Data",row['date_fname'],row_name,str(time.time()).replace(".","_") + ".json")
         fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
+
+        if fsweep == True:
+            fname = os.path.join(self.path,"Data",row['date_fname'],row_name,str(row["freq(mhz)"]) + str(time.time()).replace(".","_") + ".json")
 
         try:
             json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
@@ -114,7 +117,7 @@ class Acoustics():
             self.writeLog(row) #since this is the first time a row is intialized, it enters it to logfile
 
 
-    def getSingleData(self,row):
+    def getSingleData(self,row,fsweep=False):
         """Processes a single row/test from the table. each row is a dictionary. Forwards command to
         Epoch and stores a json waveform in a folder that corresponds to the row."""
         
@@ -126,13 +129,24 @@ class Acoustics():
 
         try:
             data = self.p.commander(row)
-            self.saveData(data,row)
+            self.saveData(data,row,fsweep)
+            try:
+                self.socketIO.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True) #send sparkline
             return data
         except:
             print('***ERROR***')
             import traceback
             print(traceback.format_exc())
 
+    def parseFreq(self,freq):
+        """determines if it's a single freq or fsweep"""
+        fs = freq.split(",")
+        if len(fs) == 1:
+            out = int(fs[0])
+            commander
+        elif len fs == 3:
+            out = np.linspace(int(fs[0]),int(fs[1]),int(fs[2]))
+        return out
 
     
     def beginRun(self,loop=True):
@@ -145,10 +159,16 @@ class Acoustics():
                 print("testing%s" % str(row['testid']))
                 self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
                 self.socketIO.emit('highlight',{"rowid":row["testid"]}, broadcast=True)
-                data = self.getSingleData(row)
-                try:
-                    self.socketIO.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True) #send sparkline
-                    # self.socketIO.wait(seconds=1)
+
+                fs = row["freq(mhz)"].split(",")
+
+                if len(fs) == 1:
+                    self.getSingleData(row)
+                elif len fs == 3:
+                    flist = np.linspace(int(fs[0]),int(fs[1]),int(fs[2]))
+                    for freq in flist:
+                        row["freq(mhz)"] = freq
+                        self.getSingleData(row,fsweep=True)
                 except:
                     import sys
                     t,v,tb = sys.exc_info()
