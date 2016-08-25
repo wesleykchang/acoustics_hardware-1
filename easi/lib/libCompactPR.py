@@ -71,6 +71,7 @@ class CP():
         return val
 
 
+
     def commander(self,row):
         """Takes a row of settings and sets params on CompactPulser"""
 
