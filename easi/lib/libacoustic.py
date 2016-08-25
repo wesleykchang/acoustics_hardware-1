@@ -105,7 +105,7 @@ class Acoustics():
         fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
 
         if fsweep == True:
-            fname = os.path.join(self.path,"Data",row['date_fname'],row_name,str(row["freq(mhz)"]) + str(time.time()).replace(".","_") + ".json")
+            fname = os.path.join(self.path,"Data",row['date_fname'],row_name,"F" + str(row["freq(mhz)"]) + "_T" + str(time.time()).replace(".","_") + ".json")
 
         try:
             json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))

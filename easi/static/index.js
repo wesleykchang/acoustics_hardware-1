@@ -206,9 +206,9 @@ function sendsettings(last_tid)
     h["run(y/n)"] = $(this).attr('run')
 
     //yes we need this.
-    // if (this.hasAttribute('singleshot')){
-    //   h["singleshot"] = $(this).attr('singleshot')
-    // }
+    if (this.hasAttribute('singleshot')){
+      h["singleshot"] = $(this).attr('singleshot')
+    }
 
     data.push(h);
   });
@@ -299,10 +299,8 @@ last_rowid = 0;
 var socket = io.connect('http://' + document.domain + ':' + location.port);
 
 socket.on('active',function(data){
-    current_rowid = data['rowid']
-    if (last_rowid != current_rowid){          
-      $('[rowid="' + last_rowid + '"]').attr('active','false'); //turn off previous active row
-    }
+    current_rowid = data['rowid']        
+    $('tr').attr('active','false'); //turn off previous active row
     $('[rowid="' + current_rowid + '"]').attr('active','true');
 });
 
