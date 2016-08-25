@@ -104,8 +104,8 @@ class Acoustics():
         fname = os.path.join(self.path,"Data",row['date_fname'],row_name,str(time.time()).replace(".","_") + ".json")
         fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
 
-        if fsweep == True:
-            fname = os.path.join(self.path,"Data",row['date_fname'],row_name,"F" + str(row["freq(mhz)"]) + "_T" + str(time.time()).replace(".","_") + ".json")
+        if fsweep != None:
+            fname = os.path.join(self.path,"Data",row['date_fname'],row_name, "T" + fsweep + "_F" + str(row["freq(mhz)"]).replace(".","p") + ".json")
 
         try:
             json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
@@ -118,7 +118,7 @@ class Acoustics():
             self.writeLog(row) #since this is the first time a row is intialized, it enters it to logfile
 
 
-    def getSingleData(self,row,fsweep=False):
+    def getSingleData(self,row,fsweep=None):
         """Processes a single row/test from the table. each row is a dictionary. Forwards command to
         Epoch and stores a json waveform in a folder that corresponds to the row."""
         
@@ -156,10 +156,10 @@ class Acoustics():
                         self.getSingleData(row)
                     elif len(fs) == 3:
                         flist = np.linspace(int(fs[0]),int(fs[1]),int(fs[2]))
+                        sweept = str(time.time()).replace(".","_")
                         for freq in flist:
                             row["freq(mhz)"] = freq
-                            print(row["freq(mhz)"])
-                            self.getSingleData(row,fsweep=True)
+                            self.getSingleData(row,fsweep=sweept)
                 except:
                     import sys
                     t,v,tb = sys.exc_info()

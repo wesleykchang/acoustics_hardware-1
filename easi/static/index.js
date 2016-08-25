@@ -210,6 +210,13 @@ function sendsettings(last_tid)
       h["singleshot"] = $(this).attr('singleshot')
     }
 
+    var attr = $(this).attr('singleshot');
+    console.log(attr);
+
+    if (typeof attr !== typeof undefined && attr !== false) {
+       h["singleshot"] = attr
+      }
+
     data.push(h);
   });
   
@@ -280,6 +287,7 @@ function makerow(p) {
     $clone[0].setAttribute('rowid',p['testid'])
     $clone[0].setAttribute('run',p['run(y/n)'])
     $clone[0].setAttribute('active','false')
+    $clone[0].setAttribute('singleshot',p['singleshot'])
     // if (p['singleshot'] != undefined){
     //   $clone[0].setAttribute('singleshot',p['singleshot'])
     // }
@@ -308,14 +316,13 @@ socket.on('active',function(data){
 socket.on('update',function(data){
     current_rowid = data['rowid']
     var current_row = $('[rowid="' + current_rowid + '"]')
-    console.log(current_rowid)
       var attr = current_row.attr('singleshot');
-      console.log(attr);
+      console.log(attr)
 
-      if (typeof attr !== typeof undefined && attr !== false) {
+      if (attr == 'true') {
          console.log('hi')
           stopRow(current_row);
-          current_row.removeAttr('singleshot')
+          current_row.attr('singleshot','false')
       }
 
     var ymin = Math.min.apply(Math, data['amp'])
