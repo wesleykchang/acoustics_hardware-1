@@ -55,7 +55,7 @@ class RedPitaya():
     def trigger_now(self):
         self.write("ACQ:TRIG NOW")
 
-    def get_waveform(self,channel=1,delay=0,time=0, wait_for_trigger=True):
+    def get_waveform(self,delay=0,time=0, wait_for_trigger=True, return_trigger=False):
         """
         If this hangs while testing, try setting wait_for_trigger to False.
 
@@ -64,23 +64,31 @@ class RedPitaya():
         the range is 134us and will stay that way unless we lower the
         sampling rate (stupid) or truncate the buffer (in post-processing or
         by only accessing part of the buffer).
+
+        If return_trigger=True, a second value will be returned (ie. `return data1,data2`) 
+        where the second return value is the acquired trigger with the same delay/timing
+        as the normal data.
         """
         self.write("ACQ:START") #reset/prime acquisition and trigger
         self.write("ACQ:TRIG CH2_PE")
-        if [1,2].count(channel)==0:
-            error = ValueError("Channel must be an integer, either 1 or 2")
-            raise(error)
+        self.write("ACQ:TRIG:DLY 8192") #puts trigger event at far left of sample range
 
         while wait_for_trigger and self._trigger_status()!="TD".encode("UTF-8"):
             sleep(0.01)
             continue
-        self.write("ACQ:SOUR{}:DATA?".format(channel))
+        self.write("ACQ:SOUR1:DATA?")
         wave = self.read()
         data = self._parse_acq(wave)
-        return self._clip_waveform(data,delay,time)
+        if return_trigger:
+            self.write("ACQ:SOUR2:DATA?")
+            wave2 = self.read()
+            data2 = self._parse_acq(wave2)
+            return self._clip_waveform(data,delay,time), self._clip_waveform(data2,delay,time)
+        else:
+            return self._clip_waveform(data,delay,time)
 
     def _clip_waveform(self,data,delay,time):
-        """Takes a wave ({'amp':[..], 'time (us)':[..]}) and clips it given
+        """Takes a wave ( [[<times>],[]] ) and clips it given
         the delay and time. Time indicates the total length of the returned
         waveform, and delay is how long after the trigger even the desired
         range begins.

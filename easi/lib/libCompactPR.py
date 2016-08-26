@@ -99,14 +99,13 @@ class CP():
         if self.rp is None:
             return {} #should this raise an exception?
         else:
-            data = self.rp.get_waveform(channel=1,delay=delay,time=time)
-            #data = self.rp.get_waveform(channel=1,delay=delay,time=time,wait_for_trigger=False)
+            data = self.rp.get_waveform(delay=delay,time=time)
         return data
 
 if __name__ == "__main__":
 
     cp = CP("http://localhost:9003",rp_url="169.254.134.177")
     data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":10,"delay(us)":0,"time(us)":0})
-    print(data)
-    plt.plot(data[0],data[1])
-    plt.show()
+    #print(data)
+    #plt.plot(data[0],data[1])
+    #plt.show()
