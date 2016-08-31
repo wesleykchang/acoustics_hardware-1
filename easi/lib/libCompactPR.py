@@ -12,7 +12,7 @@ import redpitaya as rp
 class CP():
     def __init__(self,site,rp_url=None,rp_port=5000):
         self.site = site
-        self.lut = pickle.load(open('CP_LUT','rb'))
+        self.lut = pickle.load(open('lib/CP_LUT','rb'))
         if rp_url is None:
             self.rp = None
         else:
