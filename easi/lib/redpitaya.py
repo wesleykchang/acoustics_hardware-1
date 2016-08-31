@@ -2,7 +2,7 @@ import scpi
 import sys
 from json import dumps
 from time import sleep
-import matplotlib.pyplot as plt
+import signal
 
 
 class RedPitaya():
@@ -21,12 +21,22 @@ class RedPitaya():
     def __init__(self, url,port=5000,timeout=1):
         self.rp = scpi.scpi(url,port=port,timeout=timeout)
         self.reset() #for good luck?
+        signal.signal(signal.SIGINT,  self.cleanup)
+        signal.signal(signal.SIGQUIT, self.cleanup)
+        signal.signal(signal.SIGTERM, self.cleanup)
+    
+    def cleanup(self,*args):
+        print("closing SCPI connection...")
+        self.rp.close()
 
     def write(self,msg):
         self.rp.tx_txt(bytes(msg,"UTF-8"))
 
     def read(self):
-        return self.rp.rx_txt()
+        try:
+            return self.rp.rx_txt()
+        except InterruptedError: #this fires if we SIGTERM
+            return 
 
     def reset(self):
         """Turns off acquisition and resets all ACQ params
@@ -127,6 +137,7 @@ class RedPitaya():
 
 
 if __name__=="__main__":
+    import matplotlib.pyplot as plt
     r = RedPitaya("169.254.134.177")
     data = r.get_waveform(delay=5,time=10,wait_for_trigger=True)
     # plt = plt.plot()

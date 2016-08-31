@@ -54,7 +54,7 @@ class Acoustics():
             self.p = libEpoch.Epoch(pulserurl)
             print("... done!")
         elif self.pulser == "compact":
-            self.p = libCompactPR.CP(pulserurl,rp_url="169.254.134.177")
+            self.p = libCompactPR.CP(pulserurl,rp_url="169.254.174.74")
 
          # if muxurl is None:
          #  print("------------------------------------------------")
