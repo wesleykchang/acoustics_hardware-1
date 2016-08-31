@@ -22,8 +22,10 @@ $("#header").html(header)
 upbut =  '<span class="table-up glyphicon glyphicon-arrow-up">'
 updownbut = '<span class="table-up glyphicon glyphicon-arrow-up"></span> <span class="table-down glyphicon glyphicon-arrow-down"></span>'
 removebut =   "<span class='table-remove glyphicon glyphicon-remove'></span>"
-playbut = "<span class='test-start glyphicon glyphicon-play'></span>"
+playbut = "<span class='test-start glyphicon glyphicon-play'>"
 playstopbut = "<span class='test-start glyphicon glyphicon-play'></span><span class = 'test-singleshot glyphicon glyphicon-chevron-right'></span><span class = 'test-stop glyphicon glyphicon-stop'></span>"
+pausebut =  "<span class='test-pause glyphicon glyphicon-pause'>"
+
 
 //make the clone structure the size of the fields
 clone_arr = [] 
@@ -71,16 +73,24 @@ $('.table-down').click(function () {
   sendsettings(last_tid)
 });
 
-$('.test-start').click(function () {
-  var d = new Date().toString(); //return current y,m,d
+
+$(document).on("click", ".test-start", function() {
   var $row = $(this).parents('tr');
 
-  // alert('Please stop test before starting a new one')
-  // alert($row[0].getAttribute('run'))
   if ($row[0].getAttribute('run') == 'y'){
     alert('Please stop current test before starting a new one')
     return;
   }
+
+  $(this).replaceWith(pausebut)
+
+  if ($row[0].getAttribute('run') == 'p'){
+    $row[0].setAttribute('run','y')
+    sendsettings(last_tid) 
+    return;
+  }
+
+  var d = new Date().toString(); //return current y,m,d
 
   $tds = $row.find("td:nth-child(1)"); //find startdate
   $tid = $row.find("td:nth-child(2)"); //find testid
@@ -108,9 +118,20 @@ $('.test-start').click(function () {
     $td.each(function(){
       $(this).attr('contenteditable','false')
     });
-  }); 
+  });
+
   sendsettings(last_tid) 
 });
+
+
+$(document).on("click", ".test-pause", function(){
+  console.log('you pushed pause :)')
+  var $row = $(this).parents('tr');
+  $row[0].setAttribute('run','p')
+  $(this).replaceWith(playbut)
+  sendsettings(last_tid) 
+});
+
 
 $('.test-stop').click(function () {
   var $row = $(this).parents('tr');
@@ -118,6 +139,10 @@ $('.test-stop').click(function () {
 });
 
 function stopRow(row){
+  if (row[0].getAttribute('run') == "y"){
+    row.find('.test-pause').replaceWith(playbut)      
+    }
+
   row[0].setAttribute('run','n');
   row[0].setAttribute('active','false');
 
@@ -212,7 +237,7 @@ function sendsettings(last_tid)
     }
 
     var attr = $(this).attr('singleshot');
-    console.log(attr);
+    // console.log(attr);
 
     if (typeof attr !== typeof undefined && attr !== false) {
        h["singleshot"] = attr
@@ -293,8 +318,12 @@ function makerow(p) {
     //   $clone[0].setAttribute('singleshot',p['singleshot'])
     // }
 
-    if (p['run(y/n)'] == 'y'){
+    if (p['run(y/n)'] == 'y' || p['run(y/n)'] == 'p'){
       for (var i = 0; i < fields.length - 4; i++) $clone[0].cells[i].setAttribute('contenteditable','false')
+    }
+
+    if (p['run(y/n)'] == 'y'){
+      $clone.find('.test-start').replaceWith(pausebut)
     }
 
     $TABLE.find('table').append($clone);
@@ -318,10 +347,10 @@ socket.on('update',function(data){
     current_rowid = data['rowid']
     var current_row = $('[rowid="' + current_rowid + '"]')
       var attr = current_row.attr('singleshot');
-      console.log(attr)
+      // console.log(attr)
 
       if (attr == 'true') {
-         console.log('hi')
+         // console.log('hi')
           stopRow(current_row);
           current_row.attr('singleshot','false')
       }

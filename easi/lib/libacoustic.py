@@ -169,7 +169,7 @@ class Acoustics():
                     print(v)
                 time.sleep(.1) #needed to give the table_state a chance to update
 
-            elif row['run(y/n)'] == 'n':
+            else:
                 counter += 1
                 if counter==(len(tests['data'])):
                     time.sleep(1) #artificial delay. if all the rows are set to 'n'. otherwise it dies

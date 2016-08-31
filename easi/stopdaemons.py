@@ -11,11 +11,11 @@ TO DO: potentially add argparser so you can specify daemon to stop or to stop al
 def stop_daemon(pid_file):
 	pid = int(open(pid_file, "r").readlines()[0])
 	os.kill(pid, signal.SIGTERM) #to hopefully shut down SCPI cleanly
-        time.sleep(0.1)
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except OSError: #SIGTERM worked
-            pass
+	time.sleep(0.1)
+	try:
+		os.kill(pid, signal.SIGKILL)
+	except OSError: #SIGTERM worked
+		pass
 	os.remove(pid_file)
 	return
 
