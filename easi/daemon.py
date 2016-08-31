@@ -126,6 +126,7 @@ class Daemon:
 class Tester(Daemon):
     def __init__(self):
         Daemon.__init__(self, run_fn=self.run_fn, name="poop")
+        print("I inited!")
     def run_fn(self):
         count = 0
         while True:

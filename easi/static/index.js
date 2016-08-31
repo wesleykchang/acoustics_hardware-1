@@ -119,6 +119,7 @@ $('.test-stop').click(function () {
 
 function stopRow(row){
   row[0].setAttribute('run','n');
+  row[0].setAttribute('active','false');
 
   //to 'unlock' a row when a test is finished.
   row.each(function () {

@@ -105,7 +105,9 @@ class Acoustics():
         fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
 
         if fsweep != None:
-            fname = os.path.join(self.path,"Data",row['date_fname'],row_name, "T" + fsweep + "_F" + str(row["freq(mhz)"]).replace(".","p") + ".json")
+            longnam = ("%s_T%.2f_F%05.2f" % (row["serialnumber"],fsweep[0],row["freq(mhz)"])).replace(".","p") + ".json"
+            fname = os.path.join(self.path,"Data",row['date_fname'],row_name, longnam)
+            row["freq(mhz)"] = fsweep[1]
 
         try:
             json.dump({'time (us)':list(data[0]),'amp':list(data[1]),'gain':float(row['gain(db)'])}, open(fname,'w'))
@@ -159,7 +161,7 @@ class Acoustics():
                         sweept = str(time.time()).replace(".","_")
                         for freq in flist:
                             row["freq(mhz)"] = freq
-                            self.getSingleData(row,fsweep=sweept)
+                            self.getSingleData(row,fsweep=[sweept,row["freq(mhz)"]])
                 except:
                     import sys
                     t,v,tb = sys.exc_info()
