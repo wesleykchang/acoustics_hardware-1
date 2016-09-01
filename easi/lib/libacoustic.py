@@ -105,7 +105,7 @@ class Acoustics():
         fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
 
         if fsweep != None:
-            longnam = ("%s_T%.2f_F%05.2f" % (row["serialnumber"],fsweep[0],row["freq(mhz)"])).replace(".","p") + ".json"
+            longnam = ("%s_T%.2f_F%05.2f" % (row["serialnumber"],fsweep[0],float(row["freq(mhz)"]))).replace(".","p") + ".json"
             fname = os.path.join(self.path,"Data",row['date_fname'],row_name, longnam)
             row["freq(mhz)"] = fsweep[1]
 
@@ -158,7 +158,7 @@ class Acoustics():
                         self.getSingleData(row)
                     elif len(fs) == 3:
                         flist = np.linspace(int(fs[0]),int(fs[1]),int(fs[2]))
-                        sweept = str(time.time()).replace(".","_")
+                        sweept = time.time()
                         for freq in flist:
                             row["freq(mhz)"] = freq
                             self.getSingleData(row,fsweep=[sweept,row["freq(mhz)"]])
