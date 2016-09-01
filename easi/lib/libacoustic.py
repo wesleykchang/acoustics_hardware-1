@@ -157,7 +157,7 @@ class Acoustics():
                     if len(fs) == 1:
                         self.getSingleData(row)
                     elif len(fs) == 3:
-                        flist = np.linspace(int(fs[0]),int(fs[1]),int(fs[2]))
+                        flist = np.linspace(float(fs[0]),float(fs[1]),int(fs[2]))
                         sweept = time.time()
                         for freq in flist:
                             row["freq(mhz)"] = freq
