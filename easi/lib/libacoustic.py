@@ -54,7 +54,7 @@ class Acoustics():
             self.p = libEpoch.Epoch(pulserurl)
             print("... done!")
         elif self.pulser == "compact":
-            self.p = libCompactPR.CP(pulserurl,rp_url="169.254.174.74")
+            self.p = libCompactPR.CP(pulserurl,rp_url="169.254.1.10")
 
          # if muxurl is None:
          #  print("------------------------------------------------")
@@ -133,7 +133,8 @@ class Acoustics():
         try:
             data = self.p.commander(row)
             self.saveData(data,row,fsweep)
-            self.socketIO.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True) #send sparkline
+            with SocketIO('localhost', 5000, LoggingNamespace) as sio:
+                sio.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True) #send sparkline
             return data
         except:
             print('***ERROR***')
@@ -149,8 +150,8 @@ class Acoustics():
             if (row['run(y/n)']).lower() == 'y':
                 try:
                     print("testing%s" % str(row['testid']))
-                    self.socketIO = SocketIO('localhost', 5000, LoggingNamespace)
-                    self.socketIO.emit('highlight',{"rowid":row["testid"]}, broadcast=True)
+                    with SocketIO('localhost', 5000, LoggingNamespace) as sio:
+                        sio.emit('highlight',{"rowid":row["testid"]}, broadcast=True)
 
                     fs = row["freq(mhz)"].split(",")
 
