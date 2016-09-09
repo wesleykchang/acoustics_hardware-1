@@ -13,6 +13,10 @@ from flask_socketio import SocketIO, send, emit
 
 from flask import Flask, send_from_directory, request
 
+import eventlet
+
+eventlet.monkey_patch() #fuuuuuck
+
 __all__ = ["AcousticDaemon"]
 app = Flask(__name__)
 app.config['DEBUG'] = False

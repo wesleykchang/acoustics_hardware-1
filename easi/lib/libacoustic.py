@@ -1,9 +1,9 @@
-###################################################
-###################################################
-##    import this library, not libepoch or     ##
-##    whatever else                     ##
-###################################################
-###################################################
+################################################
+################################################
+##    import this library, not libepoch or    ##
+##    whatever else                           ##
+################################################
+################################################
 
 #normal libs
 from urllib.request import urlopen as uo
@@ -19,7 +19,7 @@ import cytec
 from pprint import pprint
 from http.server import SimpleHTTPRequestHandler
 import socketserver
-from socketIO_client import SocketIO, LoggingNamespace
+from socketIO_client import SocketIO, BaseNamespace,LoggingNamespace
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -30,7 +30,7 @@ class Acoustics():
     def __init__(self,muxurl=None,muxtype=None,pulser="compact",pulserurl=None):
         self.path = os.getcwd()
         self.pulser = pulser.lower()
-        print(self.pulser)
+        self.sio =  SocketIO('localhost', 5000, LoggingNamespace)
         #can be fixed by checking if folder exists, and appending a number to the end
 
         if muxurl is not None and muxtype is not None:
@@ -133,8 +133,7 @@ class Acoustics():
         try:
             data = self.p.commander(row)
             self.saveData(data,row,fsweep)
-            with SocketIO('localhost', 5000, LoggingNamespace) as sio:
-                sio.emit('test',{"rowid":row["testid"],"amp":data[1]},broadcast=True) #send sparkline
+            self.sio.emit('test',{"rowid":row["testid"],"amp":data[1]}) #send sparkline
             return data
         except:
             print('***ERROR***')
@@ -150,8 +149,7 @@ class Acoustics():
             if (row['run(y/n)']).lower() == 'y':
                 try:
                     print("testing%s" % str(row['testid']))
-                    with SocketIO('localhost', 5000, LoggingNamespace) as sio:
-                        sio.emit('highlight',{"rowid":row["testid"]}, broadcast=True)
+                    self.sio.emit('highlight',{"rowid":row["testid"]})
 
                     fs = row["freq(mhz)"].split(",")
 
