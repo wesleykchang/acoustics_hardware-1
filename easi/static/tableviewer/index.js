@@ -75,12 +75,3 @@ function makerow(p) {
     $TABLE.find('table').append($clone);
 
 }
-
-function getlastwave()
-{
-    $.get(URLHERE,
-    function(data)
-    {
-        //int
-    })
-}

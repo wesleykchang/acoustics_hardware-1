@@ -67,12 +67,19 @@ class UIDaemon(Daemon):
         def custom_static(filename):
             return send_from_directory("fonts", filename)
 
-        @app.route('/<startdate>/view')
-        def view_table(startdate):
+        @app.route('/<month>/<day>/<year>/view')
+        def view_table(month,day,year):
             return send_from_directory('static/tableviewer','index.html') #show logfile
 
-        @app.route('/<startdate>/table_load')
-        def log_load(startdate):
+        @app.route('/<month>/<day>/<year>/table_load')
+        def log_load(month,day,year):
+            months = {'01' : 'Jan', '02' : 'Feb',
+                        '03' : 'Mar', '04' : 'Apr',
+                        '05' : 'May', '06' : 'Jun',
+                        '07' : 'Jul', '08' : 'Aug',
+                        '09' : 'Sep', '10' : 'Oct',
+                        '11' : 'Nov', '12' : 'Dec'}
+            startdate = months[month] + '_' + day + '_' + year
             return open(os.path.join("Data",startdate,"logfile.json")).read() #get data for a given log
 
         @app.route('/table_save', methods=['GET', 'POST'])
