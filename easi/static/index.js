@@ -48,6 +48,10 @@ $("#cloner").html(cloner)
 last_tid = 000000 //initialize the last testID to something
 loadsettings()
 
+$( function() {
+  $("#datepicker").datepicker();
+});
+
 //Ye Olde code (from https://codepen.io/anon/pen/PzEgLN)
 $('.table-add').click(function () {
   var $clone = $TABLE.find('tr.hide').clone(true).removeClass('hide table-line');

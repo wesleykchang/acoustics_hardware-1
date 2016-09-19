@@ -68,7 +68,7 @@ td:hover
 }
 
 
-input
+/*input
 {
     outline: 0px solid transparent;
     border: 0px;
@@ -86,7 +86,7 @@ input:hover
 input:focus
 {
     background: lightyellow;
-}
+}*/
 
 .btn-primary
 {
