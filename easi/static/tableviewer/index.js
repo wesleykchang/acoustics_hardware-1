@@ -59,6 +59,19 @@ $.get("table_load",
 }
 
 
+
+$('.test-delete').click(function () {
+    var $row = $(this).parents('tr')
+    var id = $row[0].getAttribute('rowid')
+
+    $.post("del_test",JSON.stringify({'rowid' : id}),
+        function()
+        {
+         $row.detach();
+        })
+    });
+
+
 function makerow(p) {
 
     //get the structure of the row

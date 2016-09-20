@@ -129,7 +129,6 @@ $(document).on("click", ".test-start", function() {
 
 
 $(document).on("click", ".test-pause", function(){
-  console.log('you pushed pause :)')
   var $row = $(this).parents('tr');
   $row[0].setAttribute('run','p')
   $(this).replaceWith(playbut)

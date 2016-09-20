@@ -8,7 +8,7 @@ from http.server import SimpleHTTPRequestHandler
 import socketserver
 import json
 import utils
-import os
+import os,shutil
 from flask_socketio import SocketIO, send, emit
 
 from flask import Flask, send_from_directory, request
@@ -55,6 +55,16 @@ class UIDaemon(Daemon):
         self.host = host
 
     def run(self):
+        def writeLog(row):
+            """Attempts to open a log file and add the row to it. If there is no logfile, creates one."""
+            logname = os.path.join("Data/Trash","logfile.json") #path to logfile:
+            if os.path.exists(logname):
+                info = json.load(open(logname))
+            else:
+                info = {'data' : []}  
+            info['data'].append(row) #append to the list of dicts
+            json.dump(info, open(logname, 'w'))
+
         @app.route('/')
         def root():
             return send_from_directory('static','index.html')
@@ -73,7 +83,7 @@ class UIDaemon(Daemon):
 
         @app.route('/<month>/<day>/<year>/table_load')
         def log_load(month,day,year):
-            months = {'01' : 'Jan', '02' : 'Feb',
+            months =   {'01' : 'Jan', '02' : 'Feb',
                         '03' : 'Mar', '04' : 'Apr',
                         '05' : 'May', '06' : 'Jun',
                         '07' : 'Jul', '08' : 'Aug',
@@ -95,6 +105,29 @@ class UIDaemon(Daemon):
                 except Exception as E: 
                     out['status'] = str(E)
                 return json.dumps(out)
+
+        @app.route('/<month>/<day>/<year>/del_test', methods=['GET', 'POST'])
+        def del_test(month,day,year):
+            if request.method == 'POST':
+                postdata = json.loads(request.get_data().decode('utf-8'))
+                months =   {'01' : 'Jan', '02' : 'Feb',
+                            '03' : 'Mar', '04' : 'Apr',
+                            '05' : 'May', '06' : 'Jun',
+                            '07' : 'Jul', '08' : 'Aug',
+                            '09' : 'Sep', '10' : 'Oct',
+                            '11' : 'Nov', '12' : 'Dec'}
+            startdate = months[month] + '_' + day + '_' + year
+            path = os.path.join("Data",startdate,"logfile.json")
+            tests_run = json.load(open(path))['data']
+            for entry in tests_run:
+                if entry['testid'] == postdata['rowid']:
+                    if not os.path.exists("Data/Trash"):
+                        os.mkdir("Data/Trash")
+                    shutil.move(os.path.join("Data",startdate,"TestID_" + postdata['rowid']),("Data/Trash"))
+                    writeLog(entry)
+                    tests_run.remove(entry)
+            json.dump({'data':tests_run}, open(path,'w'))
+            return "ok"
 
         @app.route('/fsweep')
         def sweep_fs():
