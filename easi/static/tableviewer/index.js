@@ -17,11 +17,13 @@ $("#header").html(header)
 //Make Clone Basis
 //This is a hack but so far it doesn't break.  The idea is that we create an empty hidden row that's read to go when we hit "add".  This has been modified to scale appropriately to the size of the header and autofill the table on load
 
-//glyph's, icons from jquery-ui -> may want to change at some point
+//glyphs, icons from jquery-ui 
+trashbtn = "<span class='test-figs glyphicon glyphicon-picture'></span><span class='test-delete glyphicon glyphicon-trash'></span>"
 
 //make the clone structure the size of the fields
 clone_arr = [] 
-for (var i=2; i < fields.length-1; i++ ) clone_arr.push("")
+for (var i=2; i < fields.length; i++ ) clone_arr.push("")
+clone_arr[clone_arr.length-1] = trashbtn // add trash button
 
 
 //Turn the array into HTML
