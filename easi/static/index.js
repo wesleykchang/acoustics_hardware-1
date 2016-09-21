@@ -135,6 +135,7 @@ $(document).on("click", ".test-pause", function(){
 
 $('.test-stop').click(function () {
   var $row = $(this).parents('tr');
+  row[0].setAttribute('active','false');
   stopRow($row)
 });
 
@@ -144,7 +145,6 @@ function stopRow(row){
     }
 
   row[0].setAttribute('run','n');
-  row[0].setAttribute('active','false');
 
   //to 'unlock' a row when a test is finished.
   row.each(function () {
@@ -339,7 +339,9 @@ var socket = io.connect('http://' + document.domain + ':' + location.port);
 socket.on('active',function(data){
     current_rowid = data['rowid']        
     $('tr').attr('active','false'); //turn off previous active row
+    if (data['rowid'] !== 'inactive'){
     $('[rowid="' + current_rowid + '"]').attr('active','true');
+  }
 });
 
 
