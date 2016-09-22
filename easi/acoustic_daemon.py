@@ -10,6 +10,10 @@ import json
 import utils
 import os,shutil
 from flask_socketio import SocketIO, send, emit
+import matplotlib
+from matplotlib import pyplot as plt
+import mpld3
+import plotter #anne's plotting library
 
 from flask import Flask, send_from_directory, request
 
@@ -128,6 +132,21 @@ class UIDaemon(Daemon):
                     tests_run.remove(entry)
             json.dump({'data':tests_run}, open(path,'w'))
             return "ok"
+
+        @app.route('/viewfigs')
+        def viewfigs():
+            return send_from_directory('static/figviewer','index.html')
+
+        @app.route('/<testid>/makefigs')
+        def makefig(testid):
+            data = json.load(open('Data/Aug_03_2016/TestID_6/current.json'))
+            fig = plt.figure()
+            plt.plot(data['amp'])
+            plt.ylabel('Amplitude')
+            plt.xlabel('Time of Flight')
+            json01 = json.dumps(mpld3.fig_to_dict(fig))
+            # mpld.show()
+            return json01
 
         @app.route('/fsweep')
         def sweep_fs():

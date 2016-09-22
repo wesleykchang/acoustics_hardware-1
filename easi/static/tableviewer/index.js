@@ -1,3 +1,4 @@
+window.name='logfile'
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
 var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes"
 //Collect Elements to Play with Later
@@ -69,6 +70,16 @@ $('.test-delete').click(function () {
         {
          $row.detach();
         })
+    });
+
+
+$('.test-figs').click(function () {
+    // var input = '/'  + document.getElementById("datepicker").value;
+    var $row = $(this).parents('tr')
+    var id = $row[0].getAttribute('rowid')
+    // var link = ('http://' + document.domain + ':' + location.port + '/viewfigs');
+    var link = ('/viewfigs?testid=' + id);
+    window.open(link, '_blank');
     });
 
 
