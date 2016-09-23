@@ -78,7 +78,7 @@ $('.test-figs').click(function () {
     var $row = $(this).parents('tr')
     var id = $row[0].getAttribute('rowid')
     // var link = ('http://' + document.domain + ':' + location.port + '/viewfigs');
-    var link = ('/viewfigs?testid=' + id);
+    var link = ('viewfigs?testid=' + id);
     window.open(link, '_blank');
     });
 

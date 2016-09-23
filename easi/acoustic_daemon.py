@@ -69,6 +69,17 @@ class UIDaemon(Daemon):
             info['data'].append(row) #append to the list of dicts
             json.dump(info, open(logname, 'w'))
 
+        def parse_month(month,day,year):
+            months =   {'01' : 'Jan', '02' : 'Feb',
+                        '03' : 'Mar', '04' : 'Apr',
+                        '05' : 'May', '06' : 'Jun',
+                        '07' : 'Jul', '08' : 'Aug',
+                        '09' : 'Sep', '10' : 'Oct',
+                        '11' : 'Nov', '12' : 'Dec'}
+            startdate = months[month] + '_' + day + '_' + year
+            return startdate
+
+
         @app.route('/')
         def root():
             return send_from_directory('static','index.html')
@@ -87,13 +98,7 @@ class UIDaemon(Daemon):
 
         @app.route('/<month>/<day>/<year>/table_load')
         def log_load(month,day,year):
-            months =   {'01' : 'Jan', '02' : 'Feb',
-                        '03' : 'Mar', '04' : 'Apr',
-                        '05' : 'May', '06' : 'Jun',
-                        '07' : 'Jul', '08' : 'Aug',
-                        '09' : 'Sep', '10' : 'Oct',
-                        '11' : 'Nov', '12' : 'Dec'}
-            startdate = months[month] + '_' + day + '_' + year
+            startdate = parse_month(month,day,year)
             return open(os.path.join("Data",startdate,"logfile.json")).read() #get data for a given log
 
         @app.route('/table_save', methods=['GET', 'POST'])
@@ -114,34 +119,30 @@ class UIDaemon(Daemon):
         def del_test(month,day,year):
             if request.method == 'POST':
                 postdata = json.loads(request.get_data().decode('utf-8'))
-                months =   {'01' : 'Jan', '02' : 'Feb',
-                            '03' : 'Mar', '04' : 'Apr',
-                            '05' : 'May', '06' : 'Jun',
-                            '07' : 'Jul', '08' : 'Aug',
-                            '09' : 'Sep', '10' : 'Oct',
-                            '11' : 'Nov', '12' : 'Dec'}
-            startdate = months[month] + '_' + day + '_' + year
-            path = os.path.join("Data",startdate,"logfile.json")
-            tests_run = json.load(open(path))['data']
-            for entry in tests_run:
-                if entry['testid'] == postdata['rowid']:
-                    if not os.path.exists("Data/Trash"):
-                        os.mkdir("Data/Trash")
-                    shutil.move(os.path.join("Data",startdate,"TestID_" + postdata['rowid']),("Data/Trash"))
-                    writeLog(entry)
-                    tests_run.remove(entry)
-            json.dump({'data':tests_run}, open(path,'w'))
-            return "ok"
+                startdate = parse_month(month,day,year)
+                path = os.path.join("Data",startdate,"logfile.json")
+                tests_run = json.load(open(path))['data']
+                for entry in tests_run:
+                    if entry['testid'] == postdata['rowid']:
+                        if not os.path.exists("Data/Trash"):
+                            os.mkdir("Data/Trash")
+                        shutil.move(os.path.join("Data",startdate,"TestID_" + postdata['rowid']),("Data/Trash"))
+                        writeLog(entry)
+                        tests_run.remove(entry)
+                json.dump({'data':tests_run}, open(path,'w'))
+                return "ok"
 
-        @app.route('/viewfigs')
-        def viewfigs():
+        @app.route('/<month>/<day>/<year>/viewfigs')
+        def viewfigs(month,day,year):
             return send_from_directory('static/figviewer','index.html')
 
-        @app.route('/<testid>/makefigs')
-        def makefig(testid):
-            data = json.load(open('Data/Aug_03_2016/TestID_6/current.json'))
+        @app.route('/<month>/<day>/<year>/<testid>/makefigs')
+        def makefig(month,day,year,testid):
+            start_date = parse_month(month,day,year)
+            data = json.load(open(os.path.join('Data',start_date,testid,'current.json')))
+            xs = [x*0.008 for x in range(len(data['amp']))]
             fig = plt.figure()
-            plt.plot(data['amp'])
+            plt.plot(xs,data['amp'])
             plt.ylabel('Amplitude')
             plt.xlabel('Time of Flight')
             json01 = json.dumps(mpld3.fig_to_dict(fig))
