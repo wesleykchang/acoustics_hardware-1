@@ -135,7 +135,6 @@ $(document).on("click", ".test-pause", function(){
 
 $('.test-stop').click(function () {
   var $row = $(this).parents('tr');
-  row[0].setAttribute('active','false');
   stopRow($row)
 });
 
@@ -145,6 +144,7 @@ function stopRow(row){
     }
 
   row[0].setAttribute('run','n');
+  row[0].setAttribute('active','false');
 
   //to 'unlock' a row when a test is finished.
   row.each(function () {

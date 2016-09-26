@@ -111,7 +111,7 @@ class UIDaemon(Daemon):
 
 if __name__=="__main__":
     pulserurl = 9003
-    muxurl = 9000
+    muxurl = 9002
     host = "0.0.0.0"
     port = 5000
     for i in sys.argv:
@@ -122,5 +122,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype="old",pulserurl=pulserurl)
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="old",pulserurl=pulserurl)
     ad.start()
