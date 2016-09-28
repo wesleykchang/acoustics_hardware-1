@@ -139,15 +139,25 @@ class UIDaemon(Daemon):
         @app.route('/<month>/<day>/<year>/<testid>/makefigs')
         def makefig(month,day,year,testid):
             start_date = parse_month(month,day,year)
-            data = json.load(open(os.path.join('Data',start_date,testid,'current.json')))
+            files = os.listdir(os.path.join('Data',start_date,testid))
+            files.remove('current.json')
+            files = sorted(files)
+
+            index = int(request.args.get('index', ''))
+            data = json.load(open(os.path.join('Data',start_date,testid,files[index])))
             xs = [x*0.008 for x in range(len(data['amp']))]
             fig = plt.figure()
             plt.plot(xs,data['amp'])
             plt.ylabel('Amplitude')
-            plt.xlabel('Time of Flight')
-            json01 = json.dumps(mpld3.fig_to_dict(fig))
-            # mpld.show()
-            return json01
+            plt.xlabel('Time of Flight (us)')
+            plt.title(files[index].rstrip('.json'))
+            wave = mpld3.fig_to_dict(fig)
+
+
+            out = {}
+            out['fig1'] = wave
+            out['lenfigs'] = [str(index), str(len(files)-1)]
+            return json.dumps(out)
 
         @app.route('/fsweep')
         def sweep_fs():
