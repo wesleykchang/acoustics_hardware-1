@@ -48,6 +48,10 @@ $("#cloner").html(cloner)
 last_tid = 000000 //initialize the last testID to something
 loadsettings()
 
+$( function() {
+  $("#datepicker").datepicker();
+});
+
 //Ye Olde code (from https://codepen.io/anon/pen/PzEgLN)
 $('.table-add').click(function () {
   var $clone = $TABLE.find('tr.hide').clone(true).removeClass('hide table-line');
@@ -125,7 +129,6 @@ $(document).on("click", ".test-start", function() {
 
 
 $(document).on("click", ".test-pause", function(){
-  console.log('you pushed pause :)')
   var $row = $(this).parents('tr');
   $row[0].setAttribute('run','p')
   $(this).replaceWith(playbut)
@@ -203,9 +206,18 @@ $('.test-singleshot').click(function () {
 jQuery.fn.pop = [].pop;
 jQuery.fn.shift = [].shift;
 
-//export button
-$BTN.click(function () {
-sendsettings(last_tid) //DS Addition
+
+$('button').click(function () {
+  var input = '/'  + document.getElementById("datepicker").value;
+  var link = ('http://' + document.domain + ':' + location.port + input + '/view');
+  var win = window.open(link, '_blank');
+  if (win) {
+      //Browser has allowed it to be opened
+      win.focus();
+  } else {
+      //Browser has blocked it
+      alert('Please allow popups for this website');
+  }
 });
 
 //function to add data from rows to ports, make a JSON object, send off
@@ -331,8 +343,6 @@ function makerow(p) {
 }
 
 
-last_rowid = 0;
-
 
 var socket = io.connect('http://' + document.domain + ':' + location.port);
 
@@ -340,8 +350,8 @@ socket.on('active',function(data){
     current_rowid = data['rowid']        
     $('tr').attr('active','false'); //turn off previous active row
     if (data['rowid'] !== 'inactive'){
-    $('[rowid="' + current_rowid + '"]').attr('active','true');
-  }
+      $('[rowid="' + current_rowid + '"]').attr('active','true');
+     }
 });
 
 
@@ -374,5 +384,4 @@ socket.on('update',function(data){
             chartRangeMax: ymax
         });
 
-    last_rowid = current_rowid
 });

@@ -1,3 +1,4 @@
+window.name='logfile'
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
 var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes"
 //Collect Elements to Play with Later
@@ -17,11 +18,13 @@ $("#header").html(header)
 //Make Clone Basis
 //This is a hack but so far it doesn't break.  The idea is that we create an empty hidden row that's read to go when we hit "add".  This has been modified to scale appropriately to the size of the header and autofill the table on load
 
-//glyph's, icons from jquery-ui -> may want to change at some point
+//glyphs, icons from jquery-ui 
+trashbtn = "<span class='test-figs glyphicon glyphicon-picture'></span><span class='test-delete glyphicon glyphicon-trash'></span>"
 
 //make the clone structure the size of the fields
 clone_arr = [] 
-for (var i=2; i < fields.length-1; i++ ) clone_arr.push("")
+for (var i=2; i < fields.length; i++ ) clone_arr.push("")
+clone_arr[clone_arr.length-1] = trashbtn // add trash button
 
 
 //Turn the array into HTML
@@ -57,6 +60,29 @@ $.get("table_load",
 }
 
 
+
+$('.test-delete').click(function () {
+    var $row = $(this).parents('tr')
+    var id = $row[0].getAttribute('rowid')
+
+    $.post("del_test",JSON.stringify({'rowid' : id}),
+        function()
+        {
+         $row.detach();
+        })
+    });
+
+
+$('.test-figs').click(function () {
+    // var input = '/'  + document.getElementById("datepicker").value;
+    var $row = $(this).parents('tr')
+    var id = $row[0].getAttribute('rowid')
+    // var link = ('http://' + document.domain + ':' + location.port + '/viewfigs');
+    var link = ('viewfigs?testid=' + id);
+    window.open(link, '_blank');
+    });
+
+
 function makerow(p) {
 
     //get the structure of the row
@@ -74,13 +100,4 @@ function makerow(p) {
 
     $TABLE.find('table').append($clone);
 
-}
-
-function getlastwave()
-{
-    $.get(URLHERE,
-    function(data)
-    {
-        //int
-    })
 }

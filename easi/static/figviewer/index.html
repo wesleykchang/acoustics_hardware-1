@@ -2,29 +2,27 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Logfile Viewer</title>
+    <title>Figure It Out</title>
     <link rel='stylesheet prefetch' href='/static/jquery-ui.css'>
     <link rel='stylesheet' href='/static/bootstrap.min.css'>
     <link rel="stylesheet" href="/static/tableviewer/style.css">
-
-
   </head>
-
   <body>
-    <div class="container">
-    <div id="table" class="table-editable">
-        <table class="table">
-        <tr id="header"></tr>
-        <tr id="cloner" class="hide"></tr>
-        </table>
+  <div id="fig01"></div>
+  <div>
+Figure Index: 
+<button id="left-btn" class="btn-primary">&larr;</button>
+<input type="text" size="5" maxlength="5" name="figindex" id="figindex"/>
+<button id="right-btn" class="btn-primary">&rarr;</button>
   </div>
       
-      
+<script type="text/javascript" src="/static/d3js.js"></script>
+<script type="text/javascript" src="/static/mpld3.js"></script>
 <script src='/static/jquery.min.js'></script>
 <script src='/static/jquery-ui.min.js'></script>
 <script src='/static/bootstrap.min.js'></script>
 <script src='/static/underscore.js'></script>
-<script src="/static/tableviewer/index.js"></script>
+<script src="/static/figviewer/index.js"></script>
 
     
     

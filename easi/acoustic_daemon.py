@@ -8,8 +8,12 @@ from http.server import SimpleHTTPRequestHandler
 import socketserver
 import json
 import utils
-import os
+import os,shutil
 from flask_socketio import SocketIO, send, emit
+import matplotlib
+from matplotlib import pyplot as plt
+import mpld3
+# import plotter #anne's plotting library
 
 from flask import Flask, send_from_directory, request
 
@@ -55,6 +59,27 @@ class UIDaemon(Daemon):
         self.host = host
 
     def run(self):
+        def writeLog(row):
+            """Attempts to open a log file and add the row to it. If there is no logfile, creates one."""
+            logname = os.path.join("Data/Trash","logfile.json") #path to logfile:
+            if os.path.exists(logname):
+                info = json.load(open(logname))
+            else:
+                info = {'data' : []}  
+            info['data'].append(row) #append to the list of dicts
+            json.dump(info, open(logname, 'w'))
+
+        def parse_month(month,day,year):
+            months =   {'01' : 'Jan', '02' : 'Feb',
+                        '03' : 'Mar', '04' : 'Apr',
+                        '05' : 'May', '06' : 'Jun',
+                        '07' : 'Jul', '08' : 'Aug',
+                        '09' : 'Sep', '10' : 'Oct',
+                        '11' : 'Nov', '12' : 'Dec'}
+            startdate = months[month] + '_' + day + '_' + year
+            return startdate
+
+
         @app.route('/')
         def root():
             return send_from_directory('static','index.html')
@@ -67,12 +92,13 @@ class UIDaemon(Daemon):
         def custom_static(filename):
             return send_from_directory("fonts", filename)
 
-        @app.route('/<startdate>/view')
-        def view_table(startdate):
+        @app.route('/<month>/<day>/<year>/view')
+        def view_table(month,day,year):
             return send_from_directory('static/tableviewer','index.html') #show logfile
 
-        @app.route('/<startdate>/table_load')
-        def log_load(startdate):
+        @app.route('/<month>/<day>/<year>/table_load')
+        def log_load(month,day,year):
+            startdate = parse_month(month,day,year)
             return open(os.path.join("Data",startdate,"logfile.json")).read() #get data for a given log
 
         @app.route('/table_save', methods=['GET', 'POST'])
@@ -88,6 +114,50 @@ class UIDaemon(Daemon):
                 except Exception as E: 
                     out['status'] = str(E)
                 return json.dumps(out)
+
+        @app.route('/<month>/<day>/<year>/del_test', methods=['GET', 'POST'])
+        def del_test(month,day,year):
+            if request.method == 'POST':
+                postdata = json.loads(request.get_data().decode('utf-8'))
+                startdate = parse_month(month,day,year)
+                path = os.path.join("Data",startdate,"logfile.json")
+                tests_run = json.load(open(path))['data']
+                for entry in tests_run:
+                    if entry['testid'] == postdata['rowid']:
+                        if not os.path.exists("Data/Trash"):
+                            os.mkdir("Data/Trash")
+                        shutil.move(os.path.join("Data",startdate,"TestID_" + postdata['rowid']),("Data/Trash"))
+                        writeLog(entry)
+                        tests_run.remove(entry)
+                json.dump({'data':tests_run}, open(path,'w'))
+                return "ok"
+
+        @app.route('/<month>/<day>/<year>/viewfigs')
+        def viewfigs(month,day,year):
+            return send_from_directory('static/figviewer','index.html')
+
+        @app.route('/<month>/<day>/<year>/<testid>/makefigs')
+        def makefig(month,day,year,testid):
+            start_date = parse_month(month,day,year)
+            files = os.listdir(os.path.join('Data',start_date,testid))
+            files.remove('current.json')
+            files = sorted(files)
+
+            index = int(request.args.get('index', ''))
+            data = json.load(open(os.path.join('Data',start_date,testid,files[index])))
+            xs = [x*0.008 for x in range(len(data['amp']))]
+            fig = plt.figure()
+            plt.plot(xs,data['amp'])
+            plt.ylabel('Amplitude')
+            plt.xlabel('Time of Flight (us)')
+            plt.title(files[index].rstrip('.json'))
+            wave = mpld3.fig_to_dict(fig)
+
+
+            out = {}
+            out['fig1'] = wave
+            out['lenfigs'] = [str(index), str(len(files)-1)]
+            return json.dumps(out)
 
         @app.route('/fsweep')
         def sweep_fs():
@@ -122,5 +192,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="old",pulserurl=pulserurl)
+    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
     ad.start()

@@ -1,8 +1,8 @@
 .table-editable {
   position: relative;
 outline: 0px;
-
 }
+
 .table-editable .glyphicon {
   font-size: 15px;
 }
@@ -18,6 +18,15 @@ outline: 0px;
 
 .test-figs:hover {
   color: #00f;
+}
+
+.btn-primary
+{
+    outline: 0px solid transparent;
+    color:white;
+    background:black;
+    border: 0px solid transparent;
+        
 }
 
 
