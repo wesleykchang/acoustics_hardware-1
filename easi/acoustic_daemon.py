@@ -13,7 +13,7 @@ from flask_socketio import SocketIO, send, emit
 import matplotlib
 from matplotlib import pyplot as plt
 import mpld3
-import plotter #anne's plotting library
+# import plotter #anne's plotting library
 
 from flask import Flask, send_from_directory, request
 
@@ -192,5 +192,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    # ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype="old",pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
+    ad.start()

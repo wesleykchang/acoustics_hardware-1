@@ -343,15 +343,15 @@ function makerow(p) {
 }
 
 
-last_rowid = 0;
-
 
 var socket = io.connect('http://' + document.domain + ':' + location.port);
 
 socket.on('active',function(data){
     current_rowid = data['rowid']        
     $('tr').attr('active','false'); //turn off previous active row
-    $('[rowid="' + current_rowid + '"]').attr('active','true');
+    if (data['rowid'] !== 'inactive'){
+      $('[rowid="' + current_rowid + '"]').attr('active','true');
+     }
 });
 
 
@@ -384,5 +384,4 @@ socket.on('update',function(data){
             chartRangeMax: ymax
         });
 
-    last_rowid = current_rowid
 });
