@@ -192,5 +192,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
     ad.start()

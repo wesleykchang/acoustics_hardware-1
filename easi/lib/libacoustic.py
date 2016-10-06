@@ -160,7 +160,7 @@ class Acoustics():
                         sweept = time.time()
                         for freq in flist:
                             row["freq(mhz)"] = freq
-                            self.getSingleData(row,fsweep=[sweept,row["freq(mhz)"]])
+                            self.getSingleData(row,fsweep=[sweept,fs])
                 except:
                     import sys
                     t,v,tb = sys.exc_info()
