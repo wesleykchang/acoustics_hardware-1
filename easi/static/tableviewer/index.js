@@ -1,6 +1,6 @@
 window.name='logfile'
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="Start Date, Test ID, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes"
+var fields ="Start Date, Test ID, Project, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');

@@ -1,5 +1,5 @@
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="Start Date, Test ID, LastWaveform, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
+var fields ="Start Date, Test ID, LastWaveform, Project, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');
@@ -29,7 +29,7 @@ pausebut =  "<span class='test-pause glyphicon glyphicon-pause'>"
 
 //make the clone structure the size of the fields
 clone_arr = [] 
-for (var i=3; i < fields.length-1; i++ ) clone_arr.push("")
+for (var i=3; i < fields.length; i++ ) clone_arr.push("")
 clone_arr[clone_arr.length-3] = playstopbut //add play button
 clone_arr[clone_arr.length-2] = removebut //add remove button
 clone_arr[clone_arr.length-1] = updownbut // add updown button
