@@ -29,7 +29,7 @@ pausebut =  "<span class='test-pause glyphicon glyphicon-pause'>"
 
 //make the clone structure the size of the fields
 clone_arr = [] 
-for (var i=3; i < fields.length; i++ ) clone_arr.push("")
+for (var i=3; i < fields.length-1; i++ ) clone_arr.push("")
 clone_arr[clone_arr.length-3] = playstopbut //add play button
 clone_arr[clone_arr.length-2] = removebut //add remove button
 clone_arr[clone_arr.length-1] = updownbut // add updown button
