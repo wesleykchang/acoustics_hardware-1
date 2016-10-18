@@ -101,11 +101,11 @@ class Acoustics():
         """Stores data as JSON files named by time in Data/StartDate/TestID"""
         #misc path generation
         row_name = "TestID_" + row['testid']
-        fname = os.path.join(self.path,"Data",row['date_fname'],row_name,str(time.time()).replace(".","_") + ".json")
+        fname = os.path.join(self.path,"Data",row['date_fname'],row_name,"T" + str(time.time()).replace(".","p") + ".json")
         fname_current = os.path.join(self.path,"Data",row['date_fname'],row_name,"current.json")
 
         if fsweep != None:
-            longnam = ("%s_T%.2f_F%05.2f" % (row["serialnumber"],fsweep[0],float(row["freq(mhz)"]))).replace(".","p") + ".json"
+            longnam = ("T%.2f_S%s_F%05.2f" % (fsweep[0], row["serialnumber"], float(row["freq(mhz)"]))).replace(".","p") + ".json"
             fname = os.path.join(self.path,"Data",row['date_fname'],row_name, longnam)
             row["freq(mhz)"] = fsweep[1]
 
