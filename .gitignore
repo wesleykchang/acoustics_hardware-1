@@ -2,6 +2,9 @@
 **/.*.sw*
 **/.*.un*
 
+#ignore pngs
+*.png
+
 #python droppings
 **/*.pyc
 
