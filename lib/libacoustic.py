@@ -12,8 +12,9 @@ import libCompactPR
 import os
 import datetime
 import time
+import sys
 #in this package
-sys.path.append('../../EASI-analysis/analysis') #add saver functions to path
+sys.path.append('../EASI-analysis/analysis') #add saver functions to path
 import data
 import libEpoch
 import oldmux as omux

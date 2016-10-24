@@ -61,7 +61,7 @@ class UIDaemon(Daemon):
     def run(self):
         def writeLog(row):
             """Attempts to open a log file and add the row to it. If there is no logfile, creates one."""
-            logname = os.path.join("Data/Trash","logfile.json") #path to logfile:
+            logname = os.path.join("../Data/Trash","logfile.json") #path to logfile:
             if os.path.exists(logname):
                 info = json.load(open(logname))
             else:
@@ -87,8 +87,8 @@ class UIDaemon(Daemon):
 
         @app.route('/<month>/<day>/<year>/table_load')
         def log_load(month,day,year):
-             startdate = year + '_' + month + '_' + day
-            return open(os.path.join("Data",startdate,"logfile.json")).read() #get data for a given log
+            startdate = year + '_' + month + '_' + day
+            return open(os.path.join("../Data",startdate,"logfile.json")).read() #get data for a given log
 
         @app.route('/table_save', methods=['GET', 'POST'])
         def table_save():
@@ -108,14 +108,14 @@ class UIDaemon(Daemon):
         def del_test(month,day,year):
             if request.method == 'POST':
                 postdata = json.loads(request.get_data().decode('utf-8'))
-                startdate = parse_month(month,day,year)
-                path = os.path.join("Data",startdate,"logfile.json")
+                startdate = year + '_' + month + '_' + day
+                path = os.path.join("../Data",startdate,"logfile.json")
                 tests_run = json.load(open(path))['data']
                 for entry in tests_run:
                     if entry['testid'] == postdata['rowid']:
-                        if not os.path.exists("Data/Trash"):
-                            os.mkdir("Data/Trash")
-                        shutil.move(os.path.join("Data",startdate,"TestID_" + postdata['rowid']),("Data/Trash"))
+                        if not os.path.exists("../Data/Trash"):
+                            os.mkdir("../Data/Trash")
+                        shutil.move(os.path.join("../Data",startdate,"TestID_" + postdata['rowid']),("../Data/Trash"))
                         writeLog(entry)
                         tests_run.remove(entry)
                 json.dump({'data':tests_run}, open(path,'w'))
@@ -127,13 +127,13 @@ class UIDaemon(Daemon):
 
         @app.route('/<month>/<day>/<year>/<testid>/makefigs')
         def makefig(month,day,year,testid):
-            start_date = parse_month(month,day,year)
-            files = os.listdir(os.path.join('Data',start_date,testid))
+            start_date = year + '_' + month + '_' + day
+            files = os.listdir(os.path.join('../Data',start_date,testid))
             files.remove('current.json')
             files = sorted(files)
 
             index = int(request.args.get('index', ''))
-            data = json.load(open(os.path.join('Data',start_date,testid,files[index])))
+            data = json.load(open(os.path.join('../Data',start_date,testid,files[index])))
             xs = [x*0.008 for x in range(len(data['amp']))]
             fig = plt.figure()
             plt.plot(xs,data['amp'])
@@ -141,11 +141,10 @@ class UIDaemon(Daemon):
             plt.xlabel('Time of Flight (us)')
             plt.title(files[index].rstrip('.json'))
             wave = mpld3.fig_to_dict(fig)
-
-
             out = {}
             out['fig1'] = wave
             out['lenfigs'] = [str(index), str(len(files)-1)]
+            plt.close(fig)
             return json.dumps(out)
 
         @app.route('/fsweep')
@@ -181,5 +180,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
+    ad.start()
