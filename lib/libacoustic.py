@@ -15,7 +15,7 @@ import time
 import sys
 #in this package
 sys.path.append('../EASI-analysis/analysis') #add saver functions to path
-import data
+import filesystem
 import libEpoch
 import oldmux as omux
 import cytec
@@ -32,8 +32,8 @@ class Acoustics():
     def __init__(self,muxurl=None,muxtype=None,pulser="compact",pulserurl=None):
         self.path = os.getcwd()
         self.pulser = pulser.lower()
-        self.sio =  SocketIO('localhost', 5000, LoggingNamespace)
-        self.saver = data.Saver()
+        self.sio =  SocketIO('localhost', 6054, LoggingNamespace)
+        self.saver = filesystem.Saver()
 
         if muxurl is not None and muxtype is not None:
             if muxtype.lower()=="cytec":

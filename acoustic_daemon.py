@@ -14,6 +14,9 @@ import matplotlib
 from matplotlib import pyplot as plt
 import mpld3
 from datetime import timedelta
+sys.path.append('../EASI-analysis/analysis') #add saver functions to path
+import filesystem
+from uuid import getnode as get_mac
 # import plotter #anne's plotting library
 
 from flask_wtf import Form, validators
@@ -101,19 +104,9 @@ class UIDaemon(Daemon):
         Daemon.__init__(self,self.run,name="ui_daemon")
         self.port = port
         self.host = host
+        self.saver = filesystem.Saver()
 
     def run(self):
-        def writeLog(row):
-            """Attempts to open a log file and add the row to it. If there is no logfile, creates one."""
-            logname = os.path.join("../Data/Trash","logfile.json") #path to logfile:
-            if os.path.exists(logname):
-                info = json.load(open(logname))
-            else:
-                info = {'data' : []}  
-            info['data'].append(row) #append to the list of dicts
-            json.dump(info, open(logname, 'w'))
-
-
         @login_manager.user_loader
         def load_user(user_id):
             return User.get(user_id)
@@ -135,7 +128,9 @@ class UIDaemon(Daemon):
         @app.route('/table_load')
         @login_required
         def table_load():
-            return open("table_state.json").read()
+            table = json.loads(open("table_state.json").read())
+            table["mac"] = str(get_mac())[-4:]
+            return json.dumps(table)
 
         @app.route('/fonts/<path:filename>') #important for being able to load font files
         @login_required
@@ -176,15 +171,16 @@ class UIDaemon(Daemon):
                 startdate = year + '_' + month + '_' + day
                 path = os.path.join("../Data",startdate,"logfile.json")
                 tests_run = json.load(open(path))['data']
-                for entry in tests_run:
-                    if entry['testid'] == postdata['rowid']:
+                for key in tests_run:
+                    entry = tests_run[key]
+                    if key == postdata['rowid']:
                         if not os.path.exists("../Data/Trash"):
                             os.mkdir("../Data/Trash")
-                        shutil.move(os.path.join("../Data",startdate,"TestID_" + postdata['rowid']),("../Data/Trash"))
-                        writeLog(entry)
-                        tests_run.remove(entry)
-                json.dump({'data':tests_run}, open(path,'w'))
-                return "ok"
+                        shutil.move(os.path.join("../Data",startdate,"TestID_" + entry['testid']),("../Data/Trash"))
+                        self.saver.writeLog(entry,trash=True) #writes to the trash log
+                        del tests_run[key]
+                        json.dump({'data':tests_run}, open(path,'w'))
+                        return "ok"
 
         @app.route('/<month>/<day>/<year>/viewfigs')
         @login_required
@@ -243,5 +239,5 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
-    # ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
+    ad.start()

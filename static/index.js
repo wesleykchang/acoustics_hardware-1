@@ -1,5 +1,5 @@
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="Start Date, Test ID, LastWaveform, Project, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Notes, Filter Mode, Run (y/n)"
+var fields ="Start Date, Test ID, LastWaveform, Project, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Filter Mode, CyclerCode, Run (y/n)"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');
@@ -36,11 +36,14 @@ clone_arr[clone_arr.length-1] = updownbut // add updown button
 
 //Turn the array into HTML
 cloner = "<td contenteditable=false></td><td contenteditable=false></td><td kind=LastWaveform contenteditable=false></td>"
+
+i=3
 for (c in clone_arr) 
 {
     var ce = "false"
     if (clone_arr[c] == "") ce = "true" 
-    cloner += "<td contenteditable='"+ce+"'>"+clone_arr[c]+"</td>"
+    cloner += "<td type = '"+ fields[i] +"'' contenteditable='"+ce+"'>"+clone_arr[c]+"</td>"
+    i++;
 }
 $("#cloner").html(cloner)
 
@@ -75,6 +78,13 @@ $('.table-down').click(function () {
   var $row = $(this).parents('tr');
   $row.next().after($row.get(0));
   sendsettings(last_tid)
+});
+
+var contents = $('td[type="CyclerCode"]').html();
+$('td[type="CyclerCode"]').blur(function() {
+    if (contents!=$(this).html()){
+        sendsettings(last_tid);
+    }
 });
 
 
@@ -117,8 +127,9 @@ $(document).on("click", ".test-start", function() {
   $row[0].setAttribute('active','false')
 
   //to 'lock' the row while a test is running
+
   $row.each(function () {
-    var $td = $(this).find('td');
+    var $td = $(this).find('td').slice(3,13);
     $td.each(function(){
       $(this).attr('contenteditable','false')
     });
@@ -151,7 +162,7 @@ function stopRow(row){
 
   //to 'unlock' a row when a test is finished.
   row.each(function () {
-    var $td = row.find('td').slice(3,13);
+    var $td = row.find('td').slice(3,14);
     $td.each(function(){
       $(this).attr('contenteditable','true')
     });
@@ -251,6 +262,8 @@ function sendsettings(last_tid)
     var attr = $(this).attr('singleshot');
     // console.log(attr);
 
+    h["testid"] = mac + "_" + h["testid"]
+
     if (typeof attr !== typeof undefined && attr !== false) {
        h["singleshot"] = attr
       }
@@ -291,6 +304,7 @@ $.get("/table_load",
     function(data)
     {
         out = JSON.parse(data)
+        mac = out["mac"]
 
         last_tid = (parseInt(out['last_tid']))
         
@@ -304,6 +318,7 @@ $.get("/table_load",
         data = out['data']
         for (d in data)
         {
+            data[d]["testid"] = data[d]["testid"].slice(5) 
             makerow(data[d])
         }
     })
@@ -347,7 +362,7 @@ function makerow(p) {
 var socket = io.connect('http://' + document.domain + ':' + location.port);
 
 socket.on('active',function(data){
-    current_rowid = data['rowid']        
+    current_rowid = data['rowid'].slice(5)        
     $('tr').attr('active','false'); //turn off previous active row
     if (data['rowid'] !== 'inactive'){
       $('[rowid="' + current_rowid + '"]').attr('active','true');
@@ -356,7 +371,7 @@ socket.on('active',function(data){
 
 
 socket.on('update',function(data){
-    current_rowid = data['rowid']
+    current_rowid = data['rowid'].slice(5)
     var current_row = $('[rowid="' + current_rowid + '"]')
       var attr = current_row.attr('singleshot');
       // console.log(attr)
