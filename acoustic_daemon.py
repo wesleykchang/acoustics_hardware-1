@@ -3,6 +3,7 @@ sys.path.append('lib') #tells python where to look for packages
 from daemon import Daemon
 import libacoustic as A
 import time
+import signal
 import argparse
 from http.server import SimpleHTTPRequestHandler
 import socketserver
@@ -17,6 +18,11 @@ from datetime import timedelta
 sys.path.append('../EASI-analysis/analysis') #add saver functions to path
 import filesystem
 from uuid import getnode as get_mac
+import logging
+try:
+    from os import scandir
+except ImportError:
+    from scandir import scandir
 # import plotter #anne's plotting library
 
 from flask_wtf import Form, validators
@@ -225,19 +231,84 @@ class UIDaemon(Daemon):
     def loadTools(self):
         pass
 
+class DBDaemon(Daemon):
+    def __init__(self,every_n_min=None):
+        Daemon.__init__(self,self.run,name="db_daemon")
+        self.loader = filesystem.Loader()
+        # self.datapath = self.loader.path
+        self.datapath = "../Data"
+        self.n_min = every_n_min
+        #logging stuffs
+
+        signal.signal(signal.SIGINT,  self.cleanobs)
+        signal.signal(signal.SIGQUIT, self.cleanobs)
+        signal.signal(signal.SIGTERM, self.cleanobs)
+
+
+    def modified_since(self,cutoff,path):
+        files = set([])
+        for f in scandir(path):
+            mtime = f.stat().st_mtime
+            if mtime > cutoff:
+                if f.is_dir():
+                    for i in self.modified_since(cutoff,f.path):
+                        files.add(i)
+                else:
+                    # print("YES! {} ".format(mtime))
+                    files.add(f.path)
+            else:
+                pass
+        return files
+
+    def check_all_dates(self):
+        cutoff = time.time() - (self.n_min*60) #defaults to push files at same interval
+        all_mod_files = []
+        for date_folder in os.listdir(self.datapath):
+            mod_files = self.modified_since(cutoff,os.path.join(self.datapath,date_folder))
+            all_mod_files.append(mod_files)
+        return all_mod_files
+
+
+    def push_files(self):
+        mod_files = self.modified_since()
+
+    def cleanobs(self,*args):
+        print("add push all data here")
+        pass
+
+    def run(self):
+        while True:
+            time.sleep(6)
+            print(self.check_all_dates())
+        #stuff to do.
+
+    def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
+        try:
+            fn()
+        except:
+            pass 
+
+    def loadTools(self):
+        pass
+
+
 
 if __name__=="__main__":
-    pulserurl = 9003
-    muxurl = 9002
-    host = "0.0.0.0"
-    port = 6054
-    for i in sys.argv:
-        if i.find("=") > 0: 
-            print(i)
-            exec(i)
+    # pulserurl = 9003
+    # muxurl = 9002
+    # host = "0.0.0.0"
+    # port = 6054
+    # for i in sys.argv:
+    #     if i.find("=") > 0: 
+    #         print(i)
+    #         exec(i)
             
-    d = UIDaemon(port,host)
-    d.start()
-    time.sleep(1)
-    ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
-    ad.start()
+    # d = UIDaemon(port,host)
+    # d.start()
+    # time.sleep(1)
+
+    dbd = DBDaemon(.1)
+    dbd.start()
+
+    # ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
+    # ad.start()
