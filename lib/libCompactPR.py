@@ -13,6 +13,7 @@ class CP():
     def __init__(self,site,rp_url=None,rp_port=5000):
         self.site = site
         self.lut = pickle.load(open('lib/CP_LUT','rb'))
+        self.write("P0")
         if rp_url is None:
             self.rp = None
         else:
@@ -76,6 +77,7 @@ class CP():
         """Takes a row of settings and sets params on CompactPulser"""
 
         #anne's note to self: add some defaults
+        self.rp.prime_trigger()
         [pwidth,widemode] = self.convertFreq(row["freq(mhz)"])
         [hpf, lpf] = self.convertFilt(row["filtermode"])
         settings = {"tr" : "M1", "pe" : "M0"}
@@ -85,7 +87,8 @@ class CP():
         self.write(lpf)
         self.write("G%i" % (int(row["gain(db)"])*10)) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
-        self.write(pwidth) #wide pulse mode will need a LUT
+        self.write(pwidth)
+        self.write("P0")
 
         ##for now we don't care about Voltage or PRF
         # self.write("V%i" % int(row['voltage'])) 
@@ -105,7 +108,9 @@ class CP():
 if __name__ == "__main__":
 
     cp = CP("http://localhost:9003",rp_url="169.254.134.177")
-    data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":10,"delay(us)":0,"time(us)":0})
+    print(cp.write("T?"))
+    print(cp.read())
+    # data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":10,"delay(us)":0,"time(us)":0})
     #print(data)
     #plt.plot(data[0],data[1])
     #plt.show()

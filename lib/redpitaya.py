@@ -65,6 +65,11 @@ class RedPitaya():
     def trigger_now(self):
         self.write("ACQ:TRIG NOW")
 
+    def prime_trigger(self):
+        self.write("ACQ:START") #reset/prime acquisition and trigger
+        self.write("ACQ:TRIG CH2_PE")
+        self.write("ACQ:TRIG:DLY 8192") #puts trigger event at far left of sample range
+
     def get_waveform(self,delay=0,time=0, wait_for_trigger=True, return_trigger=False):
         """
         If this hangs while testing, try setting wait_for_trigger to False.
@@ -79,9 +84,6 @@ class RedPitaya():
         where the second return value is the acquired trigger with the same delay/timing
         as the normal data.
         """
-        self.write("ACQ:START") #reset/prime acquisition and trigger
-        self.write("ACQ:TRIG CH2_PE")
-        self.write("ACQ:TRIG:DLY 8192") #puts trigger event at far left of sample range
 
         while wait_for_trigger and self._trigger_status()!="TD".encode("UTF-8"):
             sleep(0.01)

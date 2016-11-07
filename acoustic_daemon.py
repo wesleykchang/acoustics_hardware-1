@@ -236,7 +236,7 @@ class UIDaemon(Daemon):
 class DBDaemon(Daemon):
     def __init__(self,every_n_min=None):
         Daemon.__init__(self,self.run,name="db_daemon")
-        self.loader = filesystem.Loader()
+        # self.loader = filesystem.Loader()
         # self.datapath = self.loader.path
         self.datapath = "../Data"
         self.n_min = every_n_min
@@ -327,21 +327,21 @@ class DBDaemon(Daemon):
 
 
 if __name__=="__main__":
-    # pulserurl = 9003
-    # muxurl = 9002
-    # host = "0.0.0.0"
-    # port = 6054
-    # for i in sys.argv:
-    #     if i.find("=") > 0: 
-    #         print(i)
-    #         exec(i)
+    pulserurl = 9003
+    muxurl = 9002
+    host = "0.0.0.0"
+    port = 6054
+    for i in sys.argv:
+        if i.find("=") > 0: 
+            print(i)
+            exec(i)
             
-    # d = UIDaemon(port,host)
-    # d.start()
-    # time.sleep(1)
+    d = UIDaemon(port,host)
+    d.start()
+    time.sleep(1)
 
     dbd = DBDaemon(.1)
     dbd.start()
 
-    # ad = AcousticDaemon(uiurl=port,muxurl=None,muxtype=None,pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
+    ad.start()
