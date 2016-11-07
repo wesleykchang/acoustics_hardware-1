@@ -31,6 +31,8 @@ from flask import Flask, send_from_directory, request, Response, render_template
 from flask_login import LoginManager, UserMixin, login_required, login_user
 
 import eventlet
+import re #regex library
+import data
 
 eventlet.monkey_patch() #fuuuuuck
 
@@ -244,6 +246,8 @@ class DBDaemon(Daemon):
         signal.signal(signal.SIGQUIT, self.cleanobs)
         signal.signal(signal.SIGTERM, self.cleanobs)
 
+        self.wave_regex = re.compile("T[0-9]+p[0-9]+\.json")
+
 
     def modified_since(self,cutoff,path):
         files = set([])
@@ -265,12 +269,40 @@ class DBDaemon(Daemon):
         all_mod_files = []
         for date_folder in os.listdir(self.datapath):
             mod_files = self.modified_since(cutoff,os.path.join(self.datapath,date_folder))
-            all_mod_files.append(mod_files)
+            all_mod_files.extend(mod_files) #changed from append
         return all_mod_files
 
 
     def push_files(self):
-        mod_files = self.modified_since()
+        all_wavesets = {} #wavesets indexed by test ID
+        all_tests = {}
+        res = {}
+        mod_files = self.check_all_dates()
+        for mod_file in mod_files:
+            file_names = mod_file.split("/")
+            if file_names[-1] == "logfile.json":
+                #update tests from mod_file
+                old_table = json.loads(open(mod_file).read())
+                new_table = self.loader.convert_names(old_table['data'])
+                for entry in new_table:
+                    row = new_table[entry]
+                    new_test = d.Test(tabledata=row)
+                    all_tests[row[testid]] = new_test
+            else if self.wave_regex.fullmatch(filenames[-1]) != None:
+                #load wave from mod_file
+                wave_test_id = filenames[-2][7:] #get the foldername of TestID_testid and cut off first part
+                current_waveset = all_wavesets.get(wave_test_id,Waveset(wave_test_id))
+                new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
+                current_waveset.append_waves(new_wave)
+                all_wavesets[wave_test_id] = current_waveset
+            else:
+                pass
+        res["tests"] = all_tests
+        res["wavesets"] = all_wavesets
+        return res
+
+        #determine logfile vs normal file. update tests if logfile. create waveset if normal
+
 
     def cleanobs(self,*args):
         print("add push all data here")
@@ -280,6 +312,7 @@ class DBDaemon(Daemon):
         while True:
             time.sleep(6)
             print(self.check_all_dates())
+            print(self.push_files())
         #stuff to do.
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
