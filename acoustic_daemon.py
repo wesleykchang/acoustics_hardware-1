@@ -165,7 +165,6 @@ class UIDaemon(Daemon):
                 try:
                     test = request.get_data().decode('utf-8')
                     open("table_state.json",'w').write(test)
-                    # open("table_state_%i.json" % int(time.time()),'w').write(test)
                     out = json.loads(test)
                     out['status'] = 'success!'
                 except Exception as E: 
@@ -248,7 +247,6 @@ class DBDaemon(Daemon):
 
         self.wave_regex = re.compile("T[0-9]+p[0-9]+\.json")
 
-
     def modified_since(self,cutoff,path):
         """Takes a filepath, and recursively checks all folders/files for modifications.
         Warning: 2+ folders up won't detect a change in a file, only if it's created."""
@@ -266,10 +264,10 @@ class DBDaemon(Daemon):
                 pass
         return files
 
-    def check_all_dates(self):
+    def check_all_dates(self,n_min):
         """Checks all the startdate folders contained in the Data folder. Returns a list of
         all the modified filepaths contained in the data path."""
-        cutoff = time.time() - (self.n_min*60) #defaults to push files at same interval
+        cutoff = time.time() - (n_min*60) #defaults to push files at same interval
         all_mod_files = []
         for date_folder in os.listdir(self.datapath):
             mod_files = self.modified_since(cutoff,os.path.join(self.datapath,date_folder))
@@ -277,14 +275,14 @@ class DBDaemon(Daemon):
         return all_mod_files
 
 
-    def push_files(self):
+    def push_files(self,n_min):
         """Takes a list of modified files and loads them into corresponding Test and Wave objects.
         Test objects are returned when a logfile is modified, Waveset objects are returned when a 
         wave json file is added."""
         all_wavesets = {} #wavesets indexed by test ID
         all_tests = {}
         res = {}
-        mod_files = self.check_all_dates()
+        mod_files = self.check_all_dates(n_min)
         for mod_file in mod_files:
             file_names = mod_file.split("/")
             if file_names[-1] == "logfile.json":
@@ -308,16 +306,29 @@ class DBDaemon(Daemon):
         res["wavesets"] = all_wavesets
         return res
 
+    def write_last_check(self):
+        """Keeps a running list of when the last time the db daemon updated"""
+        # if os.path.exists("DB_push_status.txt") == False:
+        with open("DB_push_status.txt", "a") as db_file:
+            db_file.write(("Last Check Timestamp: %s\r\n") % (str(time.time())))
+        return str(time.time())
+
 
     def cleanobs(self,*args):
-        print("add push all data here")
-        pass
+        """Push all data since last observation before shutting down"""
+        lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
+        tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
+        timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
+        self.push_files(timediff)
+        print("Attempting to push all data since last DB update")
+        return
 
     def run(self):
         while True:
-            time.sleep(6)
-            print(self.check_all_dates())
-            print(self.push_files())
+            time.sleep(self.n_min*60)
+            # print(self.check_all_dates())
+            print(self.push_files(self.n_min))
+            self.write_last_check()
         #stuff to do.
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
@@ -341,12 +352,12 @@ if __name__=="__main__":
             print(i)
             exec(i)
             
-    d = UIDaemon(port,host)
-    d.start()
-    time.sleep(1)
+    # d = UIDaemon(port,host)py
+    # d.start()
+    # time.sleep(1)
 
-    # dbd = DBDaemon(.2)
-    # dbd.start()
+    dbd = DBDaemon(.1)
+    dbd.start()
 
-    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
-    ad.start()
+    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
+    # ad.start()
