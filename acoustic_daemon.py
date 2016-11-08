@@ -286,16 +286,13 @@ class DBDaemon(Daemon):
                 new_table = self.loader.convert_names(old_table['data'])
                 for entry in new_table:
                     row = new_table[entry]
-                    print(row)
                     new_test = data.Test(tabledata=row)
                     all_tests[row["test_id"]] = new_test
             elif self.wave_regex.fullmatch(file_names[-1]) != None:
                 #load wave from mod_file
                 wave_test_id = file_names[-2][7:] #get the foldername of TestID_testid and cut off first part
                 current_waveset = all_wavesets.get(wave_test_id,data.Waveset(wave_test_id))
-                print(mod_file)
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
-                print(new_wave.test_id)
                 current_waveset.append_waves([new_wave])
                 all_wavesets[wave_test_id] = current_waveset
             else:
@@ -343,8 +340,8 @@ if __name__=="__main__":
     d.start()
     time.sleep(1)
 
-    dbd = DBDaemon(.2)
-    dbd.start()
+    # dbd = DBDaemon(.2)
+    # dbd.start()
 
     ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
     ad.start()

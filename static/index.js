@@ -88,6 +88,10 @@ $('td[type="CyclerCode"]').blur(function() {
 });
 
 
+$('input[id$="loop_delay"]').blur(function() {
+  sendsettings(last_tid);
+});
+
 $(document).on("click", ".test-start", function() {
   var $row = $(this).parents('tr');
 
@@ -274,10 +278,9 @@ function sendsettings(last_tid)
   out = {} //define the output JSON
 
   //Gets all ids matching "port" and fills JSON accordling
-  ports = $('input[id$="_port"]')
-  for (p = 0; p < ports.length; p++){
-    out[ports[p].id] = $('#'+ports[p].id).val()
-  }
+  // out['loopdelay'] ] $('#loop_delay').val()
+  loop_input = $('input[id$="loop_delay"]').val()
+  out['loop_delay'] = loop_input
   out['last_tid'] = last_tid
   out['data'] = data
   // Output the result
@@ -307,13 +310,8 @@ $.get("/table_load",
         mac = out["mac"]
 
         last_tid = (parseInt(out['last_tid']))
-        
-        //Attempt to fill ports based on JSON data
-        ports = $('input[id$="_port"]')
-        for (p = 0; p < ports.length; p++)
-        {
-            $('#'+ports[p].id).val(out[ports[p].id])        
-        }
+
+        $('input[id$="loop_delay"]').val(out["loop_delay"])
 
         data = out['data']
         for (d in data)
