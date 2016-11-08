@@ -148,6 +148,8 @@ class Acoustics():
                     self.sio.emit('highlight',{"rowid":'inactive'})
                     time.sleep(1) #artificial delay. if all the rows are set to 'n'. otherwise it dies
 
+        time.sleep(float(tests['loop_delay']))
+
         # if not loop: break
 
 if __name__=="__main__":
