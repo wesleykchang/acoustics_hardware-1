@@ -236,9 +236,9 @@ class UIDaemon(Daemon):
 class DBDaemon(Daemon):
     def __init__(self,every_n_min=None):
         Daemon.__init__(self,self.run,name="db_daemon")
-        # self.loader = filesystem.Loader()
-        # self.datapath = self.loader.path
+        self.loader = filesystem.Loader()
         self.datapath = "../Data"
+        self.loader.path = self.datapath
         self.n_min = every_n_min
         #logging stuffs
 
@@ -286,14 +286,17 @@ class DBDaemon(Daemon):
                 new_table = self.loader.convert_names(old_table['data'])
                 for entry in new_table:
                     row = new_table[entry]
-                    new_test = d.Test(tabledata=row)
-                    all_tests[row[testid]] = new_test
-            else if self.wave_regex.fullmatch(filenames[-1]) != None:
+                    print(row)
+                    new_test = data.Test(tabledata=row)
+                    all_tests[row["test_id"]] = new_test
+            elif self.wave_regex.fullmatch(file_names[-1]) != None:
                 #load wave from mod_file
-                wave_test_id = filenames[-2][7:] #get the foldername of TestID_testid and cut off first part
-                current_waveset = all_wavesets.get(wave_test_id,Waveset(wave_test_id))
+                wave_test_id = file_names[-2][7:] #get the foldername of TestID_testid and cut off first part
+                current_waveset = all_wavesets.get(wave_test_id,data.Waveset(wave_test_id))
+                print(mod_file)
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
-                current_waveset.append_waves(new_wave)
+                print(new_wave.test_id)
+                current_waveset.append_waves([new_wave])
                 all_wavesets[wave_test_id] = current_waveset
             else:
                 pass
@@ -340,7 +343,7 @@ if __name__=="__main__":
     d.start()
     time.sleep(1)
 
-    dbd = DBDaemon(.1)
+    dbd = DBDaemon(.2)
     dbd.start()
 
     ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
