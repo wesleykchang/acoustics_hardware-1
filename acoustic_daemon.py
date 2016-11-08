@@ -50,6 +50,7 @@ login_manager.session_protection = "strong"
 socketio = SocketIO(app, binary=True)
 
 class User(UserMixin):
+    """Class to keep track of users and authenticate when accessing daemon"""
     def __init__(self, username, password):
         self.id = username
         self.password = password
@@ -236,11 +237,8 @@ class UIDaemon(Daemon):
 class DBDaemon(Daemon):
     def __init__(self,every_n_min=None):
         Daemon.__init__(self,self.run,name="db_daemon")
-        # self.loader = filesystem.Loader()
-        # self.datapath = self.loader.path
         self.datapath = "../Data"
         self.n_min = every_n_min
-        #logging stuffs
 
         signal.signal(signal.SIGINT,  self.cleanobs)
         signal.signal(signal.SIGQUIT, self.cleanobs)
@@ -250,6 +248,8 @@ class DBDaemon(Daemon):
 
 
     def modified_since(self,cutoff,path):
+        """Takes a filepath, and recursively checks all folders/files for modifications.
+        Warning: 2+ folders up won't detect a change in a file, only if it's created."""
         files = set([])
         for f in scandir(path):
             mtime = f.stat().st_mtime
@@ -265,6 +265,8 @@ class DBDaemon(Daemon):
         return files
 
     def check_all_dates(self):
+        """Checks all the startdate folders contained in the Data folder. Returns a list of
+        all the modified filepaths contained in the data path."""
         cutoff = time.time() - (self.n_min*60) #defaults to push files at same interval
         all_mod_files = []
         for date_folder in os.listdir(self.datapath):
@@ -274,6 +276,9 @@ class DBDaemon(Daemon):
 
 
     def push_files(self):
+        """Takes a list of modified files and loads them into corresponding Test and Wave objects.
+        Test objects are returned when a logfile is modified, Waveset objects are returned when a 
+        wave json file is added."""
         all_wavesets = {} #wavesets indexed by test ID
         all_tests = {}
         res = {}
@@ -300,8 +305,6 @@ class DBDaemon(Daemon):
         res["tests"] = all_tests
         res["wavesets"] = all_wavesets
         return res
-
-        #determine logfile vs normal file. update tests if logfile. create waveset if normal
 
 
     def cleanobs(self,*args):
