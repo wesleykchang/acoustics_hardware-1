@@ -18,6 +18,7 @@ import mpld3
 from datetime import timedelta
 sys.path.append('../EASI-analysis/analysis') #add saver functions to path
 import filesystem
+import database
 from uuid import getnode as get_mac
 import logging
 import collections
@@ -35,6 +36,7 @@ from flask_login import LoginManager, UserMixin, login_required, login_user
 import eventlet
 import re #regex library
 import data
+
 
 eventlet.monkey_patch() #fuuuuuck
 
@@ -173,7 +175,6 @@ class UIDaemon(Daemon):
                 try:
                     test = request.get_data().decode('utf-8')
                     open("table_state.json",'w').write(test)
-                    # open("table_state_%i.json" % int(time.time()),'w').write(test)
                     out = json.loads(test)
                     out['status'] = 'success!'
                 except Exception as E: 
@@ -249,6 +250,7 @@ class DBDaemon(Daemon):
         self.datapath = "../Data"
         self.loader.path = self.datapath
         self.n_min = every_n_min
+        self.db = database.DB(host="25.18.5.52",port=5434,user="postgres")
 
         signal.signal(signal.SIGINT,  self.cleanobs)
         signal.signal(signal.SIGQUIT, self.cleanobs)
@@ -274,10 +276,10 @@ class DBDaemon(Daemon):
                 pass
         return files
 
-    def check_all_dates(self):
+    def check_all_dates(self,n_min):
         """Checks all the startdate folders contained in the Data folder. Returns a list of
         all the modified filepaths contained in the data path."""
-        cutoff = time.time() - (self.n_min*60) #defaults to push files at same interval
+        cutoff = time.time() - (n_min*60) #defaults to push files at same interval
         all_mod_files = []
         for date_folder in os.listdir(self.datapath):
             mod_files = self.modified_since(cutoff,os.path.join(self.datapath,date_folder))
@@ -285,14 +287,15 @@ class DBDaemon(Daemon):
         return all_mod_files
 
 
-    def push_files(self):
+    def push_files(self,n_min):
         """Takes a list of modified files and loads them into corresponding Test and Wave objects.
         Test objects are returned when a logfile is modified, Waveset objects are returned when a 
         wave json file is added."""
         all_wavesets = {} #wavesets indexed by test ID
         all_tests = {}
         res = {}
-        mod_files = self.check_all_dates()
+        db = database.DB(host="25.18.5.52",port=5434,user="postgres")
+        mod_files = self.check_all_dates(n_min)
         for mod_file in mod_files:
             file_names = mod_file.split("/")
             if file_names[-1] == "logfile.json":
@@ -303,29 +306,47 @@ class DBDaemon(Daemon):
                     row = new_table[entry]
                     new_test = data.Test(tabledata=row)
                     all_tests[row["test_id"]] = new_test
+                    self.db.insert_test(new_test)
             elif self.wave_regex.fullmatch(file_names[-1]) != None:
                 #load wave from mod_file
                 wave_test_id = file_names[-2][7:] #get the foldername of TestID_testid and cut off first part
                 current_waveset = all_wavesets.get(wave_test_id,data.Waveset(wave_test_id))
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
                 current_waveset.append_waves([new_wave])
+                self.db._insert_waveform(new_wave)
                 all_wavesets[wave_test_id] = current_waveset
             else:
                 pass
         res["tests"] = all_tests
         res["wavesets"] = all_wavesets
+        db.conn.close()
+        del db
         return res
+
+    def write_last_check(self):
+        """Keeps a running list of when the last time the db daemon updated"""
+        # if os.path.exists("DB_push_status.txt") == False:
+        with open("DB_push_status.txt", "a") as db_file:
+            db_file.write(("Last Check Timestamp: %s\r\n") % (str(time.time())))
+        return str(time.time())
 
 
     def cleanobs(self,*args):
-        print("add push all data here")
-        pass
+        """Push all data since last observation before shutting down"""
+        lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
+        tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
+        timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
+        self.push_files(timediff)
+        print("Attempting to push all data since last DB update")
+        return
 
     def run(self):
         while True:
-            time.sleep(6)
-            print(self.check_all_dates())
-            print(self.push_files())
+            time.sleep(self.n_min*60)
+            # print(self.check_all_dates())
+            # print(self.push_files(self.n_min))
+            print(self.push_files(50))
+            self.write_last_check()
         #stuff to do.
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
@@ -340,6 +361,12 @@ class DBDaemon(Daemon):
 
 
 if __name__=="__main__":
+
+    #dbd = DBDaemon(.1)
+    #dbd.run()
+    #sys.exit
+
+
     pulserurl = 9003
     muxurl = 9002
     host = "0.0.0.0"
@@ -353,7 +380,7 @@ if __name__=="__main__":
     d.start()
     time.sleep(1)
 
-    # dbd = DBDaemon(.2)
+    # dbd = DBDaemon(.1)
     # dbd.start()
 
     # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
