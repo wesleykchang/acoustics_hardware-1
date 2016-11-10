@@ -4,6 +4,7 @@ from daemon import Daemon
 import libacoustic as A
 import time
 import signal
+import operator
 import argparse
 from http.server import SimpleHTTPRequestHandler
 import socketserver
@@ -20,6 +21,7 @@ import filesystem
 import database
 from uuid import getnode as get_mac
 import logging
+import collections
 try:
     from os import scandir
 except ImportError:
@@ -157,10 +159,16 @@ class UIDaemon(Daemon):
         @login_required
         def log_load(month,day,year):
             startdate = year + '_' + month + '_' + day
-            return open(os.path.join("../Data",startdate,"logfile.json")).read() #get data for a given log
+            table = json.loads(open(os.path.join("../Data",startdate,"logfile.json")).read())
+            ordered_table = collections.OrderedDict()
+            ordered_table["data"] = collections.OrderedDict()
+            for key in sorted(table["data"]):
+                ordered_table["data"][key] = table["data"][key]
+            return json.dumps(ordered_table)
+            # return json.dumps(table) #get data for a given log
 
         @app.route('/table_save', methods=['GET', 'POST'])
-        @login_required
+        # @login_required
         def table_save():
             # if request.method == 'POST':
                 out = {}
@@ -376,5 +384,5 @@ if __name__=="__main__":
     # dbd = DBDaemon(.1)
     # dbd.start()
 
-    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
-    ad.start()
+    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
+    # ad.start()
