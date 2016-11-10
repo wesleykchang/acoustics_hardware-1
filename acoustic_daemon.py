@@ -235,9 +235,10 @@ class UIDaemon(Daemon):
     def loadTools(self):
         pass
 
-class DBDaemon(Daemon):
+#class DBDaemon(Daemon):
+class DBDaemon():
     def __init__(self,every_n_min=None):
-        Daemon.__init__(self,self.run,name="db_daemon")
+        #Daemon.__init__(self,self.run,name="db_daemon")
         self.loader = filesystem.Loader()
         self.datapath = "../Data"
         self.loader.path = self.datapath
@@ -337,7 +338,7 @@ class DBDaemon(Daemon):
             time.sleep(self.n_min*60)
             # print(self.check_all_dates())
             # print(self.push_files(self.n_min))
-            print(self.push_files(50))
+            print(self.push_files(150))
             self.write_last_check()
         #stuff to do.
 
@@ -354,9 +355,9 @@ class DBDaemon(Daemon):
 
 if __name__=="__main__":
 
-    #dbd = DBDaemon(.1)
-    #dbd.run()
-    #sys.exit
+    dbd = DBDaemon(.1)
+    dbd.run()
+    sys.exit
 
 
     pulserurl = 9003
