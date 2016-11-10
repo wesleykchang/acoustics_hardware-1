@@ -24,6 +24,7 @@ import socketserver
 from socketIO_client import SocketIO, BaseNamespace,LoggingNamespace
 import matplotlib.pyplot as plt
 import numpy as np
+import database as db
 
 def debug(s):
     print("[libacoustic] "+s)
@@ -79,8 +80,9 @@ class Acoustics():
 
         #convert the start date to string with MM_DD to be used for filename
         for row in settings['data']:
-            mo, day, year = (row['startdate'])[0:11].split(" ")
-            row['date_fname'] = year + "_" + months[mo] + "_" + day
+            if row["startdate"] != "":
+                mo, day, year = (row['startdate'])[0:11].split(" ")
+                row['date_fname'] = year + "_" + months[mo] + "_" + day
         return settings
             
     def cleanURL(self,url):

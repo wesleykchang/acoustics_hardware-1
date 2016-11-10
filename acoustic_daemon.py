@@ -17,6 +17,7 @@ import mpld3
 from datetime import timedelta
 sys.path.append('../EASI-analysis/analysis') #add saver functions to path
 import filesystem
+import database
 from uuid import getnode as get_mac
 import logging
 try:
@@ -33,6 +34,7 @@ from flask_login import LoginManager, UserMixin, login_required, login_user
 import eventlet
 import re #regex library
 import data
+
 
 eventlet.monkey_patch() #fuuuuuck
 
@@ -233,19 +235,22 @@ class UIDaemon(Daemon):
     def loadTools(self):
         pass
 
-class DBDaemon(Daemon):
+class DBDaemon():
+# class DBDaemon(Daemon):
     def __init__(self,every_n_min=None):
-        Daemon.__init__(self,self.run,name="db_daemon")
+    #     Daemon.__init__(self,self.run,name="db_daemon")
         self.loader = filesystem.Loader()
         self.datapath = "../Data"
         self.loader.path = self.datapath
         self.n_min = every_n_min
+        self.db = database.DB(host="25.18.5.52",port=5434,user="postgres")
 
         signal.signal(signal.SIGINT,  self.cleanobs)
         signal.signal(signal.SIGQUIT, self.cleanobs)
         signal.signal(signal.SIGTERM, self.cleanobs)
 
         self.wave_regex = re.compile("T[0-9]+p[0-9]+\.json")
+
 
     def modified_since(self,cutoff,path):
         """Takes a filepath, and recursively checks all folders/files for modifications.
@@ -282,6 +287,7 @@ class DBDaemon(Daemon):
         all_wavesets = {} #wavesets indexed by test ID
         all_tests = {}
         res = {}
+        db = database.DB(host="25.18.5.52",port=5434,user="postgres")
         mod_files = self.check_all_dates(n_min)
         for mod_file in mod_files:
             file_names = mod_file.split("/")
@@ -293,17 +299,21 @@ class DBDaemon(Daemon):
                     row = new_table[entry]
                     new_test = data.Test(tabledata=row)
                     all_tests[row["test_id"]] = new_test
+                    self.db.insert_test(new_test)
             elif self.wave_regex.fullmatch(file_names[-1]) != None:
                 #load wave from mod_file
                 wave_test_id = file_names[-2][7:] #get the foldername of TestID_testid and cut off first part
                 current_waveset = all_wavesets.get(wave_test_id,data.Waveset(wave_test_id))
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
                 current_waveset.append_waves([new_wave])
+                self.db._insert_waveform(new_wave)
                 all_wavesets[wave_test_id] = current_waveset
             else:
                 pass
         res["tests"] = all_tests
         res["wavesets"] = all_wavesets
+        db.conn.close()
+        del db
         return res
 
     def write_last_check(self):
@@ -327,7 +337,8 @@ class DBDaemon(Daemon):
         while True:
             time.sleep(self.n_min*60)
             # print(self.check_all_dates())
-            print(self.push_files(self.n_min))
+            # print(self.push_files(self.n_min))
+            print(self.push_files(50))
             self.write_last_check()
         #stuff to do.
 
@@ -343,6 +354,12 @@ class DBDaemon(Daemon):
 
 
 if __name__=="__main__":
+
+    # dbd = DBDaemon(.1)
+    # dbd.run()
+    # sys.exit
+
+
     pulserurl = 9003
     muxurl = 9002
     host = "0.0.0.0"
@@ -352,12 +369,12 @@ if __name__=="__main__":
             print(i)
             exec(i)
             
-    # d = UIDaemon(port,host)py
-    # d.start()
-    # time.sleep(1)
+    d = UIDaemon(port,host)
+    d.start()
+    time.sleep(1)
 
-    dbd = DBDaemon(.1)
-    dbd.start()
+    # dbd = DBDaemon(.1)
+    # dbd.start()
 
-    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
+    ad.start()
