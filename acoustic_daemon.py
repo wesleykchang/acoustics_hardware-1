@@ -235,10 +235,9 @@ class UIDaemon(Daemon):
     def loadTools(self):
         pass
 
-class DBDaemon():
-# class DBDaemon(Daemon):
+class DBDaemon(Daemon):
     def __init__(self,every_n_min=None):
-    #     Daemon.__init__(self,self.run,name="db_daemon")
+        Daemon.__init__(self,self.run,name="db_daemon")
         self.loader = filesystem.Loader()
         self.datapath = "../Data"
         self.loader.path = self.datapath
@@ -355,9 +354,9 @@ class DBDaemon():
 
 if __name__=="__main__":
 
-    # dbd = DBDaemon(.1)
-    # dbd.run()
-    # sys.exit
+    #dbd = DBDaemon(.1)
+    #dbd.run()
+    #sys.exit
 
 
     pulserurl = 9003
