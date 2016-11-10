@@ -346,7 +346,7 @@ class DBDaemon():
             time.sleep(self.n_min*60)
             # print(self.check_all_dates())
             # print(self.push_files(self.n_min))
-            print(self.push_files(150))
+            print(self.push_files(5150))
             self.write_last_check()
         #stuff to do.
 
