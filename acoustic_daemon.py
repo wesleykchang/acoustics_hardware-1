@@ -310,14 +310,16 @@ class DBDaemon():
                     self.db.insert_test(new_test)
             elif self.wave_regex.fullmatch(file_names[-1]) != None:
                 #load wave from mod_file
-                wave_test_id = file_names[-2][7:] #get the foldername of TestID_testid and cut off first part
+                ###get the foldername of TestID_testid and cut off first part
+                wave_test_id = file_names[-2][7:] 
                 current_waveset = all_wavesets.get(wave_test_id,data.Waveset(wave_test_id))
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
                 current_waveset.append_waves([new_wave])
-                self.db._insert_waveform(new_wave)
                 all_wavesets[wave_test_id] = current_waveset
             else:
                 pass
+        for w in all_wavesets.values():
+            self.db.insert_waveset(w)
         res["tests"] = all_tests
         res["wavesets"] = all_wavesets
         db.conn.close()
