@@ -301,7 +301,11 @@ class DBDaemon():
             file_names = mod_file.split("/")
             if file_names[-1] == "logfile.json":
                 #update tests from mod_file
-                old_table = json.loads(open(mod_file).read())
+                try:
+                    old_table = json.loads(open(mod_file).read())
+                except ValueError: #maybe caught while being edited? try again
+                    time.sleep(0.2) #if it fails this time, let if fail
+                    old_table = json.loads(open(mod_file).read())
                 new_table = self.loader.convert_names(old_table['data'])
                 for entry in new_table:
                     row = new_table[entry]
@@ -336,20 +340,22 @@ class DBDaemon():
 
     def cleanobs(self,*args):
         """Push all data since last observation before shutting down"""
-        lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
-        tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
-        timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
-        self.push_files(timediff)
+        self.push_last()
         print("Attempting to push all data since last DB update")
         return
+
+    def push_last(self):
+        lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
+        self.write_last_check() #update the thing we just read
+        tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
+        timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
+        self.push_files(timediff+5) #5 min of buffer
+        print("Pushed all files since {} at {}".format(tstamp,time.time()))
 
     def run(self):
         while True:
             time.sleep(self.n_min*60)
-            # print(self.check_all_dates())
-            # print(self.push_files(self.n_min))
-            self.push_files(self.n_min)
-            self.write_last_check()
+            self.push_last()
         #stuff to do.
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
