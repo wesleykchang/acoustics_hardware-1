@@ -16,6 +16,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 import mpld3
 from datetime import timedelta
+import datetime
 sys.path.append('../EASI-analysis/analysis') #add saver functions to path
 import filesystem
 import database
@@ -350,7 +351,9 @@ class DBDaemon():
         tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
         timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
         self.push_files(timediff+5) #5 min of buffer
-        print("Pushed all files since {} at {}".format(tstamp,time.time()))
+        from_t = datetime.datetime.fromtimestamp(float(tstamp))
+        to_t = datetime.datetime.fromtimestamp(time.time())
+        print("Pushed all files since {} at {}".format(from_t,to_t))
 
     def run(self):
         while True:
