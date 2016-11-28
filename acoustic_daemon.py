@@ -16,6 +16,7 @@ import matplotlib
 from matplotlib import pyplot as plt
 import mpld3
 from datetime import timedelta
+import datetime
 sys.path.append('../EASI-analysis/analysis') #add saver functions to path
 import filesystem
 import database
@@ -263,9 +264,10 @@ class UIDaemon(Daemon):
     def loadTools(self):
         pass
 
-class DBDaemon(Daemon):
+#class DBDaemon(Daemon):
+class DBDaemon():
     def __init__(self,every_n_min=None):
-        Daemon.__init__(self,self.run,name="db_daemon")
+        #Daemon.__init__(self,self.run,name="db_daemon")
         self.loader = filesystem.Loader()
         self.datapath = "../Data"
         self.loader.path = self.datapath
@@ -320,7 +322,11 @@ class DBDaemon(Daemon):
             file_names = mod_file.split("/")
             if file_names[-1] == "logfile.json":
                 #update tests from mod_file
-                old_table = json.loads(open(mod_file).read())
+                try:
+                    old_table = json.loads(open(mod_file).read())
+                except ValueError: #maybe caught while being edited? try again
+                    time.sleep(0.2) #if it fails this time, let if fail
+                    old_table = json.loads(open(mod_file).read())
                 new_table = self.loader.convert_names(old_table['data'])
                 for entry in new_table:
                     row = new_table[entry]
@@ -329,14 +335,16 @@ class DBDaemon(Daemon):
                     self.db.insert_test(new_test)
             elif self.wave_regex.fullmatch(file_names[-1]) != None:
                 #load wave from mod_file
-                wave_test_id = file_names[-2][7:] #get the foldername of TestID_testid and cut off first part
+                ###get the foldername of TestID_testid and cut off first part
+                wave_test_id = file_names[-2][7:] 
                 current_waveset = all_wavesets.get(wave_test_id,data.Waveset(wave_test_id))
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
                 current_waveset.append_waves([new_wave])
-                self.db._insert_waveform(new_wave)
                 all_wavesets[wave_test_id] = current_waveset
             else:
                 pass
+        for w in all_wavesets.values():
+            self.db.insert_waveset(w)
         res["tests"] = all_tests
         res["wavesets"] = all_wavesets
         db.conn.close()
@@ -353,20 +361,24 @@ class DBDaemon(Daemon):
 
     def cleanobs(self,*args):
         """Push all data since last observation before shutting down"""
-        lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
-        tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
-        timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
-        self.push_files(timediff)
+        self.push_last()
         print("Attempting to push all data since last DB update")
         return
+
+    def push_last(self):
+        lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
+        self.write_last_check() #update the thing we just read
+        tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
+        timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
+        self.push_files(timediff+5) #5 min of buffer
+        from_t = datetime.datetime.fromtimestamp(float(tstamp))
+        to_t = datetime.datetime.fromtimestamp(time.time())
+        print("Pushed all files since {} at {}".format(from_t,to_t))
 
     def run(self):
         while True:
             time.sleep(self.n_min*60)
-            # print(self.check_all_dates())
-            # print(self.push_files(self.n_min))
-            print(self.push_files(50))
-            self.write_last_check()
+            self.push_last()
         #stuff to do.
 
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
@@ -382,9 +394,9 @@ class DBDaemon(Daemon):
 
 if __name__=="__main__":
 
-    #dbd = DBDaemon(.1)
-    #dbd.run()
-    #sys.exit
+    dbd = DBDaemon(.1)
+    dbd.run()
+    sys.exit
 
 
     pulserurl = 9003

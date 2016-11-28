@@ -1,5 +1,5 @@
 //Make Header (just edit to change structure of table, nothing else needs to be changed in this file)
-var fields ="Start Date, Test ID, LastWaveform, Project, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Filter Mode, CyclerCode, Run (y/n)"
+var fields ="Start Date, Test ID, LastWaveform, Project, Serial Number, Mode (tr/pe), Channel, Channel 2,	Gain (dB),	Delay (us),	Time (us),Freq (MHz), Filter Mode, CyclerCode, Notes, Run (y/n)"
 //Collect Elements to Play with Later
 var $TABLE = $('#table');
 var $BTN = $('#export-btn');
@@ -350,6 +350,8 @@ function makerow(p) {
     if (p['run(y/n)'] == 'y'){
       $clone.find('.test-start').replaceWith(pausebut)
     }
+
+    $clone[0].cells[13].setAttribute('contenteditable','true')
 
     $TABLE.find('table').append($clone);
 
