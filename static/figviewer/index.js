@@ -56,4 +56,21 @@ function loadfig(index) {
       })
 }
 
+function loadwaterfall() {
+  $.get(testID + "/makewaterfall",
+      function(data)
+      {
+        out = JSON.parse(data)
+        mpld3.draw_figure("fig02",out['fig02']);
+      })
+}
 
+lenfigs = $("#figindex").val().split("/")[1]
+
+if (lenfigs >= 1500){
+  $('#fig02').text("Loading waterfall")
+  loadwaterfall()
+  }
+else{
+  $('#fig02').text("Insufficient waves for waterfall")
+  }

@@ -26,7 +26,6 @@ try:
     from os import scandir
 except ImportError:
     from scandir import scandir
-# import plotter #anne's plotting library
 
 from flask_wtf import Form, validators
 from wtforms import StringField, PasswordField
@@ -226,6 +225,27 @@ class UIDaemon(Daemon):
             out['fig1'] = wave
             out['lenfigs'] = [str(index), str(len(files)-1)]
             plt.close(fig)
+
+            #adding in waterfall plots.
+            return json.dumps(out)
+
+        @app.route('/<month>/<day>/<year>/<testid>/makewaterfall')
+        @login_required
+        def makewaterfall(month,day,year,testid):
+            start_date = year + '_' + month + '_' + day
+            l = filesystem.Loader()
+            l.path = "../Data"
+            waveset = l.load_waveset(testid,start_date)
+            fig = plt.figure()
+            waveset.plot_waterfall()
+            waterfall = mpld3.fig_to_dict(fig)
+            # plt.show(fig)
+            out = {}
+            out['fig02'] = waterfall
+            # out['fig02'] = "False"]
+            plt.close(fig)
+
+            #adding in waterfall plots.
             return json.dumps(out)
 
         @socketio.on('test')
