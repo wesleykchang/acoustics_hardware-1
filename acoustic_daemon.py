@@ -236,7 +236,7 @@ class UIDaemon(Daemon):
             start_date = year + '_' + month + '_' + day
             l = filesystem.Loader()
             l.path = "../Data"
-            waveset = l.load_waveset(testid,start_date)
+            waveset = l.load_waveset(testid,start_date,load_all=False)
             fig = plt.figure()
             waveset.plot_waterfall()
             waterfall = mpld3.fig_to_dict(fig)
@@ -258,9 +258,9 @@ class UIDaemon(Daemon):
             socketio.emit('active', rowid)
                         
         while True:
-            # socketio.run(app,host="0.0.0.0",port=5000)  
-            socketio.run(app,port=self.port)  
-
+            socketio.run(app,host="0.0.0.0",port=6054)  
+       	#socketio.run(app,port=self.port)  
+	
     def loadTools(self):
         pass
 
@@ -396,8 +396,7 @@ if __name__=="__main__":
 
     dbd = DBDaemon(.1)
     dbd.run()
-    sys.exit
-
+    sys.exit()
 
     pulserurl = 9003
     muxurl = 9002
@@ -408,12 +407,11 @@ if __name__=="__main__":
             print(i)
             exec(i)
             
-    d = UIDaemon(port,host)
-    d.start()
-    time.sleep(1)
+    # d = UIDaemon(port,host)
+    # d.start()
+    # time.sleep(1)
 
-    # dbd = DBDaemon(.1)
-    # dbd.start()
+
 
     # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
     # ad.start()

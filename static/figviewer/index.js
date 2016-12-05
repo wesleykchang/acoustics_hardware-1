@@ -5,6 +5,7 @@
 var query = window.location.search.substring(1);
 var parameters = {};
 var keyValues = query.split('&');
+var lenfigs = 0
 
 for (var keyValue in keyValues) {
     var keyValuePairs = keyValues.toString().split('=');
@@ -47,12 +48,20 @@ function loadfig(index) {
   $.get(testID + "/makefigs", {'index': index},
       function(data)
       {
-         // console.log(data);
+         console.log(data);
          out = JSON.parse(data)
          d3.select("#fig01").selectAll("*").remove();
          mpld3.draw_figure("fig01",out['fig1']);
          $("#figindex").val(out['lenfigs'][0] + "/" + out['lenfigs'][1]);
-         // alert(out['lenfigs'])
+         lenfigs = (out['lenfigs'][1])
+         if (lenfigs >= 1500){
+          $('#fig02').text("Loading waterfall")
+          loadwaterfall()
+        }
+        else{
+          $('#fig02').text("Insufficient waves for waterfall")
+        }
+
       })
 }
 
@@ -65,12 +74,4 @@ function loadwaterfall() {
       })
 }
 
-lenfigs = $("#figindex").val().split("/")[1]
 
-if (lenfigs >= 1500){
-  $('#fig02').text("Loading waterfall")
-  loadwaterfall()
-  }
-else{
-  $('#fig02').text("Insufficient waves for waterfall")
-  }

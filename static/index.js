@@ -166,7 +166,7 @@ function stopRow(row){
 
   //to 'unlock' a row when a test is finished.
   row.each(function () {
-    var $td = row.find('td').slice(3,14);
+    var $td = row.find('td').slice(3,15);
     $td.each(function(){
       $(this).attr('contenteditable','true')
     });
