@@ -303,7 +303,10 @@ class DBDaemon():
         all the modified filepaths contained in the data path."""
         cutoff = time.time() - (n_min*60) #defaults to push files at same interval
         all_mod_files = []
-        for date_folder in os.listdir(self.datapath):
+        folders = os.listdir(self.datapath)
+        folders.remove('Trash')
+        for date_folder in folders:
+            self.push_tests(os.path.join(self.datapath,date_folder,"logfile.json")) #make sure all the tests are in the 
             mod_files = self.modified_since(cutoff,os.path.join(self.datapath,date_folder))
             all_mod_files.extend(mod_files) #changed from append
         return all_mod_files
@@ -321,35 +324,49 @@ class DBDaemon():
         for mod_file in mod_files:
             file_names = mod_file.split("/")
             if file_names[-1] == "logfile.json":
-                #update tests from mod_file
-                try:
-                    old_table = json.loads(open(mod_file).read())
-                except ValueError: #maybe caught while being edited? try again
-                    time.sleep(0.2) #if it fails this time, let if fail
-                    old_table = json.loads(open(mod_file).read())
-                new_table = self.loader.convert_names(old_table['data'])
-                for entry in new_table:
-                    row = new_table[entry]
-                    new_test = data.Test(tabledata=row)
-                    all_tests[row["test_id"]] = new_test
-                    self.db.insert_test(new_test)
+                self.push_tests(mod_file)
             elif self.wave_regex.fullmatch(file_names[-1]) != None:
                 #load wave from mod_file
                 ###get the foldername of TestID_testid and cut off first part
-                wave_test_id = file_names[-2][7:] 
-                current_waveset = all_wavesets.get(wave_test_id,data.Waveset(wave_test_id))
+                wave_test_id = file_names[-2][7:]
+                # if self.check_test(mod_file,wave_test_id,"Fuji") == True:
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
-                current_waveset.append_waves([new_wave])
-                all_wavesets[wave_test_id] = current_waveset
+                ws = data.Waveset(wave_test_id,waves=[new_wave])
+                self.db.insert_waveset(ws,prevent_duplicates=False)
+                # else:
+                #     pass
             else:
                 pass
-        for w in all_wavesets.values():
-            self.db.insert_waveset(w)
-        res["tests"] = all_tests
-        res["wavesets"] = all_wavesets
         db.conn.close()
         del db
-        return res
+
+    def push_tests(self,logfile):
+         #update tests from mod_file
+        try:
+            old_table = json.loads(open(logfile).read())
+        except ValueError: #maybe caught while being edited? try again
+            time.sleep(0.2) #if it fails this time, let if fail
+            old_table = json.loads(open(logfile).read())
+        new_table = self.loader.convert_names(old_table['data'])
+        for entry in new_table:
+            row = new_table[entry]
+            new_test = data.Test(tabledata=row)
+            # all_tests[row["test_id"]] = new_test
+            self.db.insert_test(new_test)
+
+
+    # def check_test(self,wave_file_path, test_id, project_name):
+    #     """Checks to see if a test is in a given project before pushing. actually,
+    #     would be cool to modify this to take a boolean function for checking whatever is needed"""
+    #     logfile_path = os.path.split(wave_file_path)[0] + "/logfile.json"
+    #     table = json.loads(open(logfile_path).read())
+    #     if table[testid]['project'] == project_name:
+    #         return True
+    #     else:
+    #         return False
+
+
+
 
     def write_last_check(self):
         """Keeps a running list of when the last time the db daemon updated"""
@@ -367,12 +384,12 @@ class DBDaemon():
 
     def push_last(self):
         lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
-        self.write_last_check() #update the thing we just read
         tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
         timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
         self.push_files(timediff+5) #5 min of buffer
         from_t = datetime.datetime.fromtimestamp(float(tstamp))
         to_t = datetime.datetime.fromtimestamp(time.time())
+        self.write_last_check() #update the thing we just read
         print("Pushed all files since {} at {}".format(from_t,to_t))
 
     def run(self):
@@ -393,7 +410,7 @@ class DBDaemon():
 
 
 if __name__=="__main__":
-
+#Timestamp of 12/5 1480924800.0
     dbd = DBDaemon(.1)
     dbd.run()
     sys.exit()
@@ -407,11 +424,9 @@ if __name__=="__main__":
             print(i)
             exec(i)
             
-    # d = UIDaemon(port,host)
-    # d.start()
-    # time.sleep(1)
+    d = UIDaemon(port,host)
+    d.start()
+    time.sleep(1)
 
-
-
-    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
+    ad.start()
