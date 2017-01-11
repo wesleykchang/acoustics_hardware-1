@@ -54,7 +54,7 @@ class Mux():
         cmdset = ["",""] #force it to send a blank command first always
         for cmd in cmds:
             if len(cmdset[-1]+cmd)+1 >= 19: #max length mux can read is 19
-                cmdset.append(cmd)
+                cmdset.append(cmd+";")
             else:
                 cmdset[-1] += cmd + ";"
         new = []
@@ -65,7 +65,9 @@ class Mux():
 
     def sendCommands(self,cmds,delay):
         for c in cmds[:]:
-            cmds.append(self._get_switch_cmd(c))
+            new = self._get_switch_cmd(c)
+            if new != "":
+                cmds.append(new)
         urls = self._prepCmdURLs(cmds)
         reads = []
         for u in urls:
@@ -87,7 +89,6 @@ class Mux():
             channel = ch[1]
             cmd = "L {} {}".format(int(module),int(channel))
             cmdset.append(cmd)
-        print(cmdset)
         return self.sendCommands(cmdset,delay=delay)
         
     def unlatch(self,channel_list,delay=0.2):
