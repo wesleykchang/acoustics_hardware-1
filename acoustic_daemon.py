@@ -141,7 +141,11 @@ class UIDaemon(Daemon):
         @app.route('/table_load')
         @login_required
         def table_load():
-            table = json.loads(open("table_state.json").read())
+            try:
+                table = json.loads(open("table_state.json").read())
+            except FileNotFoundError:
+                #initialize new table
+                table = {"loop_delay" : "0", "last_tid": "0", "data" : []}
             table["mac"] = str(get_mac())[-4:]
             return json.dumps(table)
 
@@ -383,7 +387,11 @@ class DBDaemon():
         return
 
     def push_last(self):
-        lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
+        try:
+            lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
+        except FileNotFoundError:
+            open('DB_push_status.txt',"w").write("0\n")
+            lines = [line.rstrip('\n') for line in open('DB_push_status.txt')]
         tstamp = lines[-1].split("Last Check Timestamp: ")[-1] #extract timestamp from record
         timediff = (time.time() - float(tstamp))/60 #find time since last push and convert to min
         self.push_files(timediff+5) #5 min of buffer
@@ -411,9 +419,9 @@ class DBDaemon():
 
 if __name__=="__main__":
 #Timestamp of 12/5 1480924800.0
-    dbd = DBDaemon(.1)
-    dbd.run()
-    sys.exit()
+    #dbd = DBDaemon(.1)
+    #dbd.run()
+    #sys.exit()
 
     pulserurl = 9003
     muxurl = 9002

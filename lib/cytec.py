@@ -7,23 +7,32 @@ class Mux():
         self.url = url
         self.on = []
         self.fake = fake #currently unused.
-        # self.channel_map = \
-        #         { 1:[(0,0)],  2:[(0,1)],  3:[(0,2)],  4:[(0,3)], 
-        #           5:[(0,4)],  6:[(0,5)],  7:[(0,6)],  8:[(0,7)],
-        #           9:[(1,0)], 10:[(1,1)], 11:[(1,2)], 12:[(1,3)],
-        #          13:[(1,4)], 14:[(1,5)], 15:[(1,6)], 16:[(1,7)],
-        #          17:[(2,0)], 18:[(2,1)], 19:[(2,2)], 20:[(2,3)],
-        #          21:[(2,4)], 22:[(2,5)], 23:[(2,6)], 24:[(2,7)],
-        #          25:[(3,0)], 26:[(3,1)], 27:[(3,2)], 28:[(3,3)],
-        #          29:[(3,4)], 30:[(3,5)], 31:[(3,6)], 32:[(3,7)],
-        #          33:[(4,0)], 34:[(4,1)], 35:[(4,2)], 36:[(4,3)],
-        #          37:[(4,4)], 38:[(4,5)], 39:[(4,6)], 40:[(4,7)],
-        #          41:[(5,0)], 42:[(5,1)], 43:[(5,2)], 44:[(5,3)],
-        #          45:[(5,3)], 46:[(5,5)], 47:[(5,6)], 48:[(5,7)],
-        #          49:[(6,0)], 50:[(6,1)], 51:[(6,2)], 52:[(6,3)],
-        #          53:[(6,4)], 54:[(6,5)], 55:[(6,6)], 56:[(6,7)],
-        #          57:[(7,0)], 58:[(7,1)], 59:[(7,2)], 60:[(7,3)],
-        #          61:[(7,4)], 62:[(7,5)], 63:[(7,6)], 64:[(7,7)]}
+
+    def _get_switch_cmd(self,cmd):
+	
+        bits = cmd.split(" ")
+        if bits[0] in ["U","L"]:
+            module = int(bits[1])
+            if module==0:
+                return "L 2 0"
+            elif module==1:
+                return "L 2 1"
+            elif module==3:
+                return "L 2 2"
+            elif module==4:
+                return "L 2 3"
+            elif module==5:
+                return "L 7 0"
+            elif module==6:
+                return "L 7 1"
+            elif module==8:
+                return "L 7 2"
+            elif module==9:
+                return "L 7 3"
+            else:
+                raise(Exception("That's not a usable module!"))
+        else:
+            return ""
 
     def get(self):
         return self.on
@@ -55,6 +64,8 @@ class Mux():
         return new
 
     def sendCommands(self,cmds,delay):
+        for c in cmds[:]:
+            cmds.append(self._get_switch_cmd(c))
         urls = self._prepCmdURLs(cmds)
         reads = []
         for u in urls:
@@ -76,6 +87,7 @@ class Mux():
             channel = ch[1]
             cmd = "L {} {}".format(int(module),int(channel))
             cmdset.append(cmd)
+        print(cmdset)
         return self.sendCommands(cmdset,delay=delay)
         
     def unlatch(self,channel_list,delay=0.2):
