@@ -6,7 +6,7 @@ import sys
 import time
 import signal
 import errno
-import libpath
+import pathlib
 
 __all__ = ["Daemon"]
 
@@ -120,7 +120,7 @@ class Daemon:
     #this updates the modified time on the PID file. Used for monitoring the process
     def update_pid_time(self):
         if self.pid_file_exists():
-            libpath.Path(self.pid_file).touch()
+            pathlib.Path(self.pid_file).touch()
         
     #TODO: make this log somewhere, etc
     def debug(self, msg):

@@ -91,15 +91,12 @@ class LoginForm(Form):
 
 class WatcherDaemon(Daemon):
     def __init__(self,
-                 # update_intervals={'easi_daemon': 5.0, 'db_daemon': 5.0},
-                 update_intervals={'easi_daemon': 0.5, 'db_daemon': 5.0},
-                 slack_url='https://hooks.slack.com/services/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'):
-
+                 update_intervals={'easi_daemon': 0.5, 'db_daemon': 24.0*60.0}):
+    
         Daemon.__init__(self, self.run, name="watcher_daemon")
         self.update_intervals = update_intervals
         self.alerts = []
-        self.slack_url = slack_url
-        self.slack_poster = SlackPoster(slack_url, 'Daemon Watcher', '@rob')
+        self.slack_poster = SlackPoster('Daemon Watcher')
 
     def run(self):
         while True:
@@ -107,7 +104,7 @@ class WatcherDaemon(Daemon):
                 for pid_file in os.listdir('Daemon_PIDs'):
                     name = '_'.join(pid_file.split('_')[1:])
                     if name in self.update_intervals:
-                        modtime = os.path.getmtime(os.path.join('Daemon_PIDs',pid_file))
+                        modtime = os.path.getmtime(os.path.join('Daemon_PIDs', pid_file))
                         if time.time() - modtime > self.update_intervals[name] * 60.0:
                             self.alert(name)
                         else:
@@ -433,6 +430,10 @@ if __name__=="__main__":
     d.start()
     time.sleep(1)
 
+    wd = WatcherDaemon()
+    wd.start()
+    time.sleep(1)
+    
     # dbd = DBDaemon(.1)
     # dbd.start()
 
