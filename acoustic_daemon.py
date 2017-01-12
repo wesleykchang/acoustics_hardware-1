@@ -37,6 +37,7 @@ import eventlet
 import re #regex library
 import data
 
+from slack import SlackPoster
 
 eventlet.monkey_patch() #fuuuuuck
 
@@ -88,6 +89,43 @@ class LoginForm(Form):
         return True
 
 
+class WatcherDaemon(Daemon):
+    def __init__(self,
+                 update_intervals={'easi_daemon': 0.5, 'db_daemon': 24.0*60.0}):
+    
+        Daemon.__init__(self, self.run, name="watcher_daemon")
+        self.update_intervals = update_intervals
+        self.alerts = []
+        self.slack_poster = SlackPoster('Daemon Watcher')
+
+    def run(self):
+        while True:
+            if os.path.exists('Daemon_PIDs'):
+                for pid_file in os.listdir('Daemon_PIDs'):
+                    name = '_'.join(pid_file.split('_')[1:])
+                    if name in self.update_intervals:
+                        modtime = os.path.getmtime(os.path.join('Daemon_PIDs', pid_file))
+                        if time.time() - modtime > self.update_intervals[name] * 60.0:
+                            self.alert(name)
+                        else:
+                            self.no_alert(name)
+            else:
+                pass  #can't find daemon pid folder. not sure when this would happen
+            time.sleep(60)
+
+    def alert(self, name):
+        if name not in self.alerts:
+            self.alerts.append(name)
+            self.send_message(' '.join(('@channel', name, 'process is down!')))
+
+    def no_alert(self, name):
+        if name in self.alerts:
+            self.alerts.remove(name)
+            self.send_message(' '.join((name, 'process has resumed')))
+            
+    def send_message(self, message):
+        self.slack_poster.send(message)
+        
 class AcousticDaemon(Daemon):
     def __init__(self,uiurl=5000,muxurl=9002,muxtype="cytec",pulserurl=9003, pulser="compact"):
         Daemon.__init__(self,self.run,name="easi_daemon")
@@ -100,7 +138,11 @@ class AcousticDaemon(Daemon):
     def run(self):
         while True:
             self.acous.beginRun()
-
+            try:
+                self.update_pid_time()
+            except AttributeError:
+                pass  # this happens if this class isn't inherited from Daemon
+            
     def handler(self,fn): #need to reimplement this. right now it's stdin and stdout.
         try:
             fn()
@@ -435,6 +477,13 @@ if __name__=="__main__":
     d = UIDaemon(port,host)
     d.start()
     time.sleep(1)
+
+    wd = WatcherDaemon()
+    wd.start()
+    time.sleep(1)
+    
+    # dbd = DBDaemon(.1)
+    # dbd.start()
 
     ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
     ad.start()
