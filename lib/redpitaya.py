@@ -60,6 +60,7 @@ class RedPitaya():
         and "WAIT" if it's waiting for a triggering event"""
         #return self.write("ACQ:TRIG:STAT?")
         self.write("ACQ:TRIG:STAT?")
+        self.write("GEN;RST")
         return self.read()
 
     def trigger_now(self):
@@ -136,6 +137,13 @@ class RedPitaya():
         amp = [float(x) for x in raw.split(",")] #let this fail if bad data?
         times = [((x*timestep)+delay)/1000.0 for x in range(len(amp))]
         return [times,amp]
+
+    def gen_pulse(self):
+        """Function to test the signal generator on the red pitaya"""
+        self.write("OUTPUT 1: STATE ON")
+        self.write("SOUR1: FREQ: FIX  2250000")
+        self.write("SOUR1: FUNC SQUARE")
+        #add burst, arbitrary signal gen
 
 
 if __name__=="__main__":
