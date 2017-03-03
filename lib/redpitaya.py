@@ -43,6 +43,7 @@ class RedPitaya():
         to their Pitaya-given defaults."""
         self.write("ACQ:RST")
         self.write("ACQ:TRIG:LEV 200 mV")
+        self.write("GEN:RST")
 
     def _set_trig_mode(self,mode,noread=False):
         """
@@ -60,7 +61,6 @@ class RedPitaya():
         and "WAIT" if it's waiting for a triggering event"""
         #return self.write("ACQ:TRIG:STAT?")
         self.write("ACQ:TRIG:STAT?")
-        self.write("GEN;RST")
         return self.read()
 
     def trigger_now(self):
@@ -139,19 +139,23 @@ class RedPitaya():
         return [times,amp]
 
     def gen_pulse(self):
-        """Function to test the signal generator on the red pitaya"""
-        self.write("OUTPUT 1: STATE ON")
-        self.write("SOUR1: FREQ: FIX  2250000")
-        self.write("SOUR1: FUNC SQUARE")
+        """Function to test the signal generator on the red pitaya""" 
+        self.write("SOUR1:FREQ:FIX  2250")
+        self.write("SOUR1:FUNC SQUARE")
+        self.write("SOUR1:VOLT 1")
+        self.write("OUTPUT1:STATE ON")
         #add burst, arbitrary signal gen
 
 
 if __name__=="__main__":
     import matplotlib.pyplot as plt
-    r = RedPitaya("169.254.134.177")
-    data = r.get_waveform(delay=5,time=10,wait_for_trigger=True)
-    # plt = plt.plot()
-    plt.plot(data[0],data[1])
-    plt.show()
+    r = RedPitaya("169.254.1.10")
+    r.gen_pulse()
+    sleep(10)
+    r.rp.close()
+    # data = r.get_waveform(delay=5,time=10,wait_for_trigger=True)
+    # # plt = plt.plot()
+    # plt.plot(data[0],data[1])
+    # plt.show()
 
         
