@@ -3,6 +3,7 @@ import sys
 from json import dumps
 from time import sleep
 import signal
+import matplotlib.pyplot as plt
 
 
 class RedPitaya():
@@ -138,17 +139,44 @@ class RedPitaya():
         times = [((x*timestep)+delay)/1000.0 for x in range(len(amp))]
         return [times,amp]
 
+    def ricker(self,f):
+        """generate a ricker to be output by RP. max is 16k values"""
+        duration = 4*np.sqrt(6)/(np.pi*f)
+        ts = np.linspace(-duration/2,duration/2,16000)
+        ys = (1.0 - 2.0*(np.pi**2)*(f**2) *(ts**2))*np.exp(-(np.pi**2)*(f**2)*(ts**2))
+        return ys, duration
+
+
     def gen_pulse(self):
         """Function to test the signal generator on the red pitaya""" 
         self.write("SOUR1:FREQ:FIX  2250")
         self.write("SOUR1:FUNC SQUARE")
         self.write("SOUR1:VOLT 1")
         self.write("OUTPUT1:STATE ON")
+
+    def gen_ricker(self,f):
         #add burst, arbitrary signal gen
+        data,duration = self.ricker(f)
+        array = str(data)[1:-1]
+        self.write("SOUR1:FUNC ARBITRARY")
+        self.write("SOUR1:TRAC:DATA:DATA %s" % array) 
+        self.write("SOUR1:BURS:NOR INF") #inf just for testing purposes. will change this to 1
+        self.write("SOUR1:BURS:PER %f" % (duration*1e6)) #period is in us
+        self.write("SOUR1:BURS:STAT ON")
+        # self.write("SOUR1:TRIG:SOUR INT") #internal trigger
+        self.write("OUTPUT1:STATE ON")
+
+
+    # def custom_pulse(self,data):
+    #     #add burst, arbitrary signal gen
+    #     array = str(data)[1:-1]
+    #     self.write("SOUR1:TRAC:DATA:DATA %s" % array) 
+
+
+
 
 
 if __name__=="__main__":
-    import matplotlib.pyplot as plt
     r = RedPitaya("169.254.1.10")
     r.gen_pulse()
     sleep(10)
