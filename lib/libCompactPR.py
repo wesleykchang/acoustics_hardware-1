@@ -8,16 +8,19 @@ import pickle
 import bisect
 import matplotlib.pyplot as plt
 import redpitaya as rp
+import BKPrecision as bk
 
 class CP():
-    def __init__(self,site,rp_url=None,rp_port=5000):
+    def __init__(self, site, rp_url=None, rp_port=5000, oscope=None):
         self.site = site
         self.lut = pickle.load(open('lib/CP_LUT','rb'))
         self.write("P0")
-        if rp_url is None:
+        if rp_url is None and oscope:
             self.rp = None
+            self.oscope = bk.BKPrecision()
         else:
             self.rp = rp.RedPitaya(rp_url,port=rp_port)
+            self.oscope = None
 
     def write(self,s):
         out = uo(self.site+"/writecf/%s"%s).read()
@@ -77,7 +80,13 @@ class CP():
         """Takes a row of settings and sets params on CompactPulser"""
 
         #anne's note to self: add some defaults
-        self.rp.prime_trigger()
+        if self.rp:
+            self.rp.prime_trigger()
+            g = int(row["gain(db)"])*10
+        elif self.oscope:
+            self.oscope.prime_trigger()
+            g = 20
+
         [pwidth,widemode] = self.convertFreq(row["freq(mhz)"])
         [hpf, lpf] = self.convertFilt(row["filtermode"])
         settings = {"tr" : "M1", "pe" : "M0"}
@@ -85,19 +94,26 @@ class CP():
         self.write(settings[row['mode(tr/pe)']])
         self.write(hpf)
         self.write(lpf)
-        self.write("G%i" % (int(row["gain(db)"])*10)) #gain is measured in 10th of dB 34.9 dB =349
+        self.write("G%i" % g) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
         self.write(pwidth)
         self.write("P0")
-
+        
         ##for now we don't care about Voltage or PRF
         # self.write("V%i" % int(row['voltage'])) 
         # self.write("P%i" % int(row['prf'])) #pulse repitition freq
-
-        data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
+        if self.rp:
+            data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
+        elif self.oscope:
+            data = self.scope(float(row["delay(us)"]), float(row["time(us)"]), float(row['gain(db)']))
+        else:
+            data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
         return data
 
-    def pitaya(self,delay,time):
+    def scope(self, delay, duration, volt_limit):
+        return self.oscope.get_waveform(delay=delay, duration=duration, volt_limit=volt_limit)
+        
+    def pitaya(self, delay, time):
         """Get waveform from red pitaya"""
         if self.rp is None:
             return {} #should this raise an exception?

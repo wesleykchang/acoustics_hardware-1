@@ -57,8 +57,11 @@ class Acoustics():
             self.p = libEpoch.Epoch(pulserurl)
             print("... done!")
         elif self.pulser == "compact":
-            self.p = libCompactPR.CP(pulserurl,rp_url="169.254.1.10")
+            # switch these 2 lines to change between RP and oscope 
+            # self.p = libCompactPR.CP(pulserurl,rp_url="169.254.1.10")
+            self.p = libCompactPR.CP(pulserurl, oscope=True)
 
+            
          # if muxurl is None:
          #  print("------------------------------------------------")
          #  print("WARNING: No mux given. Ignoring channel numbers.")
