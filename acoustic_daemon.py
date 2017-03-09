@@ -261,7 +261,10 @@ class UIDaemon(Daemon):
 
             index = int(request.args.get('index', ''))
             data = json.load(open(os.path.join('../Data',start_date,testid,files[index])))
-            xs = [x*0.008 for x in range(len(data['amp']))]
+            framerate = data.get("framerate")
+            if framerate == None:
+                framerate = 1.25e8
+            xs = [x*(1e6/framerate) for x in range(len(data['amp']))] #scale x to be in us
             fig = plt.figure()
             plt.plot(xs,data['amp'])
             plt.ylabel('Amplitude')
