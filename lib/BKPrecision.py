@@ -65,9 +65,9 @@ class BKPrecision():
     def reset(self):
         """
         Resets system to acquisition settings determined by me
-p        """
-        self.write('*RCL 1')
-        # self.reset_default()
+        """
+        # self.write('*RCL 1')
+        self.reset_default()
         
     def reset_default(self):
         self.write('*RST')
@@ -82,7 +82,7 @@ p        """
         time.sleep(3)
         self.write('TIME_DIV 1NS')
         self.write('TRDL 20480NS')
-        self.write('AVGA 32')
+        self.write('AVGA 256')
         self.write('*SAV 1')
 
     def _trigger_status(self):
@@ -124,25 +124,28 @@ p        """
         as the normal data.
         """
         if volt_limit and volt_limit != self.maxV:
-            self.set_maxV(volt_limit)
+            self.set_maxV(volt_limit) # sets the clipping voltage
         while wait_for_trigger and self._trigger_status() != "TRMD STOP":
             continue
-        x = time.time()
         self.write('C1:WF? DAT2')
         a = self.read_raw()
-        print(time.time() - x)
-        x = time.time()
-        data = self._parse_acq(a)
-        
+        data = self._parse_acq(a) # parse raw binary data
+
+        #clip data by delay and duration
         sample = (1/self.sample_rate)*1e6
         delay = int(delay/sample)
         duration = delay + int(duration/sample)
-
+        if delay < 0:
+            delay = 0
+        if duration > len(data) - 1:
+            duration = len(data) - 1
         data = data[delay:duration].tolist()
+
+        #create time array
         t = np.arange(0, len(data))
         t = np.divide(t, self.sample_rate)
         t = np.multiply(t, 1e6).tolist()
-        print(time.time() - x)
+        
         return [t, data]
 
     def _parse_acq(self, acq):
@@ -151,9 +154,9 @@ p        """
         into an array of voltages
         '''
         acq = acq.strip()
-        acq = acq[21:]
+        acq = acq[21:]  # get rid of misc stuff
         amp = np.fromstring(acq, dtype=np.int8)
-        amp = np.divide(amp, 128)
+        amp = np.divide(amp, 128)  # convert to -1 to 1 amp
         amp = np.multiply(amp, self.maxV)
         return amp
 
