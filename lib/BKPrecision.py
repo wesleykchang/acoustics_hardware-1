@@ -2,7 +2,6 @@ import usbtmc
 import numpy as np
 import time
 import usb
-import matplotlib.pyplot as plt
 
 
 class BKPrecision():
@@ -18,6 +17,7 @@ class BKPrecision():
 
     def __init__(self, timeout=3):
         self.sample_rate = 5e8  # sampe rate in stamples/sec
+        self.maxV = 0.5
         self.bk = usbtmc.Instrument(usbtmc.list_devices()[0])
         self.bk.timeout = timeout
         try:
@@ -65,7 +65,11 @@ class BKPrecision():
     def reset(self):
         """
         Resets system to acquisition settings determined by me
-        """
+p        """
+        self.write('*RCL 1')
+        # self.reset_default()
+        
+    def reset_default(self):
         self.write('*RST')
         self.write('C1:OFST 0')
         self.write('C2:OFST 0')
@@ -78,6 +82,8 @@ class BKPrecision():
         time.sleep(3)
         self.write('TIME_DIV 1NS')
         self.write('TRDL 20480NS')
+        self.write('AVGA 32')
+        self.write('*SAV 1')
 
     def _trigger_status(self):
         """Returns "TRMD STOP" if triggered (or trigger disabled)
@@ -95,7 +101,7 @@ class BKPrecision():
         '''
         readies the trigger for single shot data collection
         '''
-        self.write('TRMD SINGLE')
+        self.write('TRMD NORM')
 
     def stop_acq(self):
         '''
@@ -119,12 +125,13 @@ class BKPrecision():
         """
         if volt_limit and volt_limit != self.maxV:
             self.set_maxV(volt_limit)
-        # self.prime_trigger()
         while wait_for_trigger and self._trigger_status() != "TRMD STOP":
-            time.sleep(0.1)
             continue
+        x = time.time()
         self.write('C1:WF? DAT2')
         a = self.read_raw()
+        print(time.time() - x)
+        x = time.time()
         data = self._parse_acq(a)
         
         sample = (1/self.sample_rate)*1e6
@@ -135,7 +142,7 @@ class BKPrecision():
         t = np.arange(0, len(data))
         t = np.divide(t, self.sample_rate)
         t = np.multiply(t, 1e6).tolist()
-        
+        print(time.time() - x)
         return [t, data]
 
     def _parse_acq(self, acq):
@@ -153,8 +160,6 @@ class BKPrecision():
     
 if __name__=="__main__":
     bk = BKPrecision()
-    bk.write('AVGA?')
-    print(bk.read())
     # t, amp = bk.get_waveform()
     # plt.plot(t, amp)
     # plt.show()

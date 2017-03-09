@@ -80,10 +80,23 @@ class CP():
         """Takes a row of settings and sets params on CompactPulser"""
 
         #anne's note to self: add some defaults
+        g = row["gain(db)"]
+
         if self.rp:
+            try:
+                g = int(g)*10
+            except:
+                print('invalid gain level')
+                return
             self.rp.prime_trigger()
-            g = int(row["gain(db)"])*10
+            
         elif self.oscope:
+            try:
+                maxV = float(g)
+                self.oscope.set_maxV(maxV)
+            except:
+                print('invalid gain level')
+                return
             self.oscope.prime_trigger()
             g = 20
 
@@ -97,17 +110,19 @@ class CP():
         self.write("G%i" % g) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
         self.write(pwidth)
-        self.write("P0")
-        
+        self.write("P100")
+        sleep(0.1)
         ##for now we don't care about Voltage or PRF
         # self.write("V%i" % int(row['voltage'])) 
         # self.write("P%i" % int(row['prf'])) #pulse repitition freq
         if self.rp:
             data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
         elif self.oscope:
+            self.oscope.stop_acq()
             data = self.scope(float(row["delay(us)"]), float(row["time(us)"]), float(row['gain(db)']))
         else:
             data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
+        self.write('P0')
         return data
 
     def scope(self, delay, duration, volt_limit):
