@@ -20,7 +20,7 @@ import datetime
 sys.path.append('../EASI-analysis/analysis') #add saver functions to path
 import filesystem
 import database
-from uuid import getnode as get_mac
+import fcntl, socket, struct
 import logging
 import collections
 try:
@@ -183,12 +183,21 @@ class UIDaemon(Daemon):
         @app.route('/table_load')
         @login_required
         def table_load():
+            if socket.gethostname() == 'ursamajor':
+                ifname = 'eth2'
+            else:
+                ifname = 'eth0'
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', ifname[:15].encode('utf-8')))
+            hex_val =  ''.join(['%02x' % char for char in info[18:24]])
+            mac_add = int(hex_val,16)
+
             try:
                 table = json.loads(open("table_state.json").read())
             except FileNotFoundError:
                 #initialize new table
                 table = {"loop_delay" : "0", "last_tid": "0", "data" : []}
-            table["mac"] = str(get_mac())[-4:]
+            table["mac"] = str(mac_add)[-4:]
             return json.dumps(table)
 
         @app.route('/fonts/<path:filename>') #important for being able to load font files
@@ -261,7 +270,10 @@ class UIDaemon(Daemon):
 
             index = int(request.args.get('index', ''))
             data = json.load(open(os.path.join('../Data',start_date,testid,files[index])))
-            xs = [x*0.008 for x in range(len(data['amp']))]
+            framerate = data.get("framerate")
+            if framerate == None:
+                framerate = 1.25e8
+            xs = [x*(1e6/framerate) for x in range(len(data['amp']))] #scale x to be in us
             fig = plt.figure()
             plt.plot(xs,data['amp'])
             plt.ylabel('Amplitude')

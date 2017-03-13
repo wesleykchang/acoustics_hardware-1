@@ -4,6 +4,8 @@ from json import dumps
 from time import sleep
 import signal
 import matplotlib.pyplot as plt
+import numpy as np
+import math
 
 
 class RedPitaya():
@@ -142,7 +144,7 @@ class RedPitaya():
     def ricker(self,f):
         """generate a ricker to be output by RP. max is 16k values"""
         duration = 4*np.sqrt(6)/(np.pi*f)
-        ts = np.linspace(-duration/2,duration/2,16000)
+        ts = np.linspace(-duration/2,duration/2,16384)
         ys = (1.0 - 2.0*(np.pi**2)*(f**2) *(ts**2))*np.exp(-(np.pi**2)*(f**2)*(ts**2))
         return ys, duration
 
@@ -157,15 +159,86 @@ class RedPitaya():
     def gen_ricker(self,f):
         #add burst, arbitrary signal gen
         data,duration = self.ricker(f)
-        array = str(data)[1:-1]
+        # array = str(data)[1:-1]
+        arr = list(np.ones(16384))
+        arr[0:8000] = [0] * 8000
+        array = str(arr)[1:-1]
         self.write("SOUR1:FUNC ARBITRARY")
-        self.write("SOUR1:TRAC:DATA:DATA %s" % array) 
-        self.write("SOUR1:BURS:NOR INF") #inf just for testing purposes. will change this to 1
-        self.write("SOUR1:BURS:PER %f" % (duration*1e6)) #period is in us
+        self.write("SOUR1:TRAC:DATA:DATA %s" % "0, 1, 1, 1, ")
+        # self.write("SOUR1:TRAC:DATA:DATA -.7,.4,-.8")
+        self.write("SOUR1:BURS:NOR 1") #inf just for testing purposes. will change this to 1
+        # self.write("SOUR1:BURS:PER %f" % (duration*1e6)) #period is in us
+        self.write("SOUR1:BURS:PER 1") #period is in us
+        self.write("SOUR1:BURS:NCYC 1")
         self.write("SOUR1:BURS:STAT ON")
         # self.write("SOUR1:TRIG:SOUR INT") #internal trigger
         self.write("OUTPUT1:STATE ON")
 
+    def gen_example(self):
+        N=16380;
+        t= np.linspace(0, 2*np.pi, N);
+        x=np.sin(t)+1/3*np.sin(3*t);
+        y=1/2*np.sin(t)+1/4*np.sin(4*t);
+        plt.plot(t,x)
+        plt.plot(t,y)
+        plt.show()
+
+        X = [float("%.5f" % w) for w in x]
+        Y = ["%.5f" % w for w in y]
+
+        # X = [math.ceil(w,5) for w in x]
+        # print(X)
+
+        # waveform_ch_1_0
+
+        self.write('GEN:RST')
+        self.write('SOUR1:FUNC ARBITRARY')
+        self.write('SOUR2:FUNC ARBITRARY')
+        self.write('SOUR1:TRAC:DATA:DATA %s,,,' % str((list(X)))[1:-1])
+        print('SOUR1:TRAC:DATA:DATA %s,,,' % str((list(X)))[1:-1])
+        self.write('SOUR2:TRAC:DATA:DATA %s' % str((list(Y)))[1:-1])
+        self.write('SOUR1:VOLT 0.7')
+        self.write('SOUR2:VOLT 1')
+        self.write('SOUR1:FREQ:FIX 4000')
+        self.write('SOUR2:FREQ:FIX 4000')
+        self.write('OUTPUT1:STATE ON')
+        self.write('OUTPUT2:STATE ON')
+
+
+    def gen_example2(self):
+        self.write('GEN:RST')
+        # self.write('SOUR1:FUNC SINE')
+        data,duration = self.ricker(2.25)
+        N = 8000
+        # arr = list(np.ones(N))
+        # arr[0:int(N/2)] = [0] * int(N/2)
+        X = [float("%.5f" % w) for w in data]
+        array = str(X)[1:-1]
+        print(array)
+
+
+        self.write("SOUR1:FUNC ARBITRARY")
+        self.write("SOUR1:TRAC:DATA:DATA %s" % array)
+        self.write('SOUR1:VOLT 1')
+        self.write('SOUR1:BURS:STAT ON')
+        self.write('SOUR1:BURS:NCYC 1')
+        self.write('SOUR1:BURS:NOR 1000')
+        self.write('SOUR1:BURS:INT:PER 1000')
+        self.write('SOUR1:TRIG:IMM')
+        self.write('OUTPUT1:STATE ON')
+
+
+
+    # def gen_square(self):
+    #     self.write("SOUR1:FUNC ARBITRARY")
+    #     self.write("SOUR1:TRAC:DATA:DATA -1,1,-1")
+    #     self.write("SOUR1:BURS:NOR 1") #inf just for testing purposes. will change this to 1
+    #     self.write("SOUR1:BURS:PER 1") #period is in us
+    #     self.write("SOUR1:BURS:NCYC 1")
+    #     # self.write("SOUR1:BURS:PER %f" % (duration*1e6)) #period is in us
+    #     self.write("SOUR1:BURS:STAT ON")
+    #     # self.write("SOUR1:TRIG:SOUR INT") #internal trigger
+    #     self.write("OUTPUT1:STATE ON")
 
     # def custom_pulse(self,data):
     #     #add burst, arbitrary signal gen
@@ -178,7 +251,9 @@ class RedPitaya():
 
 if __name__=="__main__":
     r = RedPitaya("169.254.1.10")
-    r.gen_pulse()
+    # r.gen_pulse()
+    # r.gen_ricker(2.25e6)
+    r.gen_example2()
     sleep(10)
     r.rp.close()
     # data = r.get_waveform(delay=5,time=10,wait_for_trigger=True)
