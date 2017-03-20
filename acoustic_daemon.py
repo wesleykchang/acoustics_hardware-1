@@ -91,7 +91,7 @@ class LoginForm(Form):
 
 class WatcherDaemon(Daemon):
     def __init__(self,
-                 update_intervals={'easi_daemon': 0.5, 'db_daemon': 24.0*60.0}):
+                 update_intervals={'easi_daemon': 10, 'db_daemon': 24.0*60.0}):
     
         Daemon.__init__(self, self.run, name="watcher_daemon")
         self.update_intervals = update_intervals
