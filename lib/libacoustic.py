@@ -58,8 +58,9 @@ class Acoustics():
             print("... done!")
         elif self.pulser == "compact":
             # switch these 2 lines to change between RP and oscope 
-            # self.p = libCompactPR.CP(pulserurl,rp_url="169.254.1.10")
-            self.p = libCompactPR.CP(pulserurl, oscope=True)
+            self.p = libCompactPR.CP(pulserurl,rp_url="169.254.1.10")
+            # self.p = libCompactPR.CP(pulserurl, oscope=True)
+            # self.p = libCompactPR.CP(pulserurl, picoscope=True)
 
             
          # if muxurl is None:

@@ -9,18 +9,26 @@ import bisect
 import matplotlib.pyplot as plt
 import redpitaya as rp
 import BKPrecision as bk
+import libPicoscope
 
 class CP():
-    def __init__(self, site, rp_url=None, rp_port=5000, oscope=None):
+    def __init__(self, site, rp_url=None, rp_port=5000, oscope=None, picoscope=None):
         self.site = site
         self.lut = pickle.load(open('lib/CP_LUT','rb'))
         self.write("P0")
-        if rp_url is None and oscope:
+        if picoscope:
+            self.pss = libPicoscope.Picoscope()
+            print('connected to picoscope')
             self.rp = None
+            self.oscope = None
+        if oscope:
             self.oscope = bk.BKPrecision()
-        else:
+            self.rp = None
+            self.pss = None
+        if rp_url:
             self.rp = rp.RedPitaya(rp_url,port=rp_port)
             self.oscope = None
+            self.pss = None
 
     def write(self,s):
         out = uo(self.site+"/writecf/%s"%s).read()
@@ -99,7 +107,10 @@ class CP():
                 return
             self.oscope.prime_trigger()
             g = 20
+        elif self.pss:
+            self.pss.prime_trigger()
 
+        g = 20
         [pwidth,widemode] = self.convertFreq(row["freq(mhz)"])
         [hpf, lpf] = self.convertFilt(row["filtermode"])
         settings = {"tr" : "M1", "pe" : "M0"}
@@ -110,21 +121,27 @@ class CP():
         self.write("G%i" % g) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
         self.write(pwidth)
-        self.write("P100")
-        sleep(0.1)
         ##for now we don't care about Voltage or PRF
         # self.write("V%i" % int(row['voltage'])) 
         # self.write("P%i" % int(row['prf'])) #pulse repitition freq
+        
         if self.rp:
+            self.write('P0')
             data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
         elif self.oscope:
-            self.oscope.stop_acq()
+            self.write('P0')
             data = self.scope(float(row["delay(us)"]), float(row["time(us)"]), float(row['gain(db)']))
-        else:
-            data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
-        self.write('P0')
+        elif self.pss:
+            self.write('P10')
+            sleep(1)
+            data = self.pico()
+            self.write('P0')
+            
         return data
 
+    def pico(self):
+        return self.pss.get_waveform()
+    
     def scope(self, delay, duration, volt_limit):
         return self.oscope.get_waveform(delay=delay, duration=duration, volt_limit=volt_limit)
         

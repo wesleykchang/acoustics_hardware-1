@@ -478,9 +478,9 @@ if __name__=="__main__":
     d.start()
     time.sleep(1)
 
-    wd = WatcherDaemon()
-    wd.start()
-    time.sleep(1)
+    # wd = WatcherDaemon()
+    # wd.start()
+    # time.sleep(1)
     
     # dbd = DBDaemon(.1)
     # dbd.start()
