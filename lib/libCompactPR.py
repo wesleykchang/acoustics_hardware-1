@@ -93,7 +93,7 @@ class CP():
         if self.rp:
             try:
                 g = int(g)*10
-            except:
+            except ValueError:
                 print('invalid gain level')
                 return
             self.rp.prime_trigger()
@@ -102,13 +102,18 @@ class CP():
             try:
                 maxV = float(g)
                 self.oscope.set_maxV(maxV)
-            except:
+            except ValueError:
                 print('invalid gain level')
                 return
             self.oscope.prime_trigger()
             g = 20
         elif self.pss:
-            self.pss.prime_trigger()
+            try:
+                maxV = float(g)
+            except ValueError:
+                print('invalid gain level')
+            self.pss.set_maxV(maxV)
+            self.pss.prime_trigger(float(row["delay(us)"]),float(row["time(us)"]))
 
         g = 20
         [pwidth,widemode] = self.convertFreq(row["freq(mhz)"])
@@ -133,14 +138,14 @@ class CP():
             data = self.scope(float(row["delay(us)"]), float(row["time(us)"]), float(row['gain(db)']))
         elif self.pss:
             self.write('P10')
-            sleep(1)
-            data = self.pico()
+            self.pss.ps.waitReady()
             self.write('P0')
+            data = self.pico()
             
         return data
 
     def pico(self):
-        return self.pss.get_waveform()
+        return self.pss.get_waveform(wait_for_trigger=False)
     
     def scope(self, delay, duration, volt_limit):
         return self.oscope.get_waveform(delay=delay, duration=duration, volt_limit=volt_limit)

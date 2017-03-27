@@ -41,9 +41,6 @@ class Picoscope():
 
             self.ps.memorySegments(self.avg_num)
             self.ps.setNoOfCaptures(self.avg_num)
-
-            self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
-            self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
                 
     def cleanup(self, *args):
         self.ps.stop()
@@ -60,6 +57,22 @@ class Picoscope():
         
     def set_maxV(self,  maxV, channel=1):
         self.connect()
+        options = [
+            0.02,
+            0.05,
+            0.1,
+            0.2,
+            0.5,
+            1.0,
+            2.0,
+            5.0,
+            10.0,
+            20.0
+        ]
+        for opt in options:
+            if maxV <= opt+0.005:
+                break
+        self.maxV = opt
         return
     
     def get_maxV(self, channel=1):
@@ -80,14 +93,20 @@ class Picoscope():
         '''
         return
     
-    def prime_trigger(self):
+    def prime_trigger(self, delay=0, duration=20.0):
         '''
         readies the trigger for waveform collection
         '''
         self.connect()
+        
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration*1e-6)
+        self.sample_rate = 1/self.sample_rate
+        
+        self.ps.memorySegments(self.avg_num)
+        self.ps.setNoOfCaptures(self.avg_num)
 
         self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
+        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, delay=int(delay*1e-6*self.sample_rate), enabled=True)
 
         self.ps.runBlock(segmentIndex=0)
     
@@ -109,7 +128,6 @@ class Picoscope():
         """
         if wait_for_trigger:
             self.ps.waitReady()
-        # self.ps.stop()
         waves = self.read(delay, duration)
         data = np.mean(np.transpose(waves), axis=1).tolist()
         t = np.arange(self.nsamples) * 1/self.sample_rate
