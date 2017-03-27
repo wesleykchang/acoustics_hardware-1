@@ -60,8 +60,6 @@ class Picoscope():
         
     def set_maxV(self,  maxV, channel=1):
         self.connect()
-        if not self.ps:
-            self.connect()
         return
     
     def get_maxV(self, channel=1):
@@ -87,8 +85,11 @@ class Picoscope():
         readies the trigger for waveform collection
         '''
         self.connect()
-        
-        self.ps.runBlock()
+
+        self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
+
+        self.ps.runBlock(segmentIndex=0)
     
     def stop_acq(self):
         '''
