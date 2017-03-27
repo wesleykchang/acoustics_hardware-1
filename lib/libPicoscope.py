@@ -13,26 +13,43 @@ class Picoscope():
     """
 
     def __init__(self, avg_num=32):
-        self.sample_rate = 5e8  # sampe rate in stamples/sec
-        self.maxV = 0.2
-        self.duration = 30e-6
-        self.ps = ps2000a.PS2000a()
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
-        self.sample_rate = 1/self.sample_rate
-
+        self.ps = None
         self.avg_num = avg_num
-        self.ps.memorySegments(avg_num)
-        self.ps.setNoOfCaptures(avg_num)
         
-        self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
-        self.ps.runBlock()
+        # self.sample_rate = 5e8  # sampe rate in stamples/sec
+        # self.maxV = 0.2
+        # self.duration = 30e-6
+        # self.ps = ps2000a.PS2000a()
+        # self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
+        # self.sample_rate = 1/self.sample_rate
+
+        # self.avg_num = avg_num
+        # self.ps.memorySegments(avg_num)
+        # self.ps.setNoOfCaptures(avg_num)
         
+        # self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+        # self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
+
+    def connect(self):
+        if not self.ps:
+            self.sample_rate = 5e8  # sampe rate in stamples/sec
+            self.maxV = 0.2
+            self.duration = 30e-6
+            self.ps = ps2000a.PS2000a()
+            self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
+            self.sample_rate = 1/self.sample_rate
+
+            self.ps.memorySegments(self.avg_num)
+            self.ps.setNoOfCaptures(self.avg_num)
+
+            self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+            self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
+                
     def cleanup(self, *args):
         self.ps.stop()
         self.ps.close()
 
-    def read(self):
+    def read(self, delay, duration):
         try:
             waves = []
             for i in range(0, self.avg_num):
@@ -42,6 +59,9 @@ class Picoscope():
             return
         
     def set_maxV(self,  maxV, channel=1):
+        self.connect()
+        if not self.ps:
+            self.connect()
         return
     
     def get_maxV(self, channel=1):
@@ -66,16 +86,17 @@ class Picoscope():
         '''
         readies the trigger for waveform collection
         '''
-
-        return
-
+        self.connect()
+        
+        self.ps.runBlock()
+    
     def stop_acq(self):
         '''
         stops acquisition
         '''
         self.ps.stop()
         
-    def get_waveform(self, delay=1.5, duration=20, volt_limit=None, wait_for_trigger=True):
+    def get_waveform(self, delay=1.5, duration=20, wait_for_trigger=True):
         """
         If this hangs while testing, try setting wait_for_trigger to False.
 
@@ -84,22 +105,15 @@ class Picoscope():
         the range is 40.960us and will stay that way unless we lower the
         sampling rate or truncate the buffer (in post-processing or
         by only accessing part of the buffer).
-
-        If return_trigger=True, a second value will be returned (ie. `return data1,data2`)
-        where the second return value is the acquired trigger with the same delay/timing
-        as the normal data.
         """
-        # print('waiting')
-        # self.ps.waitReady()
-        # print('done waiting')
-        print('here')
-        self.ps.stop()
-        print('there')
-        #clip data by delay and duration
-        # waves = self.read()
-        data = np.mean(waves, axis=1)
+        if wait_for_trigger:
+            self.ps.waitReady()
+        # self.ps.stop()
+        waves = self.read(delay, duration)
+        data = np.mean(np.transpose(waves), axis=1).tolist()
         t = np.arange(self.nsamples) * 1/self.sample_rate
-
+        t = t.tolist()
+        
         return [t, data]
     
 if __name__=="__main__":
