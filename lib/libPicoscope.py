@@ -130,7 +130,7 @@ class Picoscope():
             self.ps.waitReady()
         waves = self.read(delay, duration)
         data = np.mean(np.transpose(waves), axis=1).tolist()
-        t = np.arange(self.nsamples) * 1/self.sample_rate
+        t = np.arange(self.nsamples) * (1/self.sample_rate)*1e6
         t = t.tolist()
         
         return [t, data]
