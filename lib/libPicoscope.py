@@ -134,9 +134,29 @@ class Picoscope():
         t = t.tolist()
         
         return [t, data]
+
+    def generate_waveform(self, waveform, duration):
+        
+        self.connect()
+        print(ps.AWGMaxSamples)
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration*1e-6)
+        self.sample_rate = 1/self.sample_rate
+        
+        self.maxV = self.ps.setChannel('B', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=100, delay=0, enabled=True)
+
+        self.ps.runBlock(segmentIndex=0)
+
+        # generate an interesting looking waveform        
+        (waveform_duration, deltaPhase) = ps.setAWGSimple(waveform, duration,
+                                                          offsetVoltage=0.0, indexMode="Dual",
+                                                          triggerSource='None')
+        
+        
     
 if __name__=="__main__":
-    ps = self.Picoscope()
+    ps = Picoscope()
+    ps.generate_waveform(np.array([1.0,1.0]), 200e-9)
     # t, amp = bk.get_waveform()
     # plt.plot(t, amp)
     # plt.show()
