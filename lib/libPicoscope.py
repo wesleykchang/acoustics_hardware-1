@@ -1,6 +1,7 @@
 import numpy as np
 import time
 from picoscope import ps2000a
+import matplotlib.pyplot as plt
 
 class Picoscope():
     """
@@ -115,6 +116,12 @@ class Picoscope():
         stops acquisition
         '''
         self.ps.stop()
+
+    def wait_ready(self):
+        '''
+        waits for picoscope to finish acquisition
+        '''
+        self.ps.waitReady()
         
     def get_waveform(self, delay=1.5, duration=20, wait_for_trigger=True):
         """
@@ -136,27 +143,51 @@ class Picoscope():
         return [t, data]
 
     def generate_waveform(self, waveform, duration):
+        '''
+        generates an arbitrary waveform given by the Voltage amplitude values in waveform
+        the length of the waveform array has a max of 16384
+        duration is the time duration that this waveform will be spread over
+        '''
         
         self.connect()
-        print(ps.AWGMaxSamples)
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration*1e-6)
+        self.ps.memorySegments(1)
+        self.ps.setNoOfCaptures(1)
+
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 20*1e-6)
         self.sample_rate = 1/self.sample_rate
         
-        self.maxV = self.ps.setChannel('B', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=100, delay=0, enabled=True)
+        self.maxV = self.ps.setChannel('B', 'DC', 1.0, 0.0, enabled=True, BWLimited=False)
+        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=200, delay=0, enabled=True)
 
-        self.ps.runBlock(segmentIndex=0)
+        (waveform_duration, deltaPhase) = self.ps.setAWGSimple(waveform, duration,
+                                                          offsetVoltage=0.0, indexMode="Dual",
+                                                          triggerSource='None')
+        self.ps.runBlock()
+        self.wait_ready()
+        self.ps.getDataV('B', self.nsamples, returnOverflow=False)        
+        time.sleep(2)
+        
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 20*1e-6)
+        self.sample_rate = 1/self.sample_rate
+        
+        self.maxV = self.ps.setChannel('B', 'DC', 1.0, 0.0, enabled=True, BWLimited=False)
+        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=200, delay=0, enabled=True)
 
-        # generate an interesting looking waveform        
-        (waveform_duration, deltaPhase) = ps.setAWGSimple(waveform, duration,
+        (waveform_duration, deltaPhase) = self.ps.setAWGSimple(waveform, duration,
                                                           offsetVoltage=0.0, indexMode="Dual",
                                                           triggerSource='None')
         
+        self.ps.runBlock()
+        self.wait_ready()
+        
+        return self.ps.getDataV('B', self.nsamples, returnOverflow=False)
         
     
 if __name__=="__main__":
     ps = Picoscope()
-    ps.generate_waveform(np.array([1.0,1.0]), 200e-9)
+    data = ps.generate_waveform(np.zeros(16384)+1.0, 1e-6)
+    plt.plot(data)
+    plt.show()
     # t, amp = bk.get_waveform()
     # plt.plot(t, amp)
     # plt.show()
