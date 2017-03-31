@@ -2,6 +2,7 @@ import numpy as np
 import time
 from picoscope import ps2000a
 import matplotlib.pyplot as plt
+import libCompactPR as cp
 
 class Picoscope():
     """
@@ -34,7 +35,7 @@ class Picoscope():
     def connect(self):
         if not self.ps:
             self.sample_rate = 5e8  # sampe rate in stamples/sec
-            self.maxV = 0.2
+            self.maxV = 0.5
             self.duration = 30e-6
             self.ps = ps2000a.PS2000a()
             self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
@@ -51,7 +52,7 @@ class Picoscope():
         try:
             waves = []
             for i in range(0, self.avg_num):
-                waves.append(self.ps.getDataV('A', self.nsamples, returnOverflow=False, segmentIndex=i))
+                waves.append(self.ps.getDataV('A', self.nsamples, returnOverflow=False, segmentIndex=i))            
             return waves
         except KeyboardInterrupt: #this fires if we SIGTERM
             return
@@ -99,18 +100,15 @@ class Picoscope():
         readies the trigger for waveform collection
         '''
         self.connect()
-        
         self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration*1e-6)
         self.sample_rate = 1/self.sample_rate
         
-        self.ps.memorySegments(self.avg_num)
-        self.ps.setNoOfCaptures(self.avg_num)
-
         self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, delay=int(delay*1e-6*self.sample_rate), enabled=True)
 
-        self.ps.runBlock(segmentIndex=0)
-    
+        self.ps.runBlock()
+        time.sleep(0.5)
+        
     def stop_acq(self):
         '''
         stops acquisition
@@ -123,24 +121,29 @@ class Picoscope():
         '''
         self.ps.waitReady()
         
-    def get_waveform(self, delay=1.5, duration=20, wait_for_trigger=True):
+    def get_waveform(self, delay=1.5, duration=20, pct_diff_avg_cutoff=0.1, wait_for_trigger=True, return_waves=False):
         """
         If this hangs while testing, try setting wait_for_trigger to False.
 
         The maximum sampling rate of the scope is 500MHz (2ns resolution).
-        By default, it is set to that. The buffer len is 20480. This means 
-        the range is 40.960us and will stay that way unless we lower the
-        sampling rate or truncate the buffer (in post-processing or
-        by only accessing part of the buffer).
+        By default, it is set to that. The buffer len is 20480
         """
         if wait_for_trigger:
             self.ps.waitReady()
         waves = self.read(delay, duration)
-        data = np.mean(np.transpose(waves), axis=1).tolist()
+        
+        amp_sum = list(map(np.sum, map(abs, waves)))
+        m = np.mean(amp_sum)
+        amp_sum_pct = np.abs(np.divide(np.subtract(amp_sum, m), m))
+        waves_avg = np.array(waves)[amp_sum_pct < pct_diff_avg_cutoff]
+        
+        data = np.mean(np.transpose(waves_avg), axis=1).tolist()
         t = np.arange(self.nsamples) * (1/self.sample_rate)*1e6
         t = t.tolist()
-        
-        return [t, data]
+        if return_waves:
+            return waves
+        else:
+            return [t, data]
 
     def generate_waveform(self, waveform, duration):
         '''
@@ -184,10 +187,29 @@ class Picoscope():
         
     
 if __name__=="__main__":
+    cp = cp.CP("http://localhost:9003",rp_url="169.254.1.10")
     ps = Picoscope()
-    data = ps.generate_waveform(np.zeros(16384)+1.0, 1e-6)
-    plt.plot(data)
+    # data = ps.generate_waveform(np.zeros(16384)+1.0, 1e-6)
+    
+    cp.write('V100')
+    cp.write('V?')
+    print(cp.read())
+    ps.prime_trigger()
+    cp.write('P50')
+    data = ps.get_waveform(return_waves=True)
+    cp.write('P0')
+    for wave in data:
+        plt.plot(wave)
     plt.show()
-    # t, amp = bk.get_waveform()
-    # plt.plot(t, amp)
-    # plt.show()
+
+    cp.write('V300')
+    cp.write('V?')
+    print(cp.read())
+    ps.prime_trigger()
+    cp.write('P50')
+    data = ps.get_waveform(return_waves=True)
+
+    cp.write('P0')
+    for wave in data:
+        plt.plot(wave)
+    plt.show()
