@@ -107,7 +107,6 @@ class Picoscope():
         self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, delay=int(delay*1e-6*self.sample_rate), enabled=True)
 
         self.ps.runBlock()
-        time.sleep(0.5)
         
     def stop_acq(self):
         '''
@@ -156,25 +155,25 @@ class Picoscope():
         self.ps.memorySegments(1)
         self.ps.setNoOfCaptures(1)
 
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 20*1e-6)
-        self.sample_rate = 1/self.sample_rate
+        # self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 20*1e-6)
+        # self.sample_rate = 1/self.sample_rate
         
-        self.maxV = self.ps.setChannel('B', 'DC', 1.0, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=200, delay=0, enabled=True)
+        # self.maxV = self.ps.setChannel('B', 'DC', 1.0, 0.0, enabled=True, BWLimited=False)
+        # self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=200, delay=0, enabled=True)
 
-        (waveform_duration, deltaPhase) = self.ps.setAWGSimple(waveform, duration,
-                                                          offsetVoltage=0.0, indexMode="Dual",
-                                                          triggerSource='None')
-        self.ps.runBlock()
-        self.wait_ready()
-        self.ps.getDataV('B', self.nsamples, returnOverflow=False)        
-        time.sleep(2)
+        # (waveform_duration, deltaPhase) = self.ps.setAWGSimple(waveform, duration,
+        #                                                   offsetVoltage=0.0, indexMode="Dual",
+        #                                                   triggerSource='None')
+        # self.ps.runBlock()
+        # self.wait_ready()
+        # self.ps.getDataV('B', self.nsamples, returnOverflow=False)        
+        # time.sleep(2)
         
         self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 20*1e-6)
         self.sample_rate = 1/self.sample_rate
         
         self.maxV = self.ps.setChannel('B', 'DC', 1.0, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=200, delay=0, enabled=True)
+        self.ps.setSimpleTrigger('B', 0.5, 'Falling', timeout_ms=200, delay=0, enabled=True)
 
         (waveform_duration, deltaPhase) = self.ps.setAWGSimple(waveform, duration,
                                                           offsetVoltage=0.0, indexMode="Dual",
@@ -187,29 +186,37 @@ class Picoscope():
         
     
 if __name__=="__main__":
-    cp = cp.CP("http://localhost:9003",rp_url="169.254.1.10")
+    # cp = cp.CP("http://localhost:9003",rp_url="169.254.1.10")
     ps = Picoscope()
-    # data = ps.generate_waveform(np.zeros(16384)+1.0, 1e-6)
+    x = np.add(np.zeros(int(16384/2)), 1.0)
+    y = np.add(np.zeros(int(16384/2)), -1.0)
+    plt.plot(np.append(x,y))
+    data = ps.generate_waveform(np.append(x,y), 1e-6)
+    # data = ps.generate_waveform(np.append(x,y), 1e-6)
     
-    cp.write('V100')
-    cp.write('V?')
-    print(cp.read())
-    ps.prime_trigger()
-    cp.write('P50')
-    data = ps.get_waveform(return_waves=True)
-    cp.write('P0')
-    for wave in data:
-        plt.plot(wave)
+    plt.plot(data)
     plt.show()
+    
+    
+    # cp.write('V100')
+    # cp.write('V?')
+    # print(cp.read())
+    # ps.prime_trigger()
+    # cp.write('P50')
+    # data = ps.get_waveform(return_waves=True)
+    # cp.write('P0')
+    # for wave in data:
+    #     plt.plot(wave)
+    # plt.show()
 
-    cp.write('V300')
-    cp.write('V?')
-    print(cp.read())
-    ps.prime_trigger()
-    cp.write('P50')
-    data = ps.get_waveform(return_waves=True)
+    # cp.write('V300')
+    # cp.write('V?')
+    # print(cp.read())
+    # ps.prime_trigger()
+    # cp.write('P50')
+    # data = ps.get_waveform(return_waves=True)
 
-    cp.write('P0')
-    for wave in data:
-        plt.plot(wave)
-    plt.show()
+    # cp.write('P0')
+    # for wave in data:
+    #     plt.plot(wave)
+    # plt.show()
