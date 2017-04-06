@@ -3,6 +3,7 @@ import time
 from picoscope import ps2000a
 import matplotlib.pyplot as plt
 import libCompactPR as cp
+import ctypes
 
 class Picoscope():
     """
@@ -17,6 +18,8 @@ class Picoscope():
     def __init__(self, avg_num=32):
         self.ps = None
         self.avg_num = avg_num
+        self.AWG_max_samples = 32768
+
         
         # self.sample_rate = 5e8  # sampe rate in stamples/sec
         # self.maxV = 0.2
@@ -144,58 +147,103 @@ class Picoscope():
         else:
             return [t, data]
 
-    def generate_waveform(self, waveform, duration):
+    def trig_AWG(self):
         '''
-        generates an arbitrary waveform given by the Voltage amplitude values in waveform
-        the length of the waveform array has a max of 16384
-        duration is the time duration that this waveform will be spread over
+        starts the arbitrary wave generator. must prime scope trigger before calling
+        '''
+        self.ps.lib.ps2000aSigGenSoftwareControl(ctypes.c_int16(self.ps.handle), ctypes.c_int(0))
+
+    def generate_square(self, pwidth=444e-9, voltage=-2.0):
+        '''
+        generates a square pulse at the specified width with specified voltage
+        '''
+        if voltage < -2.0:
+            voltage = -2.0
+        elif voltage > 2.0:
+            voltage = 2.0
+        
+        pulse = np.add(np.zeros(10), voltage)
+        zero = np.zeros(10)
+        wf = np.append(pulse, zero)
+        
+        self.generate_waveform(wf, pwidth*2)
+
+    def signal_generator(self, offset=0.0, waveType='Sine', pkToPk=2, frequency=1.0e6, stopFreq=None,
+                         increment=10.0, shots=10, dwellTime=0.001, numSweeps=0):
+        '''
+        generates a signal.
+        waveTypes are:
+        'Sine'
+        'Square'
+        'Triangle'
+        'RampUp'
+        'RampDown'
+        'DCVoltage'
         '''
         
         self.connect()
-        self.ps.memorySegments(1)
-        self.ps.setNoOfCaptures(1)
-
-        # self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 20*1e-6)
-        # self.sample_rate = 1/self.sample_rate
+        self.ps.setSigGenBuiltInSimple(offsetVoltage=offset, pkToPk=pkToPk, waveType=waveType, frequency=frequency,
+                                       shots=shots, triggerSource='SoftTrig', stopFreq=stopFreq, increment=increment,
+                                       numSweeps=numSweeps, dwellTime=dwellTime)
         
-        # self.maxV = self.ps.setChannel('B', 'DC', 1.0, 0.0, enabled=True, BWLimited=False)
-        # self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=200, delay=0, enabled=True)
-
-        # (waveform_duration, deltaPhase) = self.ps.setAWGSimple(waveform, duration,
-        #                                                   offsetVoltage=0.0, indexMode="Dual",
-        #                                                   triggerSource='None')
-        # self.ps.runBlock()
-        # self.wait_ready()
-        # self.ps.getDataV('B', self.nsamples, returnOverflow=False)        
-        # time.sleep(2)
-        
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 20*1e-6)
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 1000e-6)
         self.sample_rate = 1/self.sample_rate
         
-        self.maxV = self.ps.setChannel('B', 'DC', 1.0, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', 0.5, 'Falling', timeout_ms=200, delay=0, enabled=True)
-
-        (waveform_duration, deltaPhase) = self.ps.setAWGSimple(waveform, duration,
-                                                          offsetVoltage=0.0, indexMode="Dual",
-                                                          triggerSource='None')
+        self.maxV = self.ps.setChannel('B', 'DC', 2, 0.0, enabled=True, BWLimited=False)
+        self.ps.setSimpleTrigger('B', -0.1, 'Falling', timeout_ms=200, delay=0, enabled=True)
         
         self.ps.runBlock()
+        self.trig_AWG()
         self.wait_ready()
+
+        data = self.ps.getDataV('B', self.nsamples, returnOverflow=False)
+        t = np.arange(0,len(data)) * 1e6/self.sample_rate
+        plt.plot(t, data)
+        plt.show()
         
-        return self.ps.getDataV('B', self.nsamples, returnOverflow=False)
+    def generate_waveform(self, waveform, duration, dual=False, npulses=1):
+        '''
+        generates an arbitrary waveform given by the Voltage amplitude values in waveform
+        the length of the waveform array has a max of 32768
+        duration is the time duration that this waveform will be spread over
+        waveform is in volts. Max voltage is +- 2V
+        Voltage does not return to zero automatically and will stay at the last setting
+        '''
+        self.connect()
+
+        npulses = npulses+1
+        duration = duration / 5
         
-    
+        if dual:
+            indexMode = 'Dual'
+        else:
+            indexMode = 'Single'
+
+        maxV = max(waveform)
+        minV = min(waveform)
+        pkToPk = maxV - minV
+        offset = (maxV - abs(minV))/2
+        
+        waveform = np.divide(np.subtract(waveform, minV), pkToPk) #scale to 1:0
+        waveform = np.multiply(np.subtract(waveform, 0.5), 2.0) #scale to 1:-1
+        waveform = np.array(np.multiply(waveform, 32767), dtype=np.int16) #scale to 32767:-32767
+        
+        self.ps.setAWGSimple(waveform, duration, pkToPk=pkToPk, offsetVoltage=offset,
+                             triggerSource='SoftTrig', indexMode=indexMode, shots=npulses)
+        
 if __name__=="__main__":
     # cp = cp.CP("http://localhost:9003",rp_url="169.254.1.10")
-    ps = Picoscope()
-    x = np.add(np.zeros(int(16384/2)), 1.0)
-    y = np.add(np.zeros(int(16384/2)), -1.0)
-    plt.plot(np.append(x,y))
-    data = ps.generate_waveform(np.append(x,y), 1e-6)
-    # data = ps.generate_waveform(np.append(x,y), 1e-6)
+    ps = Picoscope(avg_num=0)
+    # ps.generate_square(voltage=-2.0)
+    ps.signal_generator(stopFreq=1.5e6, shots=0, numSweeps=2)
+    # x = np.add(np.zeros(16384, dtype=np.int16), -2)
+    # y = np.add(np.zeros(16384, dtype=np.int16), 0)
     
-    plt.plot(data)
-    plt.show()
+    # arr = np.append(x,y)
+    # t, data = ps.generate_waveform(arr, 50e-6)
+    
+    # plt.plot(t, data)
+    # plt.show()
     
     
     # cp.write('V100')
