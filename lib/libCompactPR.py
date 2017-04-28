@@ -126,6 +126,7 @@ class CP():
         self.write("G%i" % g) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
         self.write(pwidth)
+        self.write("V200")
         ##for now we don't care about Voltage or PRF
         # self.write("V%i" % int(row['voltage'])) 
         # self.write("P%i" % int(row['prf'])) #pulse repitition freq
@@ -162,7 +163,8 @@ if __name__ == "__main__":
 
     cp = CP("http://localhost:9003",rp_url="169.254.134.177")
     print(cp.write("T?"))
-    print(cp.read())
+    print(cp.write("V"))
+    # print(cp.read())
     # data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":10,"delay(us)":0,"time(us)":0})
     #print(data)
     #plt.plot(data[0],data[1])

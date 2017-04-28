@@ -184,9 +184,10 @@ class Picoscope():
         self.connect()
         self.ps.setSigGenBuiltInSimple(offsetVoltage=offset, pkToPk=pkToPk, waveType=waveType, frequency=frequency,
                                        shots=shots, triggerSource='SoftTrig', stopFreq=stopFreq, increment=increment,
-                                       numSweeps=numSweeps, dwellTime=dwellTime)
-        
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 1000e-6)
+                                       numSweeps=numSweeps, dwellTime=dwellTime, sweepType='Up')
+
+        self.sample_rate = 1e6
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, 10)
         self.sample_rate = 1/self.sample_rate
         
         self.maxV = self.ps.setChannel('B', 'DC', 2, 0.0, enabled=True, BWLimited=False)
@@ -197,7 +198,7 @@ class Picoscope():
         self.wait_ready()
 
         data = self.ps.getDataV('B', self.nsamples, returnOverflow=False)
-        t = np.arange(0,len(data)) * 1e6/self.sample_rate
+        t = np.arange(0,len(data)) * 1/self.sample_rate
         plt.plot(t, data)
         plt.show()
         
@@ -235,7 +236,7 @@ if __name__=="__main__":
     # cp = cp.CP("http://localhost:9003",rp_url="169.254.1.10")
     ps = Picoscope(avg_num=0)
     # ps.generate_square(voltage=-2.0)
-    ps.signal_generator(stopFreq=1.5e6, shots=0, numSweeps=2)
+    ps.signal_generator(stopFreq=1000, frequency=100, shots=0, numSweeps=1, increment=100, dwellTime=0.5)
     # x = np.add(np.zeros(16384, dtype=np.int16), -2)
     # y = np.add(np.zeros(16384, dtype=np.int16), 0)
     
