@@ -36,6 +36,7 @@ from flask_login import LoginManager, UserMixin, login_required, login_user
 import eventlet
 import re #regex library
 import data
+import numpy as np
 
 from slack import SlackPoster
 
@@ -265,7 +266,11 @@ class UIDaemon(Daemon):
         def makefig(month,day,year,testid):
             start_date = year + '_' + month + '_' + day
             files = os.listdir(os.path.join('../Data',start_date,testid))
-            files.remove('current.json')
+            try:
+                files.remove('current.json')
+            except:
+                files = sorted(files)
+
             files = sorted(files)
 
             index = int(request.args.get('index', ''))
@@ -273,7 +278,7 @@ class UIDaemon(Daemon):
             framerate = data.get("framerate")
             if framerate == None:
                 framerate = 1.25e8
-            xs = [x*(1e6/framerate) for x in range(len(data['amp']))] #scale x to be in us
+            xs = [x*(1/framerate) for x in range(len(data['amp']))] #scale x to be in us
             fig = plt.figure()
             plt.plot(xs,data['amp'])
             plt.ylabel('Amplitude')
@@ -287,6 +292,49 @@ class UIDaemon(Daemon):
 
             #adding in waterfall plots.
             return json.dumps(out)
+
+        # @app.route('/<month>/<day>/<year>/<testid>/makefft')
+        # @login_required
+        # def makefft(month,day,year,testid):
+        #     start_date = year + '_' + month + '_' + day
+        #     files = os.listdir(os.path.join('../Data',start_date,testid))
+        #     try:
+        #         files.remove('current.json')
+        #     except:
+        #         files = sorted(files)
+
+        #     files = sorted(files)
+
+        #     wav_data = json.load(open(os.path.join('../Data',start_date,testid,files[0])))
+        #     framerate = wav_data.get("framerate")
+        #     if framerate == None:
+        #         framerate = 1.25e8
+
+            
+        #     hs = np.fft.rfft(np.array(wav_data['amp']))
+        #     # the frequency for each component of the spectrum depends
+        #     # on whether the length of the wave is even or odd.
+        #     n = len(hs)
+        #     if n%2 == 0:
+        #         max_freq = framerate / 2.0
+        #     else:
+        #         max_freq = framerate / 2.0 * (n-1)/n
+                
+        #     fs = np.linspace(0, max_freq, n)
+
+        #     fig = plt.figure()
+        #     plt.plot(fs[0:len(fs):2], np.absolute(hs))
+        #     # X = np.linspace(0,100,100)
+        #     # plt.plot(X,2*X)
+
+        #     fftplot = mpld3.fig_to_dict(fig)
+        #     print(fftplot)
+        #     # print(fftplot)
+        #     out = {}
+        #     out['fig03'] = fftplot
+        #     plt.close(fig)
+
+        #     return json.dumps(out)
 
         @app.route('/<month>/<day>/<year>/<testid>/makewaterfall')
         @login_required
@@ -413,19 +461,6 @@ class DBDaemon():
             self.db.insert_test(new_test)
 
 
-    # def check_test(self,wave_file_path, test_id, project_name):
-    #     """Checks to see if a test is in a given project before pushing. actually,
-    #     would be cool to modify this to take a boolean function for checking whatever is needed"""
-    #     logfile_path = os.path.split(wave_file_path)[0] + "/logfile.json"
-    #     table = json.loads(open(logfile_path).read())
-    #     if table[testid]['project'] == project_name:
-    #         return True
-    #     else:
-    #         return False
-
-
-
-
     def write_last_check(self):
         """Keeps a running list of when the last time the db daemon updated"""
         # if os.path.exists("DB_push_status.txt") == False:
@@ -497,5 +532,5 @@ if __name__=="__main__":
     # dbd = DBDaemon(.1)
     # dbd.start()
 
-    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
-    ad.start()
+    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
+    # ad.start()

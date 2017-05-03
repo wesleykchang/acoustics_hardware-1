@@ -16,6 +16,7 @@ for (var keyValue in keyValues) {
 
 var testID = "TestID_" + parameters['testid'];
 loadfig("0")
+// loadfft()
 
 function mod(n, m) {
   return ((n % m) + m) % m;
@@ -48,7 +49,7 @@ function loadfig(index) {
   $.get(testID + "/makefigs", {'index': index},
       function(data)
       {
-         console.log(data);
+         // console.log(data);
          out = JSON.parse(data)
          d3.select("#fig01").selectAll("*").remove();
          mpld3.draw_figure("fig01",out['fig1']);
@@ -73,5 +74,16 @@ function loadwaterfall() {
         mpld3.draw_figure("fig02",out['fig02']);
       })
 }
+
+function loadfft() {
+  $.get(testID + "/makefft",
+      function(data)
+      {
+        // console.log(data);
+        out = JSON.parse(data)
+        mpld3.draw_figure("fig03",out['fig03']);
+      })
+}
+
 
 
