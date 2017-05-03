@@ -20,7 +20,13 @@ sys.path.append('lib')
 import utils
 sys.path.append('../EASI-analysis/analysis')
 from filesystem import Saver
-from libPicoscope import Picoscope
+import data
+# from libPicoscope import Picoscope
+import numpy as np
+
+
+
+from matplotlib import pyplot as plt
 
 def getTestID(filename):
 
@@ -42,6 +48,17 @@ def incTable(filename):
     with open(filename, 'w') as f:
         json.dump(table_state, f)
 
+def linear_chirp(start_f,stop_f,sweep_t):
+    max_samples = 32768
+    sample_rate = max_samples/sweep_t
+    k = (stop_f-start_f)/sweep_t
+    if sample_rate <= 10*stop_f:
+        print("Warning: Sample rate below 10x! Sample rate: %f 10x: %f" %(sample_rate,10*stop_f))
+    t = np.linspace(0,sweep_t,max_samples)
+    chirp = np.sin(2*np.pi*(start_f*t + (k/2)*t**2))
+    return chirp,sample_rate
+
+
 
 if __name__ == '__main__':
     filename = 'table_state.json'
@@ -56,6 +73,7 @@ if __name__ == '__main__':
     stop_f = float(sys.argv[3])
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
+
 
 
     inc = (stop_f - start_f)/num_freqs
@@ -99,12 +117,15 @@ if __name__ == '__main__':
     ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.02,sample_rate=3*stop_f)
     s = Saver()
 
-
-    try:
+    if len(sys.argv) == 5 and sys.argv[5]== 'arb':
+        ys, sample_rate = linear_chirp(start_f,stop_f,sweep_t)
+        data = ps.generate_waveform(self, waveform, duration, dual=False, npulses=1)
+    else:
         data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
-        ps.signal_generator(frequency=1000, shots=1)
-        incTable(filename)
-        s.saveData(data,row,None)
+
+    ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+    incTable(filename)
+    s.saveData(data,row,None)
     except:
         incTable(filename)
         import traceback

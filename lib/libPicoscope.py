@@ -241,6 +241,19 @@ class Picoscope():
         
         self.ps.setAWGSimple(waveform, duration, pkToPk=pkToPk, offsetVoltage=offset,
                              triggerSource='SoftTrig', indexMode=indexMode, shots=npulses)
+
+
+        self.maxV = self.ps.setChannel('B', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+        self.ps.setSimpleTrigger('B', -0.01, 'Falling', timeout_ms=1, delay=0, enabled=True)
+        self.ps.runBlock()
+        self.trig_AWG()
+        self.wait_ready()
+        data = self.ps.getDataV('B', self.nsamples, returnOverflow=False)
+        t = np.arange(0,len(data)) * 1/self.sample_rate
+        t.tolist()
+        # plt.plot(t, data)
+        # plt.show()
+        return [t,data]
         
 if __name__=="__main__":
     # cp = cp.CP("http://localhost:9003",rp_url="169.254.1.10")
