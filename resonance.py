@@ -21,7 +21,7 @@ import utils
 sys.path.append('../EASI-analysis/analysis')
 from filesystem import Saver
 import data
-# from libPicoscope import Picoscope
+from libPicoscope import Picoscope
 import numpy as np
 
 
@@ -114,18 +114,19 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
-    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.02,sample_rate=3*stop_f)
-    s = Saver()
+    try:
+        ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=20,sample_rate=3*stop_f)
+        s = Saver()
 
-    if len(sys.argv) == 5 and sys.argv[5]== 'arb':
-        ys, sample_rate = linear_chirp(start_f,stop_f,sweep_t)
-        data = ps.generate_waveform(self, waveform, duration, dual=False, npulses=1)
-    else:
-        data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
+        if len(sys.argv) == 6 and sys.argv[5]== 'arb':
+            ys, sample_rate = linear_chirp(start_f,stop_f,sweep_t)
+            data = ps.generate_waveform(ys, sweep_t)
+        else:
+            data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
 
-    ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
-    incTable(filename)
-    s.saveData(data,row,None)
+        ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+        incTable(filename)
+        s.saveData(data,row,None)
     except:
         incTable(filename)
         import traceback
