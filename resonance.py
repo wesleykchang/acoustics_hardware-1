@@ -23,9 +23,6 @@ from filesystem import Saver
 import data
 from libPicoscope import Picoscope
 import numpy as np
-
-
-
 from matplotlib import pyplot as plt
 
 def getTestID(filename):
@@ -73,6 +70,8 @@ if __name__ == '__main__':
     stop_f = float(sys.argv[3])
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
+    num_sweeps = 1
+    sample_rate = 3*stop_f
 
 
 
@@ -114,21 +113,47 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
+    samples = sample_rate*sweep_t
+    mean_array = np.zeroes([num_sweeps,samples])
+    spec_list = []
+
+
     try:
-        ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=20,sample_rate=3*stop_f)
-        s = Saver()
+        for i in range(len(num_sweeps)-1):
+            ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=20)
+            s = Saver()
 
-        if len(sys.argv) == 6 and sys.argv[5]== 'arb':
-            ys, sample_rate = linear_chirp(start_f,stop_f,sweep_t)
-            data = ps.generate_waveform(ys, sweep_t)
-        else:
-            data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
+            if len(sys.argv) == 6 and sys.argv[5]== 'arb':
+                ys, awg_samplerate = linear_chirp(start_f,stop_f,sweep_t)
+                res_data = ps.generate_waveform(ys, sweep_t)
+            else:
+                res_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
 
-        ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
-        incTable(filename)
-        s.saveData(data,row,None)
+            ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+            mean_array[i] = res_data
+            s_wav = data.Wave(amps=res_data,framerate=sample_rate)
+            s_spec = s_wav.to_spectrum()
+            spec_list.append(s_spec)
     except:
-        incTable(filename)
         import traceback
         print(traceback.format_exc())
+
+    avg_data = np.mean(mean_array,axis=0)
+    wav = data.wave(amps=avg_data,framerate=sample_rate)
+    wav.plot(scale_x=False)
+    plt.show()
+
+    spec = wav.to_spectrum()
+    spec.plot()
+    plt.show()
+
+    spec_total = spec_list[0]
+    for spectrum in spec_list[1:]:
+        spec_total += spectrum
+    spec_total.hs  = spec_total.hs/(len(spec_list))
+    spec_total.plot()
+    plt.show()
+
+    # incTable(filename)
+    # s.saveData(data,row,None)
 
