@@ -23,10 +23,13 @@ from filesystem import Saver
 import data
 from libPicoscope import Picoscope
 import numpy as np
+<<<<<<< HEAD
 import time
 
 
 
+=======
+>>>>>>> 2063a655c5612c8909423d65992d0dbac1499bd9
 from matplotlib import pyplot as plt
 
 def getTestID(filename):
@@ -74,9 +77,14 @@ if __name__ == '__main__':
     stop_f = float(sys.argv[3])
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
+<<<<<<< HEAD
     sample_rate = 3*stop_f
 
     num_sweeps = 1
+=======
+    num_sweeps = 1
+    sample_rate = 3*stop_f
+>>>>>>> 2063a655c5612c8909423d65992d0dbac1499bd9
 
 
 
@@ -129,14 +137,14 @@ if __name__ == '__main__':
                 w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
             ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
             w = data.Wave(framerate=sample_rate, amps=w_data[1])
-            w_s = w.to_spectrum()
+            # w_s = w.to_spectrum()
             if i == 0:
                 # print(w_data[1])
                 wavesum = w_data[1]
-                specsum = np.array(w_s.hs)
+                # specsum = np.array(w_s.hs)
             else:
                 wavesum = wavesum + w_data[1]
-                specsum = np.add(specsum,np.array(w_s.hs))
+                # specsum = np.add(specsum,np.array(w_s.hs))
             # time.sleep(2.5) #give the power amp a chance to stabilize between tests
         wave_avgs = wavesum/num_sweeps
         wav = data.Wave(amps = wave_avgs, framerate = sample_rate)
@@ -157,8 +165,27 @@ if __name__ == '__main__':
         # plt.show()
         incTable(filename)
         s.saveData(w_data,row,None)
+
     except:
-        incTable(filename)
         import traceback
         print(traceback.format_exc())
+
+    avg_data = np.mean(mean_array,axis=0)
+    wav = data.wave(amps=avg_data,framerate=sample_rate)
+    wav.plot(scale_x=False)
+    plt.show()
+
+    spec = wav.to_spectrum()
+    spec.plot()
+    plt.show()
+
+    spec_total = spec_list[0]
+    for spectrum in spec_list[1:]:
+        spec_total += spectrum
+    spec_total.hs  = spec_total.hs/(len(spec_list))
+    spec_total.plot()
+    plt.show()
+
+    # incTable(filename)
+    # s.saveData(data,row,None)
 
