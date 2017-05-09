@@ -532,5 +532,5 @@ if __name__=="__main__":
     # dbd = DBDaemon(.1)
     # dbd.start()
 
-    # ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
-    # ad.start()
+    ad = AcousticDaemon(uiurl=port,muxurl=muxurl,muxtype="cytec",pulserurl=pulserurl)
+    ad.start()

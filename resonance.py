@@ -21,8 +21,9 @@ import utils
 sys.path.append('../EASI-analysis/analysis')
 from filesystem import Saver
 import data
-# from libPicoscope import Picoscope
+from libPicoscope import Picoscope
 import numpy as np
+import time
 
 
 
@@ -73,6 +74,9 @@ if __name__ == '__main__':
     stop_f = float(sys.argv[3])
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
+    sample_rate = 3*stop_f
+
+    num_sweeps = 1
 
 
 
@@ -114,18 +118,45 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
-    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.02,sample_rate=3*stop_f)
+    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=2,sample_rate=sample_rate)
     s = Saver()
+    try:
+        for i in range(num_sweeps):
+            if len(sys.argv) == 6 and sys.argv[5]== 'arb':
+                ys, sample_rate = linear_chirp(start_f,stop_f,sweep_t)
+                w_data = ps.generate_waveform(ys, sweep_t)
+            else:
+                w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
+            ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+            w = data.Wave(framerate=sample_rate, amps=w_data[1])
+            w_s = w.to_spectrum()
+            if i == 0:
+                # print(w_data[1])
+                wavesum = w_data[1]
+                specsum = np.array(w_s.hs)
+            else:
+                wavesum = wavesum + w_data[1]
+                specsum = np.add(specsum,np.array(w_s.hs))
+            # time.sleep(2.5) #give the power amp a chance to stabilize between tests
+        wave_avgs = wavesum/num_sweeps
+        wav = data.Wave(amps = wave_avgs, framerate = sample_rate)
+        wav.plot(scale_x=False)
+        plt.show()
+        plt.clf()
 
-    if len(sys.argv) == 5 and sys.argv[5]== 'arb':
-        ys, sample_rate = linear_chirp(start_f,stop_f,sweep_t)
-        data = ps.generate_waveform(self, waveform, duration, dual=False, npulses=1)
-    else:
-        data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
+        spec = wav.to_spectrum()
+        spec.plot()
+        plt.title("avg1")
+        plt.show()
+        plt.clf()
 
-    ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
-    incTable(filename)
-    s.saveData(data,row,None)
+        # spec_avgs = specsum/num_sweeps
+        # print(spec_avgs)
+        # sp = data.Spectrum(spec_avgs,sample_rate)
+        # sp.plot()
+        # plt.show()
+        incTable(filename)
+        s.saveData(w_data,row,None)
     except:
         incTable(filename)
         import traceback
