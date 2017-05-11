@@ -23,13 +23,8 @@ from filesystem import Saver
 import data
 from libPicoscope import Picoscope
 import numpy as np
-<<<<<<< HEAD
 import time
 
-
-
-=======
->>>>>>> 2063a655c5612c8909423d65992d0dbac1499bd9
 from matplotlib import pyplot as plt
 
 def getTestID(filename):
@@ -77,14 +72,8 @@ if __name__ == '__main__':
     stop_f = float(sys.argv[3])
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
-<<<<<<< HEAD
-    sample_rate = 3*stop_f
-
-    num_sweeps = 1
-=======
     num_sweeps = 1
     sample_rate = 3*stop_f
->>>>>>> 2063a655c5612c8909423d65992d0dbac1499bd9
 
 
 
@@ -126,7 +115,7 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
-    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=2,sample_rate=sample_rate)
+    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.1,sample_rate=sample_rate)
     s = Saver()
     try:
         for i in range(num_sweeps):
@@ -137,32 +126,25 @@ if __name__ == '__main__':
                 w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
             ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
             w = data.Wave(framerate=sample_rate, amps=w_data[1])
-            # w_s = w.to_spectrum()
+            w.plot(scale_x=False)
+            plt.show()
+            w_s = w.to_spectrum()
+            w_s.plot()
+            plt.show()
             if i == 0:
-                # print(w_data[1])
-                wavesum = w_data[1]
-                # specsum = np.array(w_s.hs)
+                specsum = w_s
             else:
-                wavesum = wavesum + w_data[1]
-                # specsum = np.add(specsum,np.array(w_s.hs))
+                # wavesum = wavesum + w_data[1]
+                specsum += w_s
             # time.sleep(2.5) #give the power amp a chance to stabilize between tests
-        wave_avgs = wavesum/num_sweeps
-        wav = data.Wave(amps = wave_avgs, framerate = sample_rate)
-        wav.plot(scale_x=False)
+
+        specsum.hs = specsum.hs/num_sweeps
+        specsum.plot()
+
+        plt.title(serialnumber)
         plt.show()
         plt.clf()
 
-        spec = wav.to_spectrum()
-        spec.plot()
-        plt.title("avg1")
-        plt.show()
-        plt.clf()
-
-        # spec_avgs = specsum/num_sweeps
-        # print(spec_avgs)
-        # sp = data.Spectrum(spec_avgs,sample_rate)
-        # sp.plot()
-        # plt.show()
         incTable(filename)
         s.saveData(w_data,row,None)
 
@@ -170,21 +152,21 @@ if __name__ == '__main__':
         import traceback
         print(traceback.format_exc())
 
-    avg_data = np.mean(mean_array,axis=0)
-    wav = data.wave(amps=avg_data,framerate=sample_rate)
-    wav.plot(scale_x=False)
-    plt.show()
+    # avg_data = np.mean(mean_array,axis=0)
+    # wav = data.wave(amps=avg_data,framerate=sample_rate)
+    # wav.plot(scale_x=False)
+    # plt.show()
 
-    spec = wav.to_spectrum()
-    spec.plot()
-    plt.show()
+    # spec = wav.to_spectrum()
+    # spec.plot()
+    # plt.show()
 
-    spec_total = spec_list[0]
-    for spectrum in spec_list[1:]:
-        spec_total += spectrum
-    spec_total.hs  = spec_total.hs/(len(spec_list))
-    spec_total.plot()
-    plt.show()
+    # spec_total = spec_list[0]
+    # for spectrum in spec_list[1:]:
+    #     spec_total += spectrum
+    # spec_total.hs  = spec_total.hs/(len(spec_list))
+    # spec_total.plot()
+    # plt.show()
 
     # incTable(filename)
     # s.saveData(data,row,None)
