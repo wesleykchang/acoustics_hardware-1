@@ -21,9 +21,10 @@ import utils
 sys.path.append('../EASI-analysis/analysis')
 from filesystem import Saver
 import data
-from libPicoscope import Picoscope
+# from libPicoscope import Picoscope
 import numpy as np
 import time
+from scipy.optimize import fsolve
 
 from matplotlib import pyplot as plt
 
@@ -56,6 +57,57 @@ def linear_chirp(start_f,stop_f,sweep_t):
     t = np.linspace(0,sweep_t,max_samples)
     chirp = np.sin(2*np.pi*(start_f*t + (k/2)*t**2))
     return chirp,sample_rate
+
+def segments(start_f,stop_f,sweep_t,sample_factor=5):
+    max_samples = 32768
+    k = (stop_f-start_f)/sweep_t #how quickly the chirp increases
+    t_total = 0
+    chirp_list = []
+    t_list = np.array([])
+    # t_arrays = []
+
+    i = 0 #index for how many loops. used to increase samples
+
+    while t_total < sweep_t:
+        i += 1
+        func = lambda t : sample_factor*k*t**2 + sample_factor*start_f*t - max_samples*i
+        t_i = fsolve(func,1)[0] - t_total
+        t_array = np.linspace(t_total,t_total+t_i, max_samples)
+        # t_arrays.append(t_array)
+        chirp_i = np.sin(2*np.pi*(start_f*t_array + (k/2)*t_array**2))
+        # plt.plot(t_array,chirp_i,'-')
+        # plt.show()
+
+        # print(max_samples/(t_i))
+        # w = data.Wave(amps = chirp_i, delay=t_total, framerate = max_samples/(t_i))
+        # print(w.framerate)
+        # w.plot()
+        # plt.show()
+
+        # s = w.to_spectrum()
+        # s.plot()
+        # plt.show()
+
+
+        t_list.append((t_total,t_total+t_i,t_i)) #tuple containing start, end, duration
+        chirp_list.append(chirp_i)
+        t_total += t_i
+
+    return t_list, chirp_list
+
+
+
+
+
+# def linear_chirp_chunked(start_f,stop_f,sweep_t):
+#     max_samples = 32768
+#     sample_rate = max_samples/sweep_t
+#     k = (stop_f-start_f)/sweep_t
+#     if sample_rate <= 10*stop_f:
+#         print("Warning: Sample rate below 10x! Sample rate: %f 10x: %f" %(sample_rate,10*stop_f))
+#     t = np.linspace(0,sweep_t,max_samples)
+#     chirp = np.sin(2*np.pi*(start_f*t + (k/2)*t**2))
+#     return chirp,sample_rate
 
 
 
@@ -120,17 +172,26 @@ if __name__ == '__main__':
     try:
         for i in range(num_sweeps):
             if len(sys.argv) == 6 and sys.argv[5]== 'arb':
-                ys, sample_rate = linear_chirp(start_f,stop_f,sweep_t)
-                w_data = ps.generate_waveform(ys, sweep_t)
+                t_list, chirp_list = segments(start_f,stop_f,sweep_t)
+                i = 0
+                total_data = np.array([])
+                total_ts = np.array([])
+                for time in t_list:
+                    ps.sample_rate = (32000/time[2])
+                    w_data = ps.generate_waveform(chirp_list[i], time[2])
+                    total_data.append(w_data)
+                    sample_ts = np.linspace(time[0],time[1],len(w_data))
+                    i += 1
+
             else:
                 w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
             ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
-            w = data.Wave(framerate=sample_rate, amps=w_data[1])
-            w.plot(scale_x=False)
-            plt.show()
-            w_s = w.to_spectrum()
-            w_s.plot()
-            plt.show()
+            # w = data.Wave(framerate=sample_rate, amps=w_data[1])
+            # w.plot(scale_x=False)
+            # plt.show()
+            # w_s = w.to_spectrum()
+            # w_s.plot()
+            # plt.show()
             if i == 0:
                 specsum = w_s
             else:
@@ -138,36 +199,36 @@ if __name__ == '__main__':
                 specsum += w_s
             # time.sleep(2.5) #give the power amp a chance to stabilize between tests
 
-        specsum.hs = specsum.hs/num_sweeps
-        specsum.plot()
+        # specsum.hs = specsum.hs/num_sweeps
+        # specsum.plot()
 
-        plt.title(serialnumber)
-        plt.show()
-        plt.clf()
+        # plt.title(serialnumber)
+        # plt.show()
+        # plt.clf()
 
-        incTable(filename)
-        s.saveData(w_data,row,None)
+        # incTable(filename)
+        # s.saveData(w_data,row,None)
 
     except:
         import traceback
         print(traceback.format_exc())
 
-    # avg_data = np.mean(mean_array,axis=0)
-    # wav = data.wave(amps=avg_data,framerate=sample_rate)
-    # wav.plot(scale_x=False)
-    # plt.show()
+    avg_data = np.mean(mean_array,axis=0)
+    wav = data.wave(amps=avg_data,framerate=sample_rate)
+    wav.plot(scale_x=False)
+    plt.show()
 
-    # spec = wav.to_spectrum()
-    # spec.plot()
-    # plt.show()
+    spec = wav.to_spectrum()
+    spec.plot()
+    plt.show()
 
-    # spec_total = spec_list[0]
-    # for spectrum in spec_list[1:]:
-    #     spec_total += spectrum
-    # spec_total.hs  = spec_total.hs/(len(spec_list))
-    # spec_total.plot()
-    # plt.show()
+    spec_total = spec_list[0]
+    for spectrum in spec_list[1:]:
+        spec_total += spectrum
+    spec_total.hs  = spec_total.hs/(len(spec_list))
+    spec_total.plot()
+    plt.show()
 
-    # incTable(filename)
-    # s.saveData(data,row,None)
+    incTable(filename)
+    s.saveData(data,row,None)
 
