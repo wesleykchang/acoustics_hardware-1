@@ -277,7 +277,7 @@ class UIDaemon(Daemon):
             print(framerate)
             if framerate == None:
                 framerate = 1.25e8
-            xs = [x*(1/framerate) for x in range(len(data['amp']))] #scale x to be in us
+            xs = [x*(1e6/framerate) for x in range(len(data['amp']))] #scale x to be in us
             fig = plt.figure()
             plt.plot(xs,data['amp'])
             plt.ylabel('Amplitude')
