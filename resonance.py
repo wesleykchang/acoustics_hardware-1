@@ -58,7 +58,7 @@ def linear_chirp(start_f,stop_f,sweep_t):
     chirp = np.sin(2*np.pi*(start_f*t + (k/2)*t**2))
     return chirp,sample_rate
 
-def segments(start_f,stop_f,sweep_t,sample_factor=5):
+def segments(start_f,stop_f,sweep_t,sample_factor=10):
     max_samples = 32768
     k = (stop_f-start_f)/sweep_t #how quickly the chirp increases
     t_total = 0
@@ -73,15 +73,15 @@ def segments(start_f,stop_f,sweep_t,sample_factor=5):
         func = lambda t : sample_factor*k*t**2 + sample_factor*start_f*t - max_samples*i
         t_i = fsolve(func,1)[0] - t_total
         if (t_total+t_i) > sweep_t:
-            t_array = np.linspace(t_i,sweep_t,max_samples)
+            sweep_end = sweep_t
         else:
-            t_array = np.linspace(t_total,t_total+t_i, max_samples)
+            sweep_end = t_total + t_i
+        t_array = np.linspace(t_total,sweep_end, max_samples)
         # t_arrays.append(t_array)
         chirp_i = np.sin(2*np.pi*(start_f*t_array + (k/2)*t_array**2))
-        # plt.plot(t_array,chirp_i,'-')
-        # plt.show()
 
         # print(max_samples/(t_i))
+        # print(t_total,sweep_end,t_i)
         # w = data.Wave(amps = chirp_i, delay=t_total, framerate = max_samples/(t_i))
         # print(w.framerate)
         # w.plot()
@@ -92,7 +92,7 @@ def segments(start_f,stop_f,sweep_t,sample_factor=5):
         # plt.show()
 
 
-        t_list.append((t_total,t_total+t_i,t_i)) #tuple containing start, end, duration
+        t_list.append((t_total,sweep_end,(sweep_end-t_total))) #tuple containing start, end, duration
         chirp_list.append(chirp_i)
         t_total += t_i
 
@@ -170,7 +170,7 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
-    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=2,sample_rate=sample_rate) ###Change this to be dynamic!!
+    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.2,sample_rate=sample_rate) ###Change this to be dynamic!!
     s = Saver()
     try:
         for i in range(num_sweeps):
@@ -182,7 +182,8 @@ if __name__ == '__main__':
                 total_ts = np.array([])
                 for time in t_list:
                     print(time)
-                    rx_sample_rate = (32000/time[2])
+                    rx_sample_rate = (200e3)
+                    print(len(chirp_list[i]),time[2])
                     w_data = ps.generate_waveform(chirp_list[i], time[2],rx_sample_rate)
                     # ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
                     sample_ts = np.linspace(time[0],time[1],len(w_data[1]))
@@ -192,15 +193,14 @@ if __name__ == '__main__':
                     total_ts = np.append(total_ts, sample_ts)
                     i += 1
 
-                    seg_wave = data.Wave(amps=w_data[1],framerate=sample_rate,delay=time[0])
+                    seg_wave = data.Wave(amps=w_data[1],framerate=rx_sample_rate,delay=time[0])
                     seg_wave.plot(scale_x=False)
                     plt.show()
 
                     seg_spec = seg_wave.to_spectrum()
                     seg_spec.plot()
                     plt.show()
-                print(total_ts)
-                print(total_data)
+
                 plt.plot(total_ts,total_data,'b-')
                 plt.show()
 

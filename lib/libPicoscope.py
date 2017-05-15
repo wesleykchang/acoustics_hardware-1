@@ -237,6 +237,7 @@ class Picoscope():
         waveform = np.divide(np.subtract(waveform, minV), pkToPk) #scale to 1:0
         waveform = np.multiply(np.subtract(waveform, 0.5), 2.0) #scale to 1:-1
         waveform = np.array(np.multiply(waveform, 32767), dtype=np.int16) #scale to 32767:-32767
+
         
         self.ps.setAWGSimple(waveform, duration, pkToPk=pkToPk, offsetVoltage=offset,
                              triggerSource='SoftTrig', indexMode=indexMode, shots=npulses)
@@ -244,8 +245,10 @@ class Picoscope():
 
 
         #change the sample_rate on the receive side.
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration)
-        self.sample_rate = 1/self.sample_rate
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/rx_samplerate, duration*5)
+        self.sample_rate = 1/rx_samplerate
+
+
         self.maxV = self.ps.setChannel('B', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', -0.01, 'Falling', timeout_ms=1, delay=0, enabled=True)
         self.ps.runBlock()
