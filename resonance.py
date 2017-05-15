@@ -49,6 +49,8 @@ def incTable(filename):
         json.dump(table_state, f)
 
 def linear_chirp(start_f,stop_f,sweep_t):
+    """Creates a linear chirp, intended for single sweeps, therefore very limited in terms of 
+    sweep duration/sample rate"""
     max_samples = 32768
     sample_rate = max_samples/sweep_t
     k = (stop_f-start_f)/sweep_t
@@ -59,12 +61,14 @@ def linear_chirp(start_f,stop_f,sweep_t):
     return chirp,sample_rate
 
 def segments(start_f,stop_f,sweep_t,sample_factor=10):
+    """Takes a sweep range and duration, and splits it into multiple smaller sweeps based on
+    equipment buffer and the sample factor (e.g. always keep sampling frequency to be ~10f. Does
+    this based off of a linear approximation."""
     max_samples = 32768
     k = (stop_f-start_f)/sweep_t #how quickly the chirp increases
     t_total = 0
     chirp_list = []
     t_list = []
-    # t_arrays = []
 
     i = 0 #index for how many loops. used to increase samples
 
@@ -77,41 +81,13 @@ def segments(start_f,stop_f,sweep_t,sample_factor=10):
         else:
             sweep_end = t_total + t_i
         t_array = np.linspace(t_total,sweep_end, max_samples)
-        # t_arrays.append(t_array)
         chirp_i = np.sin(2*np.pi*(start_f*t_array + (k/2)*t_array**2))
-
-        # print(max_samples/(t_i))
-        # print(t_total,sweep_end,t_i)
-        # w = data.Wave(amps = chirp_i, delay=t_total, framerate = max_samples/(t_i))
-        # print(w.framerate)
-        # w.plot()
-        # plt.show()
-
-        # s = w.to_spectrum()
-        # s.plot()
-        # plt.show()
-
 
         t_list.append((t_total,sweep_end,(sweep_end-t_total))) #tuple containing start, end, duration
         chirp_list.append(chirp_i)
         t_total += t_i
 
     return t_list, chirp_list
-
-
-
-
-
-# def linear_chirp_chunked(start_f,stop_f,sweep_t):
-#     max_samples = 32768
-#     sample_rate = max_samples/sweep_t
-#     k = (stop_f-start_f)/sweep_t
-#     if sample_rate <= 10*stop_f:
-#         print("Warning: Sample rate below 10x! Sample rate: %f 10x: %f" %(sample_rate,10*stop_f))
-#     t = np.linspace(0,sweep_t,max_samples)
-#     chirp = np.sin(2*np.pi*(start_f*t + (k/2)*t**2))
-#     return chirp,sample_rate
-
 
 
 if __name__ == '__main__':
@@ -194,6 +170,7 @@ if __name__ == '__main__':
                     i += 1
 
                     seg_wave = data.Wave(amps=w_data[1],framerate=rx_sample_rate,delay=time[0])
+                    seg_wave.hamming()
                     seg_wave.plot(scale_x=False)
                     plt.show()
 
