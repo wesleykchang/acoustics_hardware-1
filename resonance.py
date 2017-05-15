@@ -182,9 +182,8 @@ if __name__ == '__main__':
                 total_ts = np.array([])
                 for time in t_list:
                     print(time)
-                    # ps.sample_rate = (32000/time[2])
-                    w_data = ps.generate_waveform(chirp_list[i], time[2])
-                    # ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+                    rx_sample_rate = (32000/time[2])
+                    w_data = ps.generate_waveform(chirp_list[i], time[2],rx_sample_rate)
                     # ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
                     sample_ts = np.linspace(time[0],time[1],len(w_data[1]))
                     # plt.plot(sample_ts, w_data[1])

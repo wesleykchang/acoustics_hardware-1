@@ -30,7 +30,6 @@ class Picoscope():
         # print(self.sample_rate)
         # print(self.sample_rate*self.duration)
         self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
-        # print(self.maxsamples)
         self.sample_rate = 1/self.sample_rate
 
         # self.avg_num = avg_num
@@ -212,7 +211,7 @@ class Picoscope():
         return [t,data]
 
         
-    def generate_waveform(self, waveform, duration, dual=False, npulses=1):
+    def generate_waveform(self, waveform, duration, rx_samplerate, dual=False, npulses=1):
         '''
         generates an arbitrary waveform given by the Voltage amplitude values in waveform
         the length of the waveform array has a max of 32768
@@ -243,6 +242,10 @@ class Picoscope():
                              triggerSource='SoftTrig', indexMode=indexMode, shots=npulses)
 
 
+
+        #change the sample_rate on the receive side.
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration)
+        self.sample_rate = 1/self.sample_rate
         self.maxV = self.ps.setChannel('B', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', -0.01, 'Falling', timeout_ms=1, delay=0, enabled=True)
         self.ps.runBlock()
