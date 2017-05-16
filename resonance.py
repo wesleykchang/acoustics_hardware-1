@@ -104,7 +104,7 @@ if __name__ == '__main__':
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
     num_sweeps = 1
-    sample_rate = 3*stop_f
+    sample_rate = 10*stop_f
 
 
 
@@ -167,6 +167,10 @@ if __name__ == '__main__':
                     total_ts = np.append(total_ts, sample_ts)
 
                     seg_wave = data.Wave(amps=w_data[1],framerate=rx_sample_rate,delay=time[0])
+<<<<<<< HEAD
+=======
+                    # seg_wave.hamming()
+>>>>>>> 953ba728b4b25e6d122adf47f723cffb12e759c1
                     seg_wave.plot(scale_x=False)
                     plt.show()
 
@@ -196,7 +200,32 @@ if __name__ == '__main__':
 
             else:
                 w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
+                w = data.Wave(framerate=sample_rate, amps=w_data[1])
+                w.plot(scale_x=False)
+                plt.show()
+                w_s = w.to_spectrum()
+                w_s.plot()
+                plt.show()
             ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+<<<<<<< HEAD
+=======
+            # if i == 0:
+            #     specsum = w_s
+            # else:
+            #     # wavesum = wavesum + w_data[1]
+            #     specsum += w_s
+            # time.sleep(2.5) #give the power amp a chance to stabilize between tests
+
+        # specsum.hs = specsum.hs/num_sweeps
+        # specsum.plot()
+
+        # plt.title(serialnumber)
+        # plt.show()
+        # plt.clf()
+
+        # incTable(filename)
+        # s.saveData(w_data,row,None)
+>>>>>>> 953ba728b4b25e6d122adf47f723cffb12e759c1
 
     except:
         import traceback
