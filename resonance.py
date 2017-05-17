@@ -24,6 +24,7 @@ import data
 from libPicoscope import Picoscope
 import numpy as np
 import time
+import json
 from scipy.optimize import fsolve
 
 from matplotlib import pyplot as plt
@@ -90,6 +91,19 @@ def segments(start_f,stop_f,sweep_t,sample_factor=10):
     return t_list, chirp_list, k
 
 
+def save_res_data(spec_obj, row):
+    data = {}
+    data['hs'] = spec_obj.hs
+    data['framerate'] = spec_obj.framerate
+    data.update(row)
+
+    folder = '../Resonance'
+    filename = os.path.join(folder, row['serialnumber'])
+    json.dump(data, open(filename, 'w'))
+    return
+
+
+
 if __name__ == '__main__':
     filename = 'table_state.json'
     if not os.path.exists(filename):
@@ -114,32 +128,17 @@ if __name__ == '__main__':
     # channel1 = '0,7'
     # channel2 = '6,7'
 
-    last_tid = getTestID(filename)
-    new_tid = last_tid + 1
-    new_tid = '_'.join((macAddress, str(new_tid)))
+    # last_tid = getTestID(filename)
+    # new_tid = last_tid + 1
+    # new_tid = '_'.join((macAddress, str(new_tid)))
     dtformat = '%b %d %Y %H:%M:%S'
     dateformat = '%Y_%m_%d'
     dt = datetime.datetime.now()
 
     row = {
-        "date_fname":dt.strftime(dateformat),
         "startdate":dt.strftime(dtformat),
-        "testid":new_tid,
-        "lastwaveform":"",
         "project":"resonance3",
         "serialnumber":serialnumber,
-        "mode(tr/pe)":"tr",
-        "channel":"55,55",
-        "channel2":"55,55",
-        "gain(db)":"20",
-        "delay(us)":"0",
-        "time(us)":"40",
-        "freq(mhz)":"0",
-        "filtermode":"0",
-        "cyclercode":"",
-        "notes":"",
-        "run(y/n)":"y",
-        "singleshot":"false",
         "start_f" : start_f,
         "stop_f" : stop_f,
         "sweep_t" : sweep_t,
@@ -217,8 +216,8 @@ if __name__ == '__main__':
         # plt.show()
         # plt.clf()
 
-        incTable(filename)
-        s.saveData(w_data,row,None)
+        # incTable(filename)
+        # s.saveData(w_data,row,None)
     except:
         import traceback
         print(traceback.format_exc())
