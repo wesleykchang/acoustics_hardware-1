@@ -104,7 +104,7 @@ if __name__ == '__main__':
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
     num_sweeps = 1
-    sample_rate = 10*stop_f
+    sample_rate = 3*stop_f
 
 
 
@@ -126,7 +126,7 @@ if __name__ == '__main__':
         "startdate":dt.strftime(dtformat),
         "testid":new_tid,
         "lastwaveform":"",
-        "project":"resonance2",
+        "project":"resonance3",
         "serialnumber":serialnumber,
         "mode(tr/pe)":"tr",
         "channel":"55,55",
@@ -146,31 +146,26 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
-    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.2,sample_rate=sample_rate) ###Change this to be dynamic!!
+    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.7,sample_rate=sample_rate) ###Change this to be dynamic!!
     s = Saver()
     try:
         for i in range(num_sweeps):
-            print(len(sys.argv),sys.argv[4])
             if len(sys.argv) == 6 and sys.argv[5]== 'arb':
                 t_list, chirp_list, k = segments(start_f,stop_f,sweep_t)
                 i = 0
-                total_data = np.array([])
+                w_data = np.array([])
                 total_ts = np.array([])
                 for time in t_list:
                     print(time)
                     rx_sample_rate = 4*stop_f #could vary this, but would be a pain to fft
-                    w_data = ps.generate_waveform(chirp_list[i], time[2],rx_sample_rate)
-                    sample_ts = np.linspace(time[0],time[1],len(w_data[1]))
+                    rx_data = ps.generate_waveform(chirp_list[i], time[2],rx_sample_rate)
+                    sample_ts = np.linspace(time[0],time[1],len(rx_data[1]))
 
                     #add chirp segment to total time data
-                    total_data = np.append(total_data,w_data[1])
+                    w_data = np.append(w_data,rx_data[1])
                     total_ts = np.append(total_ts, sample_ts)
 
-                    seg_wave = data.Wave(amps=w_data[1],framerate=rx_sample_rate,delay=time[0])
-<<<<<<< HEAD
-=======
-                    # seg_wave.hamming()
->>>>>>> 953ba728b4b25e6d122adf47f723cffb12e759c1
+                    seg_wave = data.Wave(amps=rx_data[1],framerate=rx_sample_rate,delay=time[0])
                     seg_wave.plot(scale_x=False)
                     plt.show()
 
@@ -191,7 +186,7 @@ if __name__ == '__main__':
 
                     i += 1
 
-                plt.plot(total_ts,total_data,'b-')
+                plt.plot(total_ts,w_data,'b-')
                 plt.show()
 
                 seg_total.plot()
@@ -200,15 +195,14 @@ if __name__ == '__main__':
 
             else:
                 w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
+                ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
                 w = data.Wave(framerate=sample_rate, amps=w_data[1])
                 w.plot(scale_x=False)
                 plt.show()
                 w_s = w.to_spectrum()
+                # w_s.to_csv(serialnumber + '.csv')
                 w_s.plot()
                 plt.show()
-            ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
-<<<<<<< HEAD
-=======
             # if i == 0:
             #     specsum = w_s
             # else:
@@ -223,10 +217,8 @@ if __name__ == '__main__':
         # plt.show()
         # plt.clf()
 
-        # incTable(filename)
-        # s.saveData(w_data,row,None)
->>>>>>> 953ba728b4b25e6d122adf47f723cffb12e759c1
-
+        incTable(filename)
+        s.saveData(w_data,row,None)
     except:
         import traceback
         print(traceback.format_exc())
