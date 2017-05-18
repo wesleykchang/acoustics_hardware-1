@@ -93,11 +93,13 @@ def segments(start_f,stop_f,sweep_t,sample_factor=10):
 
 def save_res_data(spec_obj, row):
     data = {}
-    data['hs'] = spec_obj.hs
     data['framerate'] = spec_obj.framerate
+    data['hs'] = list(spec_obj.hs.view(float))
     data.update(row)
 
     folder = '../Resonance'
+    if os.path.exists(folder) == False:
+        os.mkdir(folder)
     filename = os.path.join(folder, row['serialnumber'])
     json.dump(data, open(filename, 'w'))
     return
@@ -145,7 +147,7 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
-    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.7,sample_rate=sample_rate) ###Change this to be dynamic!!
+    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.02,sample_rate=sample_rate) ###Change this to be dynamic!!
     s = Saver()
     try:
         for i in range(num_sweeps):
@@ -187,9 +189,10 @@ if __name__ == '__main__':
 
                 plt.plot(total_ts,w_data,'b-')
                 plt.show()
-
                 seg_total.plot()
                 plt.show()
+
+
 
 
             else:
@@ -201,7 +204,18 @@ if __name__ == '__main__':
                 w_s = w.to_spectrum()
                 # w_s.to_csv(serialnumber + '.csv')
                 w_s.plot()
+
+                save_res_data(w_s, row)
+
+                fig_name = serialnumber + '.png'
+                fig_path = os.path.join('../Resonance','figs',fig_name)
+                plt.xlabel('Frequency(Hz)')
+                plt.ylabel('Magnitude')
+                plt.title(serialnumber)
+                plt.savefig(fig_path)
                 plt.show()
+
+
             # if i == 0:
             #     specsum = w_s
             # else:
