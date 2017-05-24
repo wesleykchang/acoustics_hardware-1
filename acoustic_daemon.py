@@ -393,7 +393,7 @@ class DBDaemon():
                 wave_test_id = file_names[-2][7:]
                 # if self.check_test(mod_file,wave_test_id,"Fuji") == True:
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
-                ws = data.Waveset(wave_test_id,waves=[new_wave])
+                ws = data.Waveset(waves=[new_wave],wave_test_id)
                 self.db.insert_waveset(ws,prevent_duplicates=False)
                 # else:
                 #     pass
@@ -415,19 +415,6 @@ class DBDaemon():
             new_test = data.Test(tabledata=row)
             # all_tests[row["test_id"]] = new_test
             self.db.insert_test(new_test)
-
-
-    # def check_test(self,wave_file_path, test_id, project_name):
-    #     """Checks to see if a test is in a given project before pushing. actually,
-    #     would be cool to modify this to take a boolean function for checking whatever is needed"""
-    #     logfile_path = os.path.split(wave_file_path)[0] + "/logfile.json"
-    #     table = json.loads(open(logfile_path).read())
-    #     if table[testid]['project'] == project_name:
-    #         return True
-    #     else:
-    #         return False
-
-
 
 
     def write_last_check(self):
