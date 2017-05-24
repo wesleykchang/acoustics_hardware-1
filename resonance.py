@@ -92,18 +92,36 @@ def segments(start_f,stop_f,sweep_t,sample_factor=10):
 
 
 def save_res_data(spec_obj, row):
-    data = {}
-    data['framerate'] = spec_obj.framerate
-    data['hs'] = list(spec_obj.hs.view(float))
-    data.update(row)
+    dat = {}
+    dat['framerate'] = spec_obj.framerate
+    dat['hs'] = list(spec_obj.hs.view(float))
+    dat.update(row)
 
     folder = '../Resonance'
     if os.path.exists(folder) == False:
         os.mkdir(folder)
     filename = os.path.join(folder, row['serialnumber'])
-    json.dump(data, open(filename, 'w'))
+    json.dump(dat, open(filename, 'w'))
     return
 
+def save_res_spec(spec_obj, fname):
+    dat = {}
+    dat['framerate'] = spec_obj.framerate
+    dat['hs'] = list(spec_obj.hs.view(float))
+    dat['timestamp'] = time.time()
+
+    folder = '../Resonance/misc'
+    if os.path.exists(folder) == False:
+        os.mkdir(folder)
+    filename = os.path.join(folder, fname)
+    json.dump(dat, open(filename, 'w'))
+    return
+
+
+def pad(array, pad_no):
+    zs = np.zeros(pad_no)
+    padded = np.append(array,zs)
+    return padded
 
 
 if __name__ == '__main__':
@@ -120,7 +138,7 @@ if __name__ == '__main__':
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
     num_sweeps = 1
-    sample_rate = 3*stop_f
+    sample_rate = 5*stop_f
 
 
 
@@ -147,7 +165,7 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
-    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.02,sample_rate=sample_rate) ###Change this to be dynamic!!
+    ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.2,sample_rate=sample_rate) ###Change this to be dynamic!!
     s = Saver()
     try:
         for i in range(num_sweeps):
@@ -156,29 +174,39 @@ if __name__ == '__main__':
                 i = 0
                 w_data = np.array([])
                 total_ts = np.array([])
-                for time in t_list:
-                    print(time)
-                    rx_sample_rate = 4*stop_f #could vary this, but would be a pain to fft
-                    rx_data = ps.generate_waveform(chirp_list[i], time[2],rx_sample_rate)
-                    sample_ts = np.linspace(time[0],time[1],len(rx_data[1]))
+                for times in t_list:
+                    print(times)
+                    rx_sample_rate = 5*stop_f #could vary this, but would be a pain to fft
+                    rx_data = ps.generate_waveform(chirp_list[i], times[2],rx_sample_rate)
+                    sample_ts = np.linspace(times[0],times[1],len(rx_data[1]))
 
                     #add chirp segment to total time data
                     w_data = np.append(w_data,rx_data[1])
                     total_ts = np.append(total_ts, sample_ts)
 
-                    seg_wave = data.Wave(amps=rx_data[1],framerate=rx_sample_rate,delay=time[0])
-                    seg_wave.plot(scale_x=False)
-                    plt.show()
+                    if i == 0:
+                        pad_no = 0
+                    else:
+                        pad_no = (len(seg_total.hs)-1)*2 - len(rx_data[1])
 
-                    f0_i = (start_f + time[0] * k) #f at beginning of chirp segment
-                    f1_i = (start_f + time[1] * k) #f at end of chirp seg
-                    thresh = 0
+                    print(pad_no)
+                    print(pad(rx_data[1],pad_no))
+
+                    seg_wave = data.Wave(amps=pad(rx_data[1],pad_no),framerate=rx_sample_rate,delay=times[0])
+                    print(len(seg_wave.amps))
+                    # seg_wave.plot(scale_x=False)
+                    # plt.show()
+
+                    f0_i = (start_f + times[0] * k) #f at beginning of chirp segment
+                    f1_i = (start_f + times[1] * k) #f at end of chirp seg
+                    thresh = stop_f*.1
                     # thresh = start_f/20 #arbitrary threshold for filter limits
 
                     seg_spec = seg_wave.to_spectrum()
-                    seg_spec.band_stop(f0_i - thresh, f1_i + thresh)
-                    seg_spec.plot()
-                    plt.show()
+                    print(f0_i,f1_i)
+                    seg_spec.band_pass(f0_i - thresh,f1_i + thresh)
+                    # seg_spec.plot()
+                    # plt.show()
 
                     if i == 0:
                         seg_total = seg_spec
@@ -187,10 +215,13 @@ if __name__ == '__main__':
 
                     i += 1
 
+                    pad_no = len(seg_total.hs)
+
                 plt.plot(total_ts,w_data,'b-')
                 plt.show()
                 seg_total.plot()
                 plt.show()
+                save_res_spec(seg_total,'arb.json')
 
 
 
@@ -199,29 +230,30 @@ if __name__ == '__main__':
                 w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
                 ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
                 w = data.Wave(framerate=sample_rate, amps=w_data[1])
-                w.plot(scale_x=False)
-                plt.show()
+                # w.plot(scale_x=False)
+                # plt.show()
                 w_s = w.to_spectrum()
-                # w_s.to_csv(serialnumber + '.csv')
+                # # w_s.to_csv(serialnumber + '.csv')
                 w_s.plot()
-
-                save_res_data(w_s, row)
-
-                fig_name = serialnumber + '.png'
-                fig_path = os.path.join('../Resonance','figs',fig_name)
-                plt.xlabel('Frequency(Hz)')
-                plt.ylabel('Magnitude')
-                plt.title(serialnumber)
-                plt.savefig(fig_path)
                 plt.show()
+                save_res_spec(w_s,'generator.json')
+
+                # save_res_data(w_s, row)
+
+                # fig_name = serialnumber + '.png'
+                # fig_path = os.path.join('../Resonance','figs',fig_name)
+                # plt.xlabel('Frequency(Hz)')
+                # plt.ylabel('Magnitude')
+                # plt.title(serialnumber)
+                # plt.savefig(fig_path)
+                # plt.show()
 
 
-            # if i == 0:
-            #     specsum = w_s
-            # else:
-            #     # wavesum = wavesum + w_data[1]
-            #     specsum += w_s
-            # time.sleep(2.5) #give the power amp a chance to stabilize between tests
+                # if i == 0:
+                #     specsum = w_s
+                # else:
+                #     # wavesum = wavesum + w_data[1]
+                #     specsum += w_s
 
         # specsum.hs = specsum.hs/num_sweeps
         # specsum.plot()
