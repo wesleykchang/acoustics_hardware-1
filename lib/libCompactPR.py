@@ -12,20 +12,22 @@ import BKPrecision as bk
 import libPicoscope
 
 class CP():
-    def __init__(self, site, rp_url=None, rp_port=5000, oscope=None, picoscope=None):
+    def __init__(self, site, rp_url="169.254.1.10", rp_port=5000, voltage=200, scope='picoscope'):
+        self.voltage = voltage
         self.site = site
         self.lut = pickle.load(open('lib/CP_LUT','rb'))
         self.write("P0")
-        if picoscope:
+        self.scope = scope
+        
+        if self.scope == 'picoscope':
             self.pss = libPicoscope.Picoscope()
-            print('connected to picoscope')
             self.rp = None
             self.oscope = None
-        if oscope:
+        elif self.scope == 'bkprecision':
             self.oscope = bk.BKPrecision()
             self.rp = None
             self.pss = None
-        if rp_url:
+        elif self.scope == 'redpitaya':
             self.rp = rp.RedPitaya(rp_url,port=rp_port)
             self.oscope = None
             self.pss = None
@@ -82,8 +84,6 @@ class CP():
             val = (min([l[ind],l[ind-1]], key=lambda k: abs(k-pw)))       
         return val
 
-
-
     def commander(self,row):
         """Takes a row of settings and sets params on CompactPulser"""
 
@@ -126,10 +126,7 @@ class CP():
         self.write("G%i" % g) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
         self.write(pwidth)
-        self.write("V200")
-        ##for now we don't care about Voltage or PRF
-        # self.write("V%i" % int(row['voltage'])) 
-        # self.write("P%i" % int(row['prf'])) #pulse repitition freq
+        self.write("V%i" % self.voltage)
         
         if self.rp:
             self.write('P0')

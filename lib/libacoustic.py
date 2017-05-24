@@ -30,12 +30,13 @@ def debug(s):
     print("[libacoustic] "+s)
 
 class Acoustics():
-    def __init__(self,muxurl=None,muxtype=None,pulser="compact",pulserurl=None):
+    def __init__(self,muxurl=None,muxtype=None,pulser="compact",pulserurl=None,scope='picoscope'):
         self.path = os.getcwd()
         self.pulser = pulser.lower()
         self.sio =  SocketIO('localhost', 6054, LoggingNamespace)
         self.saver = filesystem.Saver()
-
+        self.scope = scope
+        
         if muxurl is not None and muxtype is not None:
             if muxtype.lower()=="cytec":
                 self.mux = cytec.Mux(self.cleanURL(muxurl))
@@ -57,10 +58,7 @@ class Acoustics():
             self.p = libEpoch.Epoch(pulserurl)
             print("... done!")
         elif self.pulser == "compact":
-            # switch these 2 lines to change between RP and oscope 
-            # self.p = libCompactPR.CP(pulserurl,rp_url="169.254.1.10")
-            # self.p = libCompactPR.CP(pulserurl, oscope=True)
-            self.p = libCompactPR.CP(pulserurl, picoscope=True)
+            self.p = libCompactPR.CP(pulserurl, scope=self.scope)
 
             
          # if muxurl is None:
