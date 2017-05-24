@@ -127,13 +127,13 @@ class WatcherDaemon(Daemon):
         self.slack_poster.send(message)
         
 class AcousticDaemon(Daemon):
-    def __init__(self,uiurl=5000,muxurl=9002,muxtype="cytec",pulserurl=9003, pulser="compact"):
+    def __init__(self,uiurl=5000,muxurl=9002,muxtype="cytec",pulserurl=9003, pulser="compact", scope='picoscope'):
         Daemon.__init__(self,self.run,name="easi_daemon")
         self.uiurl =  utils.parse_URL(uiurl)
         self.muxurl =  utils.parse_URL(muxurl)
         self.muxtype = muxtype
         self.pulserurl =  utils.parse_URL(pulserurl)
-        self.acous = A.Acoustics(pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype=muxtype)
+        self.acous = A.Acoustics(pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype=muxtype,scope=scope)
 
     def run(self):
         while True:
