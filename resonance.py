@@ -91,16 +91,16 @@ def segments(start_f,stop_f,sweep_t,sample_factor=10):
     return t_list, chirp_list, k
 
 def save_res_data(spec_obj, row):
-    data = {}
-    data['framerate'] = spec_obj.framerate
-    data['hs'] = list(spec_obj.hs.view(float))
-    data.update(row)
+    dat = {}
+    dat['framerate'] = spec_obj.framerate
+    dat['hs'] = list(spec_obj.hs.view(float))
+    dat.update(row)
 
     folder = '../Resonance'
     if os.path.exists(folder) == False:
         os.mkdir(folder)
     filename = os.path.join(folder, row['serialnumber'])
-    json.dump(data, open(filename, 'w'))
+    json.dump(dat, open(filename, 'w'))
     return
 
 def average_specs(spec_list):
@@ -115,6 +115,38 @@ def average_specs(spec_list):
     avg = np.mean(np.transpose(avg),axis=1)
     s = data.Spectrum(hs, spec_list[0].framerate)
     return s
+
+def save_res_spec(spec_obj, fname):
+    dat = {}
+    dat['framerate'] = spec_obj.framerate
+    dat['hs'] = list(spec_obj.hs.view(float))
+    dat['timestamp'] = time.time()
+
+    folder = '../Resonance/misc'
+    if os.path.exists(folder) == False:
+        os.mkdir(folder)
+    filename = os.path.join(folder, fname)
+    json.dump(dat, open(filename, 'w'))
+    return
+
+
+def pad(array, pad_no):
+    zs = np.zeros(pad_no)
+    padded = np.append(array,zs)
+    return padded
+
+        if plot:
+            wav.plot()
+            plt.show()
+
+            avg_s.plot()
+            plt.show()
+        return avg_s
+
+
+def loop(self):
+        pass
+
 
 
 class Resonator():
@@ -138,30 +170,35 @@ class Resonator():
         return [w,w_s]
 
     def get_single_arb(self):
-        t_list, chirp_list, k = segments(self.start_f,self.stop_f,self.sweep_t)
+        t_list, chirp_list, k = segments(start_f,stop_f,sweep_t)
         i = 0
         w_data = np.array([])
         total_ts = np.array([])
-        for time in t_list:
-            print(time)
-            rx_data = ps.generate_waveform(chirp_list[i], time[2],rx_sample_rate)
-            sample_ts = np.linspace(time[0],time[1],len(rx_data[1]))
+        for times in t_list:
+            print(times)
+            rx_data = ps.generate_waveform(chirp_list[i], times[2],self.sample_rate)
+            sample_ts = np.linspace(times[0],times[1],len(rx_data[1]))
             #add chirp segment to total time data
             w_data = np.append(w_data,rx_data[1])
             total_ts = np.append(total_ts, sample_ts)
-            seg_wave = data.Wave(amps=rx_data[1],framerate=rx_sample_rate,delay=time[0])
-            f0_i = (self.start_f + time[0] * k) #f at beginning of chirp segment
-            f1_i = (self.start_f + time[1] * k) #f at end of chirp seg
-            thresh = 0
-            # thresh = start_f/20 #arbitrary threshold for filter limits
+            if i == 0:
+                pad_no = 0
+            else:
+                pad_no = (len(seg_total.hs)-1)*2 - len(rx_data[1])
+            seg_wave = data.Wave(amps=pad(rx_data[1],pad_no),framerate=rx_sample_rate,delay=time[0])
+            f0_i = (start_f + times[0] * k) #f at beginning of chirp segment
+            f1_i = (start_f + times[1] * k) #f at end of chirp seg
+            thresh = stop_f*.1
             seg_spec = seg_wave.to_spectrum()
-            seg_spec.band_stop(f0_i - thresh, f1_i + thresh)
+            seg_spec.band_pass(f0_i - thresh,f1_i + thresh)
             if i == 0:
                 seg_total = seg_spec
             else:
                 seg_total += seg_spec
             i += 1
+            pad_no = len(seg_total.hs)
         return [data.Wave(w_data,framerate=self.sample_rate), seg_total]
+
 
     def get_data(self,plot=False,save = None):
         spec_list = []
@@ -172,19 +209,7 @@ class Resonator():
                 wav,spec = get_single_generator()
             spec_list.append(spec)
         avg_s = average_specs(spec_list)
-
-        if plot:
-            wav.plot()
-            plt.show()
-
-            avg_s.plot()
-            plt.show()
         return avg_s
-
-
-    def loop(self):
-        pass
-
 
 
 
@@ -195,7 +220,7 @@ if __name__ == '__main__':
     sweep_t = float(sys.argv[4])
     num_freqs = int(sweep_t/(1/start_f))
     num_sweeps = 1
-    sample_rate = 3*stop_f
+    sample_rate = 5*stop_f
 
     inc = (stop_f - start_f)/num_freqs
     dwelltime = sweep_t/num_freqs
@@ -210,6 +235,12 @@ if __name__ == '__main__':
         "num_freqs" : num_freqs
     }
 
-    r = Resonator(start_f,stop_f,sweep_t)
-    r.get_data(plot=True)
+    if len(sys.argv) == 6 and sys.argv[5]== 'arb':
+        arb = True
+    else:
+        arb = False
 
+    r = Resonator(start_f,stop_f,sweep_t,arb)
+    s = r.get_data(plot=True)
+    s.plot()
+    plt.show()
