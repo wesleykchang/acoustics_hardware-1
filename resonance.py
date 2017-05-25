@@ -14,7 +14,7 @@ python3 KT_Couplant_DOE.py 9005 serialnumber 0,7 6,7
 import sys
 import json
 import os
-import datetime
+import datetime as dt
 import time
 sys.path.append('lib')
 import utils
@@ -113,7 +113,7 @@ def average_specs(spec_list):
     ref = sorted(spec_list)[0]
 
     avg = np.mean(np.transpose(avg),axis=1)
-    s = data.Spectrum(hs, spec_list[0].framerate)
+    s = data.Spectrum(avg, spec_list[0].framerate)
     return s
 
 def save_res_spec(spec_obj, fname):
@@ -135,14 +135,6 @@ def pad(array, pad_no):
     padded = np.append(array,zs)
     return padded
 
-        if plot:
-            wav.plot()
-            plt.show()
-
-            avg_s.plot()
-            plt.show()
-        return avg_s
-
 
 def loop(self):
         pass
@@ -154,17 +146,16 @@ class Resonator():
         self.start_f = start_f
         self.stop_f = stop_f
         self.sweep_t = sweep_t
-        self.ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.02,sample_rate=sample_rate) ###Change this to be dynamic!!
+        self.ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.2,sample_rate=sample_rate) ###Change this to be dynamic!!
         self.arb =arb
 
         self.num_freqs = int(sweep_t/(1/start_f))
-        self.sample_rate = 3*stop_f
+        self.sample_rate = 5*stop_f
         self.num_sweeps = 1
 
 
     def get_single_generator(self):
-        w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
-        ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+        w_data = self.ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
         w = data.Wave(framerate=sample_rate, amps=w_data[1])
         w_s = w.to_spectrum()
         return [w,w_s]
@@ -176,7 +167,7 @@ class Resonator():
         total_ts = np.array([])
         for times in t_list:
             print(times)
-            rx_data = ps.generate_waveform(chirp_list[i], times[2],self.sample_rate)
+            rx_data = self.ps.generate_waveform(chirp_list[i], times[2],self.sample_rate)
             sample_ts = np.linspace(times[0],times[1],len(rx_data[1]))
             #add chirp segment to total time data
             w_data = np.append(w_data,rx_data[1])
@@ -185,9 +176,10 @@ class Resonator():
                 pad_no = 0
             else:
                 pad_no = (len(seg_total.hs)-1)*2 - len(rx_data[1])
-            seg_wave = data.Wave(amps=pad(rx_data[1],pad_no),framerate=rx_sample_rate,delay=time[0])
+            seg_wave = data.Wave(amps=pad(rx_data[1],pad_no),framerate=self.sample_rate,delay=times[0])
             f0_i = (start_f + times[0] * k) #f at beginning of chirp segment
             f1_i = (start_f + times[1] * k) #f at end of chirp seg
+            print(f0_i,f1_i)
             thresh = stop_f*.1
             seg_spec = seg_wave.to_spectrum()
             seg_spec.band_pass(f0_i - thresh,f1_i + thresh)
@@ -202,13 +194,20 @@ class Resonator():
 
     def get_data(self,plot=False,save = None):
         spec_list = []
-        for i in num_sweeps:
+        for i in range(num_sweeps):
             if self.arb:
-                wav,spec = get_single_arb()
+                wav,spec = self.get_single_arb()
             else:
-                wav,spec = get_single_generator()
+                wav,spec = self.get_single_generator()
+            self.ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
             spec_list.append(spec)
         avg_s = average_specs(spec_list)
+
+        if plot:
+            wav.plot()
+            plt.show()
+            avg_s.plot()
+            plt.show()
         return avg_s
 
 
@@ -226,7 +225,6 @@ if __name__ == '__main__':
     dwelltime = sweep_t/num_freqs
 
     row = {
-        "startdate":dt.strftime(dtformat),
         "project":"resonance3",
         "serialnumber":serialnumber,
         "start_f" : start_f,
@@ -242,5 +240,5 @@ if __name__ == '__main__':
 
     r = Resonator(start_f,stop_f,sweep_t,arb)
     s = r.get_data(plot=True)
-    s.plot()
-    plt.show()
+    # s.plot()
+    # plt.show()
