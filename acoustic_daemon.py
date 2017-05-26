@@ -127,13 +127,13 @@ class WatcherDaemon(Daemon):
         self.slack_poster.send(message)
         
 class AcousticDaemon(Daemon):
-    def __init__(self,uiurl=5000,muxurl=9002,muxtype="cytec",pulserurl=9003, pulser="compact"):
+    def __init__(self,uiurl=5000,muxurl=9002,muxtype="cytec",pulserurl=9003, pulser="compact", scope='picoscope'):
         Daemon.__init__(self,self.run,name="easi_daemon")
         self.uiurl =  utils.parse_URL(uiurl)
         self.muxurl =  utils.parse_URL(muxurl)
         self.muxtype = muxtype
         self.pulserurl =  utils.parse_URL(pulserurl)
-        self.acous = A.Acoustics(pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype=muxtype)
+        self.acous = A.Acoustics(pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype=muxtype,scope=scope)
 
     def run(self):
         while True:
@@ -265,12 +265,16 @@ class UIDaemon(Daemon):
         def makefig(month,day,year,testid):
             start_date = year + '_' + month + '_' + day
             files = os.listdir(os.path.join('../Data',start_date,testid))
-            files.remove('current.json')
+            try:
+                files.remove('current.json')
+            except:
+                pass
             files = sorted(files)
 
             index = int(request.args.get('index', ''))
             data = json.load(open(os.path.join('../Data',start_date,testid,files[index])))
             framerate = data.get("framerate")
+            print(framerate)
             if framerate == None:
                 framerate = 1.25e8
             xs = [x*(1e6/framerate) for x in range(len(data['amp']))] #scale x to be in us
@@ -389,7 +393,7 @@ class DBDaemon():
                 wave_test_id = file_names[-2][7:]
                 # if self.check_test(mod_file,wave_test_id,"Fuji") == True:
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
-                ws = data.Waveset(wave_test_id,waves=[new_wave])
+                ws = data.Waveset(waves=[new_wave],wave_test_id)
                 self.db.insert_waveset(ws,prevent_duplicates=False)
                 # else:
                 #     pass
@@ -411,19 +415,6 @@ class DBDaemon():
             new_test = data.Test(tabledata=row)
             # all_tests[row["test_id"]] = new_test
             self.db.insert_test(new_test)
-
-
-    # def check_test(self,wave_file_path, test_id, project_name):
-    #     """Checks to see if a test is in a given project before pushing. actually,
-    #     would be cool to modify this to take a boolean function for checking whatever is needed"""
-    #     logfile_path = os.path.split(wave_file_path)[0] + "/logfile.json"
-    #     table = json.loads(open(logfile_path).read())
-    #     if table[testid]['project'] == project_name:
-    #         return True
-    #     else:
-    #         return False
-
-
 
 
     def write_last_check(self):
@@ -490,9 +481,9 @@ if __name__=="__main__":
     d.start()
     time.sleep(1)
 
-    wd = WatcherDaemon()
-    wd.start()
-    time.sleep(1)
+    # wd = WatcherDaemon()
+    # wd.start()
+    # time.sleep(1)
     
     # dbd = DBDaemon(.1)
     # dbd.start()

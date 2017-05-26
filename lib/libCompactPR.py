@@ -8,16 +8,29 @@ import pickle
 import bisect
 import matplotlib.pyplot as plt
 import redpitaya as rp
+import BKPrecision as bk
+import libPicoscope
 
 class CP():
-    def __init__(self,site,rp_url=None,rp_port=5000):
+    def __init__(self, site, rp_url="169.254.1.10", rp_port=5000, voltage=200, scope='picoscope'):
+        self.voltage = voltage
         self.site = site
         self.lut = pickle.load(open('lib/CP_LUT','rb'))
         self.write("P0")
-        if rp_url is None:
+        self.scope = scope
+        
+        if self.scope == 'picoscope':
+            self.pss = libPicoscope.Picoscope()
             self.rp = None
-        else:
+            self.oscope = None
+        elif self.scope == 'bkprecision':
+            self.oscope = bk.BKPrecision()
+            self.rp = None
+            self.pss = None
+        elif self.scope == 'redpitaya':
             self.rp = rp.RedPitaya(rp_url,port=rp_port)
+            self.oscope = None
+            self.pss = None
 
     def write(self,s):
         out = uo(self.site+"/writecf/%s"%s).read()
@@ -71,13 +84,38 @@ class CP():
             val = (min([l[ind],l[ind-1]], key=lambda k: abs(k-pw)))       
         return val
 
-
-
     def commander(self,row):
         """Takes a row of settings and sets params on CompactPulser"""
 
         #anne's note to self: add some defaults
-        self.rp.prime_trigger()
+        g = row["gain(db)"]
+
+        if self.rp:
+            try:
+                g = int(g)*10
+            except ValueError:
+                print('invalid gain level')
+                return
+            self.rp.prime_trigger()
+            
+        elif self.oscope:
+            try:
+                maxV = float(g)
+                self.oscope.set_maxV(maxV)
+            except ValueError:
+                print('invalid gain level')
+                return
+            self.oscope.prime_trigger()
+            g = 20
+        elif self.pss:
+            try:
+                maxV = float(g)
+            except ValueError:
+                print('invalid gain level')
+            self.pss.set_maxV(maxV)
+            self.pss.prime_trigger(float(row["delay(us)"]),float(row["time(us)"]))
+
+        g = 20
         [pwidth,widemode] = self.convertFreq(row["freq(mhz)"])
         [hpf, lpf] = self.convertFilt(row["filtermode"])
         settings = {"tr" : "M1", "pe" : "M0"}
@@ -85,19 +123,32 @@ class CP():
         self.write(settings[row['mode(tr/pe)']])
         self.write(hpf)
         self.write(lpf)
-        self.write("G%i" % (int(row["gain(db)"])*10)) #gain is measured in 10th of dB 34.9 dB =349
+        self.write("G%i" % g) #gain is measured in 10th of dB 34.9 dB =349
         self.write(widemode)
         self.write(pwidth)
-        self.write("P0")
-
-        ##for now we don't care about Voltage or PRF
-        # self.write("V%i" % int(row['voltage'])) 
-        # self.write("P%i" % int(row['prf'])) #pulse repitition freq
-
-        data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
+        self.write("V%i" % self.voltage)
+        
+        if self.rp:
+            self.write('P0')
+            data = self.pitaya(float(row["delay(us)"]),float(row["time(us)"]))
+        elif self.oscope:
+            self.write('P0')
+            data = self.scope(float(row["delay(us)"]), float(row["time(us)"]), float(row['gain(db)']))
+        elif self.pss:
+            self.write('P10')
+            self.pss.ps.waitReady()
+            self.write('P0')
+            data = self.pico()
+            
         return data
 
-    def pitaya(self,delay,time):
+    def pico(self):
+        return self.pss.get_waveform(wait_for_trigger=False)
+    
+    def scope(self, delay, duration, volt_limit):
+        return self.oscope.get_waveform(delay=delay, duration=duration, volt_limit=volt_limit)
+        
+    def pitaya(self, delay, time):
         """Get waveform from red pitaya"""
         if self.rp is None:
             return {} #should this raise an exception?
@@ -109,7 +160,8 @@ if __name__ == "__main__":
 
     cp = CP("http://localhost:9003",rp_url="169.254.134.177")
     print(cp.write("T?"))
-    print(cp.read())
+    print(cp.write("V"))
+    # print(cp.read())
     # data = cp.commander({"freq(mhz)":2.25,"filtermode":"33","mode(tr/pe)":"tr","gain(db)":10,"delay(us)":0,"time(us)":0})
     #print(data)
     #plt.plot(data[0],data[1])
