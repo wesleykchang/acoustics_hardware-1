@@ -393,7 +393,7 @@ class DBDaemon():
                 wave_test_id = file_names[-2][7:]
                 # if self.check_test(mod_file,wave_test_id,"Fuji") == True:
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
-                ws = data.Waveset(waves=[new_wave],wave_test_id)
+                # ws = data.Waveset(waves=[new_wave],wave_test_id)
                 self.db.insert_waveset(ws,prevent_duplicates=False)
                 # else:
                 #     pass
