@@ -122,7 +122,7 @@ def save_res_spec(spec_obj, fname):
     dat['hs'] = list(spec_obj.hs.view(float))
     dat['timestamp'] = time.time()
 
-    folder = '../Resonance/misc'
+    folder = '../Resonance/cycle2_ffts'
     if os.path.exists(folder) == False:
         os.mkdir(folder)
     filename = os.path.join(folder, fname)
@@ -210,6 +210,19 @@ class Resonator():
             plt.show()
         return avg_s
 
+    def loop(self,sleep_time,save=True):
+        #sleep_time is in seconds
+        loop_index = 0
+        sweep_index = 0
+        while True:
+            for i in range(3):
+                s = self.get_data()
+                filename = str(loop_index) + '_' + str(i)
+                if save:
+                    save_res_spec(s,filename)
+                sweep_index += 1
+            time.sleep(sleep_time)
+            loop_index += 1
 
 
 if __name__ == '__main__':
@@ -238,7 +251,16 @@ if __name__ == '__main__':
     else:
         arb = False
 
-    r = Resonator(start_f,stop_f,sweep_t,arb)
-    s = r.get_data(plot=True)
-    # s.plot()
-    # plt.show()
+r = Resonator(start_f,stop_f,sweep_t,arb)
+r.loop(300)
+# s = r.get_data()
+# s.plot()
+# plt.xlim([1e3,90e3])
+# plt.show()
+
+# for i in range(5):
+#     fname = serialnumber + "_%i" % i
+#     s = r.get_data()
+#     save_res_spec(s, fname)
+#     # s.plot()
+#     plt.show()
