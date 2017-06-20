@@ -150,6 +150,14 @@ def loop(self):
 
 
 class Resonator():
+    """Class for collecting resonance data.
+
+    start_f: frequency at the start of the sweep
+    stop_f: frequency at the end of the sweep
+    sweep_t: duration of the sweep
+    arb: optional argument to use the AWG instead of the function generator,
+    which it defaults to.
+    """
     def __init__(self,start_f,stop_f,sweep_t,arb=False):
         self.start_f = start_f
         self.stop_f = stop_f
@@ -157,12 +165,13 @@ class Resonator():
         self.ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.02,sample_rate=sample_rate) ###Change this to be dynamic!!
         self.arb =arb
 
-        self.num_freqs = int(sweep_t/(1/start_f))
-        self.sample_rate = 3*stop_f
+        self.num_freqs = int(sweep_t/(1/start_f)) #number of frequencies for function generator. Makes sure there is at least one cycle for each.
+        self.sample_rate = 3*stop_f #adjusting this can sometimes speed up the FFT
         self.num_sweeps = 1
 
 
     def get_single_generator(self):
+        """Gets a single waveform using the built-in function generator."""
         w_data = ps.signal_generator(frequency=start_f, stopFreq=stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
         ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
         w = data.Wave(framerate=sample_rate, amps=w_data[1])
@@ -170,6 +179,8 @@ class Resonator():
         return [w,w_s]
 
     def get_single_arb(self):
+        """Gets a single waveform using the AWG. This takes a linear sweep equation, splits it into different 32k chunks and pulses each
+        one before stitching together the resonance spectra."""
         t_list, chirp_list, k = segments(start_f,stop_f,sweep_t)
         i = 0
         w_data = np.array([])
@@ -197,6 +208,7 @@ class Resonator():
                 seg_total += seg_spec
             i += 1
             pad_no = len(seg_total.hs)
+        ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
         return [data.Wave(w_data,framerate=self.sample_rate), seg_total]
 
 
