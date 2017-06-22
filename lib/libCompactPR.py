@@ -6,7 +6,6 @@ from urllib.request import urlopen as uo
 from time import sleep
 import pickle
 import bisect
-import matplotlib.pyplot as plt
 import redpitaya as rp
 import BKPrecision as bk
 import libPicoscope
