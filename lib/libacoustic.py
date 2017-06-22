@@ -27,7 +27,7 @@ import numpy as np
 import database as db
 import signal
 
-# Register an handler for the timeout
+# Register a handler for the timeout
 def handler(signum, frame):
    print ("Exiting socket call, taking too long...")
    raise Exception("Socket call blocking")
@@ -37,15 +37,17 @@ class Acoustics():
     def __init__(self,muxurl=None,muxtype=None,pulser="compact",pulserurl=None,scope='picoscope'):
         self.path = os.getcwd()
         self.pulser = pulser.lower()
+        self.enable_sockets = True
 
         signal.signal(signal.SIGALRM, handler) #alarm to timeout on blocking funcs
-
-        try:
-            signal.alarm(5)
-            self.sio =  SocketIO('localhost', 6054, LoggingNamespace)
-            signal.alarm(0)
-        except:
-            pass
+        if self.enable_sockets:
+            try:
+                signal.alarm(5)
+                self.sio =  SocketIO('localhost', 6054, LoggingNamespace)
+                signal.alarm(0)
+            except:
+                self.enable_sockets = False
+                pass
         self.saver = filesystem.Saver()
         self.scope = scope
         
@@ -118,12 +120,14 @@ class Acoustics():
         try:
             data = self.p.commander(row)
             self.saver.saveData(data,row,fsweep)
-            try:
-                signal.alarm(5) #give the socket 5 seconds to execute before raising exception
-                self.sio.emit('test',{"rowid":row["testid"],"amp":data[1]}) #send sparkline
-                signal.alarm(0) #disable alarm if code exits in time
-            except:
-                pass
+            if self.enable_sockets:
+                try:
+                    signal.alarm(5) #give the socket 5 seconds to execute before raising exception
+                    self.sio.emit('test',{"rowid":row["testid"],"amp":data[1]}) #send sparkline
+                    signal.alarm(0) #disable alarm if code exits in time
+                except:
+                    self.enable_sockets = False
+                    pass
             return data
         except:
             print('***ERROR***')
@@ -139,12 +143,14 @@ class Acoustics():
             if (row['run(y/n)']).lower() == 'y':
                 try:
                     print("testing%s" % str(row['testid']))
-                    try:
-                        signal.alarm(5) #give the socket 5 seconds to execute before raising exception
-                        self.sio.emit('highlight',{"rowid":row["testid"]})
-                        signal.alarm(0) #disable alarm if code exits in time
-                    except:
-                        pass
+                    if self.enable_sockets:
+                        try:
+                            signal.alarm(5) #give the socket 5 seconds to execute before raising exception
+                            self.sio.emit('highlight',{"rowid":row["testid"]})
+                            signal.alarm(0) #disable alarm if code exits in time
+                        except:
+                            self.enable_sockets = False
+                            pass
 
                     fs = row["freq(mhz)"].split(",")
 
@@ -166,12 +172,14 @@ class Acoustics():
             else:
                 counter += 1
                 if counter==(len(tests['data'])):
-                    try:
-                        signal.alarm(5) #give the socket 5 seconds to execute before raising exception
-                        self.sio.emit('highlight',{"rowid":'inactive'})
-                        signal.alarm(0) #disable alarm if code exits in time
-                    except:
-                        pass
+                    if self.enable_sockets:
+                        try:
+                            signal.alarm(5) #give the socket 5 seconds to execute before raising exception
+                            self.sio.emit('highlight',{"rowid":'inactive'})
+                            signal.alarm(0) #disable alarm if code exits in time
+                        except:
+                            self.enable_sockets = False
+                            pass
                     time.sleep(1) #artificial delay. if all the rows are set to 'n'. otherwise it dies
 
         time.sleep(float(tests['loop_delay']))
