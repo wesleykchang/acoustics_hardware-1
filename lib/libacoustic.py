@@ -25,16 +25,25 @@ from socketIO_client import SocketIO, BaseNamespace,LoggingNamespace
 import matplotlib.pyplot as plt
 import numpy as np
 import database as db
+import signal
 
-def debug(s):
-    print("[libacoustic] "+s)
+# Register an handler for the timeout
+def handler(signum, frame):
+   print ("Exiting socket call, taking too long...")
+   raise Exception("Socket call blocking")
+
 
 class Acoustics():
     def __init__(self,muxurl=None,muxtype=None,pulser="compact",pulserurl=None,scope='picoscope'):
         self.path = os.getcwd()
         self.pulser = pulser.lower()
+
+        signal.signal(signal.SIGALRM, handler) #alarm to timeout on blocking funcs
+
         try:
+            signal.alarm(5)
             self.sio =  SocketIO('localhost', 6054, LoggingNamespace)
+            signal.alarm(0)
         except:
             pass
         self.saver = filesystem.Saver()
@@ -63,11 +72,6 @@ class Acoustics():
         elif self.pulser == "compact":
             self.p = libCompactPR.CP(pulserurl, scope=self.scope)
 
-            
-         # if muxurl is None:
-         #  print("------------------------------------------------")
-         #  print("WARNING: No mux given. Ignoring channel numbers.")
-         #  print("------------------------------------------------")
 
     def getJSON(self):
         """Reads in a json from json_file. JSON contains
@@ -115,7 +119,9 @@ class Acoustics():
             data = self.p.commander(row)
             self.saver.saveData(data,row,fsweep)
             try:
+                signal.alarm(5) #give the socket 5 seconds to execute before raising exception
                 self.sio.emit('test',{"rowid":row["testid"],"amp":data[1]}) #send sparkline
+                signal.alarm(0) #disable alarm if code exits in time
             except:
                 pass
             return data
@@ -134,7 +140,9 @@ class Acoustics():
                 try:
                     print("testing%s" % str(row['testid']))
                     try:
+                        signal.alarm(5) #give the socket 5 seconds to execute before raising exception
                         self.sio.emit('highlight',{"rowid":row["testid"]})
+                        signal.alarm(0) #disable alarm if code exits in time
                     except:
                         pass
 
@@ -159,7 +167,9 @@ class Acoustics():
                 counter += 1
                 if counter==(len(tests['data'])):
                     try:
+                        signal.alarm(5) #give the socket 5 seconds to execute before raising exception
                         self.sio.emit('highlight',{"rowid":'inactive'})
+                        signal.alarm(0) #disable alarm if code exits in time
                     except:
                         pass
                     time.sleep(1) #artificial delay. if all the rows are set to 'n'. otherwise it dies
