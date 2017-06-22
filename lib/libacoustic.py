@@ -33,7 +33,10 @@ class Acoustics():
     def __init__(self,muxurl=None,muxtype=None,pulser="compact",pulserurl=None,scope='picoscope'):
         self.path = os.getcwd()
         self.pulser = pulser.lower()
-        self.sio =  SocketIO('localhost', 6054, LoggingNamespace)
+        try:
+            self.sio =  SocketIO('localhost', 6054, LoggingNamespace)
+        except:
+            pass
         self.saver = filesystem.Saver()
         self.scope = scope
         
@@ -111,7 +114,10 @@ class Acoustics():
         try:
             data = self.p.commander(row)
             self.saver.saveData(data,row,fsweep)
-            self.sio.emit('test',{"rowid":row["testid"],"amp":data[1]}) #send sparkline
+            try:
+                self.sio.emit('test',{"rowid":row["testid"],"amp":data[1]}) #send sparkline
+            except:
+                pass
             return data
         except:
             print('***ERROR***')
@@ -127,7 +133,10 @@ class Acoustics():
             if (row['run(y/n)']).lower() == 'y':
                 try:
                     print("testing%s" % str(row['testid']))
-                    self.sio.emit('highlight',{"rowid":row["testid"]})
+                    try:
+                        self.sio.emit('highlight',{"rowid":row["testid"]})
+                    except:
+                        pass
 
                     fs = row["freq(mhz)"].split(",")
 
@@ -149,7 +158,10 @@ class Acoustics():
             else:
                 counter += 1
                 if counter==(len(tests['data'])):
-                    self.sio.emit('highlight',{"rowid":'inactive'})
+                    try:
+                        self.sio.emit('highlight',{"rowid":'inactive'})
+                    except:
+                        pass
                     time.sleep(1) #artificial delay. if all the rows are set to 'n'. otherwise it dies
 
         time.sleep(float(tests['loop_delay']))
