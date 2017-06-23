@@ -399,9 +399,8 @@ socket.on('update',function(data){
             chartRangeMax: ymax
         });
 
-socket.on('update_table',function(data){
-    loadsettings();
-     }
 });
 
+socket.on('update_table', function(){
+    loadsettings()
 });
