@@ -1,3 +1,7 @@
+import matplotlib
+import os,shutil
+if os.getenv("DISPLAY") is None:
+    matplotlib.use("Agg")
 import sys
 sys.path.append('lib') #tells python where to look for packages
 from daemon import Daemon
@@ -10,9 +14,7 @@ from http.server import SimpleHTTPRequestHandler
 import socketserver
 import json
 import utils
-import os,shutil
 from flask_socketio import SocketIO, send, emit
-import matplotlib
 from matplotlib import pyplot as plt
 import mpld3
 from datetime import timedelta
@@ -128,13 +130,13 @@ class WatcherDaemon(Daemon):
         self.slack_poster.send(message)
         
 class AcousticDaemon(Daemon):
-    def __init__(self,uiurl=5000,muxurl=9002,muxtype="cytec",pulserurl=9003, pulser="compact"):
+    def __init__(self,uiurl=5000,muxurl=9002,muxtype="cytec",pulserurl=9003, pulser="compact", scope='picoscope'):
         Daemon.__init__(self,self.run,name="easi_daemon")
         self.uiurl =  utils.parse_URL(uiurl)
         self.muxurl =  utils.parse_URL(muxurl)
         self.muxtype = muxtype
         self.pulserurl =  utils.parse_URL(pulserurl)
-        self.acous = A.Acoustics(pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype=muxtype)
+        self.acous = A.Acoustics(pulserurl=self.pulserurl,muxurl=self.muxurl,muxtype=muxtype,scope=scope)
 
     def run(self):
         while True:
@@ -235,6 +237,7 @@ class UIDaemon(Daemon):
                     out['status'] = 'success!'
                 except Exception as E: 
                     out['status'] = str(E)
+                socketio.emit('update_table') #tell the JS to update.
                 return json.dumps(out)
 
         @app.route('/<month>/<day>/<year>/del_test', methods=['GET', 'POST'])
@@ -269,13 +272,13 @@ class UIDaemon(Daemon):
             try:
                 files.remove('current.json')
             except:
-                files = sorted(files)
-
+                pass
             files = sorted(files)
 
             index = int(request.args.get('index', ''))
             data = json.load(open(os.path.join('../Data',start_date,testid,files[index])))
             framerate = data.get("framerate")
+            print(framerate)
             if framerate == None:
                 framerate = 1.25e8
             xs = [x*(1/framerate) for x in range(len(data['amp']))] #scale x to be in us
@@ -437,7 +440,7 @@ class DBDaemon():
                 wave_test_id = file_names[-2][7:]
                 # if self.check_test(mod_file,wave_test_id,"Fuji") == True:
                 new_wave = self.loader.load_single_wave(mod_file,wave_test_id)
-                ws = data.Waveset(wave_test_id,waves=[new_wave])
+                # ws = data.Waveset(waves=[new_wave],wave_test_id)
                 self.db.insert_waveset(ws,prevent_duplicates=False)
                 # else:
                 #     pass

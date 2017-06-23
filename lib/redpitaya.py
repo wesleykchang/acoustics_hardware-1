@@ -3,9 +3,15 @@ import sys
 from json import dumps
 from time import sleep
 import signal
-import matplotlib.pyplot as plt
 import numpy as np
 import math
+
+try:
+    import matplotlib.pyplot as plt
+    graphical = True
+except (ImportError,TypeError):
+    graphical = False
+
 
 
 class RedPitaya():
@@ -174,35 +180,36 @@ class RedPitaya():
         # self.write("SOUR1:TRIG:SOUR INT") #internal trigger
         self.write("OUTPUT1:STATE ON")
 
-    def gen_example(self):
-        N=16380;
-        t= np.linspace(0, 2*np.pi, N);
-        x=np.sin(t)+1/3*np.sin(3*t);
-        y=1/2*np.sin(t)+1/4*np.sin(4*t);
-        plt.plot(t,x)
-        plt.plot(t,y)
-        plt.show()
+    if graphical:
+        def gen_example(self):
+            N=16380;
+            t= np.linspace(0, 2*np.pi, N);
+            x=np.sin(t)+1/3*np.sin(3*t);
+            y=1/2*np.sin(t)+1/4*np.sin(4*t);
+            plt.plot(t,x)
+            plt.plot(t,y)
+            plt.show()
 
-        X = [float("%.5f" % w) for w in x]
-        Y = ["%.5f" % w for w in y]
+            X = [float("%.5f" % w) for w in x]
+            Y = ["%.5f" % w for w in y]
 
-        # X = [math.ceil(w,5) for w in x]
-        # print(X)
+            # X = [math.ceil(w,5) for w in x]
+            # print(X)
 
-        # waveform_ch_1_0
+            # waveform_ch_1_0
 
-        self.write('GEN:RST')
-        self.write('SOUR1:FUNC ARBITRARY')
-        self.write('SOUR2:FUNC ARBITRARY')
-        self.write('SOUR1:TRAC:DATA:DATA %s,,,' % str((list(X)))[1:-1])
-        print('SOUR1:TRAC:DATA:DATA %s,,,' % str((list(X)))[1:-1])
-        self.write('SOUR2:TRAC:DATA:DATA %s' % str((list(Y)))[1:-1])
-        self.write('SOUR1:VOLT 0.7')
-        self.write('SOUR2:VOLT 1')
-        self.write('SOUR1:FREQ:FIX 4000')
-        self.write('SOUR2:FREQ:FIX 4000')
-        self.write('OUTPUT1:STATE ON')
-        self.write('OUTPUT2:STATE ON')
+            self.write('GEN:RST')
+            self.write('SOUR1:FUNC ARBITRARY')
+            self.write('SOUR2:FUNC ARBITRARY')
+            self.write('SOUR1:TRAC:DATA:DATA %s,,,' % str((list(X)))[1:-1])
+            print('SOUR1:TRAC:DATA:DATA %s,,,' % str((list(X)))[1:-1])
+            self.write('SOUR2:TRAC:DATA:DATA %s' % str((list(Y)))[1:-1])
+            self.write('SOUR1:VOLT 0.7')
+            self.write('SOUR2:VOLT 1')
+            self.write('SOUR1:FREQ:FIX 4000')
+            self.write('SOUR2:FREQ:FIX 4000')
+            self.write('OUTPUT1:STATE ON')
+            self.write('OUTPUT2:STATE ON')
 
 
     def gen_example2(self):

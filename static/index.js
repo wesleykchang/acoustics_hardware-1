@@ -400,3 +400,7 @@ socket.on('update',function(data){
         });
 
 });
+
+socket.on('update_table', function(){
+    loadsettings()
+});
