@@ -1,3 +1,7 @@
+import matplotlib
+import os,shutil
+if os.getenv("DISPLAY") is None:
+    matplotlib.use("Agg")
 import sys
 sys.path.append('lib') #tells python where to look for packages
 from daemon import Daemon
@@ -10,9 +14,7 @@ from http.server import SimpleHTTPRequestHandler
 import socketserver
 import json
 import utils
-import os,shutil
 from flask_socketio import SocketIO, send, emit
-import matplotlib
 from matplotlib import pyplot as plt
 import mpld3
 from datetime import timedelta

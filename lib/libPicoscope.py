@@ -1,9 +1,14 @@
 import numpy as np
 import time
 from picoscope import ps2000a
-import matplotlib.pyplot as plt
 import libCompactPR as cp
 import ctypes
+
+try:
+    import matplotlib.pyplot as plt
+    graphical = True
+except (TypeError,ImportError):
+    graphical = False
 
 class Picoscope():
     """
@@ -199,8 +204,9 @@ class Picoscope():
 
         data = self.ps.getDataV('B', self.nsamples, returnOverflow=False)
         t = np.arange(0,len(data)) * 1/self.sample_rate
-        plt.plot(t, data)
-        plt.show()
+        if graphical:
+            plt.plot(t, data)
+            plt.show()
         
     def generate_waveform(self, waveform, duration, dual=False, npulses=1):
         '''

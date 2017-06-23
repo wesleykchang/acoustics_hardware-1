@@ -22,7 +22,6 @@ import cytec
 from pprint import pprint
 import socketserver
 from socketIO_client import SocketIO, BaseNamespace,LoggingNamespace
-import matplotlib.pyplot as plt
 import numpy as np
 import database as db
 import signal
