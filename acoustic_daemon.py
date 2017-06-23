@@ -234,6 +234,7 @@ class UIDaemon(Daemon):
                     out['status'] = 'success!'
                 except Exception as E: 
                     out['status'] = str(E)
+                socketio.emit('update_table') #tell the JS to update.
                 return json.dumps(out)
 
         @app.route('/<month>/<day>/<year>/del_test', methods=['GET', 'POST'])
