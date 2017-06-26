@@ -401,7 +401,7 @@ socket.on('update',function(data){
 
 });
 
-socket.on('update_table', function(){
-    // loadsettings()
-    location.reload();
-});
+// socket.on('update_table', function(){
+//     // loadsettings()
+//     location.reload();
+// });
