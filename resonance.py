@@ -106,8 +106,8 @@ class Resonator():
     def get_single_generator(self):
         """Gets a single waveform using the built-in function generator. Returns both a wave object
         and a spectrum object"""
-        w_data = ps.signal_generator(frequency=self.start_f, stopFreq=self.stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
-        ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+        w_data = self.ps.signal_generator(frequency=self.start_f, stopFreq=self.stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
+        self.ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
         w = data.Wave(framerate=sample_rate, amps=w_data[1])
         w_s = w.to_spectrum()
         return [w,w_s]
@@ -143,7 +143,7 @@ class Resonator():
                 seg_total += seg_spec
             i += 1
             pad_no = len(seg_total.hs)
-        ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
+        self.ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
         return [data.Wave(w_data,framerate=self.sample_rate), seg_total]
 
     def linear_chirp(self):
@@ -242,8 +242,9 @@ if __name__ == '__main__':
         arb = False
 
 r = Resonator(start_f,stop_f,sweep_t,arb,test_name=testname)
-# s = r.get_data()
-# s.plot()
+s = r.get_data()
+s.plot()
+plt.show()
 # plt.xlim([1e3,90e3])
 # plt.show()
-r.loop(300)
+# r.loop(300)

@@ -27,22 +27,22 @@ class Picoscope():
 
         
         # self.sample_rate = 32e6/duration # sampe rate in stamples/sec
-        self.sample_rate = sample_rate
-        self.maxV = maxV
+        if resonance == True:
+            self.sample_rate = sample_rate
+            self.maxV = maxV
 
-        self.duration = duration
-        self.ps = ps2000a.PS2000a()
-        # print(self.sample_rate)
-        # print(self.sample_rate*self.duration)
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
-        self.sample_rate = 1/self.sample_rate
+            self.duration = duration
+            self.ps = ps2000a.PS2000a()
+            self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
+            self.sample_rate = 1/self.sample_rate
 
-        # self.avg_num = avg_num
-        # self.ps.memorySegments(avg_num)
-        # self.ps.setNoOfCaptures(avg_num)
-        
-        # self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
-        # self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
+        # if resonance == False:
+        #     self.avg_num = avg_num
+        #     self.ps.memorySegments(avg_num)
+        #     self.ps.setNoOfCaptures(avg_num)
+            
+        #     self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+        #     self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
 
     def connect(self):
         if not self.ps:
