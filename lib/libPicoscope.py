@@ -35,15 +35,7 @@ class Picoscope():
             self.ps = ps2000a.PS2000a()
             self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
             self.sample_rate = 1/self.sample_rate
-
-        # if resonance == False:
-        #     self.avg_num = avg_num
-        #     self.ps.memorySegments(avg_num)
-        #     self.ps.setNoOfCaptures(avg_num)
             
-        #     self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
-        #     self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, enabled=True)
-
     def connect(self):
         if not self.ps:
             self.sample_rate = 5e8  # sampe rate in stamples/sec
