@@ -99,7 +99,7 @@ class Picoscope():
         '''
         return
     
-    def prime_trigger(self, delay=0, duration=20.0):
+    def prime_trigger(self, delay=0, duration=20.0, timeout_ms=10000):
         '''
         readies the trigger for waveform collection
         '''
@@ -108,7 +108,7 @@ class Picoscope():
         self.sample_rate = 1/self.sample_rate
         
         self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=10000, delay=int(delay*1e-6*self.sample_rate), enabled=True)
+        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=timeout_ms, delay=int(delay*1e-6*self.sample_rate), enabled=True)
 
         self.ps.runBlock()
         
@@ -126,8 +126,6 @@ class Picoscope():
         
     def get_waveform(self, delay=1.5, duration=20, pct_diff_avg_cutoff=0.1, wait_for_trigger=True, return_waves=False):
         """
-        If this hangs while testing, try setting wait_for_trigger to False.
-
         The maximum sampling rate of the scope is 500MHz (2ns resolution).
         By default, it is set to that. The buffer len is 20480
         """
