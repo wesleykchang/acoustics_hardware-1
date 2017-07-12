@@ -31,7 +31,7 @@ if __name__ == "__main__":
         def getstuff():
                 ps.set_maxV(1.0)
                 delay = 0.0 #us
-                duration = 1000.0 #us
+                duration = 20.0 #us
                 ps.prime_trigger(delay, duration, timeout_ms=1)
                 time, data = ps.get_waveform(wait_for_trigger=True)
                 return json.dumps(data)
