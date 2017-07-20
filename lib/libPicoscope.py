@@ -4,6 +4,7 @@ from picoscope import ps2000a
 import libCompactPR as cp
 import ctypes
 
+
 try:
     import matplotlib.pyplot as plt
     graphical = True
@@ -20,6 +21,21 @@ class Picoscope():
     Control is acheived by using standard SCPI calls over USBTMC python library
     """
 
+    options = [
+        0.02,
+        0.05,
+        0.1,
+        0.2,
+        0.5,
+        1.0,
+        2.0,
+        5.0,
+        10.0,
+        20.0
+    ]
+
+
+    
     def __init__(self, avg_num=32, duration=30e-6, sample_rate=5e8,resonance=False, maxV = .2):
         self.ps = None
         self.avg_num = avg_num
@@ -29,7 +45,7 @@ class Picoscope():
         # self.sample_rate = 32e6/duration # sampe rate in stamples/sec
         if resonance == True:
             self.sample_rate = sample_rate
-            self.maxV = maxV
+            self.vrange = maxV
 
             self.duration = duration
             self.ps = ps2000a.PS2000a()
@@ -39,7 +55,7 @@ class Picoscope():
     def connect(self):
         if not self.ps:
             self.sample_rate = 5e8  # sampe rate in stamples/sec
-            self.maxV = 0.5
+            self.vrange = 0.5
             self.duration = 30e-6
             self.ps = ps2000a.PS2000a()
             self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
@@ -56,36 +72,51 @@ class Picoscope():
         try:
             waves = []
             for i in range(0, self.avg_num):
-                waves.append(self.ps.getDataV('A', self.nsamples, returnOverflow=False, segmentIndex=i))            
+                waves.append(self.ps.getDataV('A', self.nsamples, returnOverflow=False, segmentIndex=i))
             return waves
         except KeyboardInterrupt: #this fires if we SIGTERM
             return
-        
-    def set_maxV(self,  maxV, channel=1):
+
+    def auto_range(self, delay, time):
         self.connect()
-        options = [
-            0.02,
-            0.05,
-            0.1,
-            0.2,
-            0.5,
-            1.0,
-            2.0,
-            5.0,
-            10.0,
-            20.0
-        ]
-        for opt in options:
+
+        #disable averaging
+        self.ps.memorySegments(1)
+        self.ps.setNoOfCaptures(1)
+        avg_num = self.avg_num
+        self.avg_num = 1
+
+
+        #do auto ranging from 1V start
+        self.vrange = 1.0
+        self.prime_trigger(delay, time)
+        t,data = self.get_waveform()
+        
+        ma = np.max(data)
+        mi = np.abs(np.min(data))
+        print(ma,mi)
+        if mi > ma:
+            ma = mi
+        self.set_maxV(ma+0.01)
+
+        #reset averaging
+        self.avg_num = avg_num
+        self.ps.memorySegments(self.avg_num)
+        self.ps.setNoOfCaptures(self.avg_num)
+
+    def set_maxV(self,  maxV, offset=0.0, channel=1):
+        self.connect()
+        for opt in Picoscope.options:
             if maxV <= opt+0.005:
                 break
-        self.maxV = opt
+        self.vrange = opt
         return
     
     def get_maxV(self, channel=1):
         '''
         gets the maximum voltage for the given channel in V
         '''
-        return self.maxV
+        return self.vrange
     
     def reset(self):
         """
@@ -107,7 +138,7 @@ class Picoscope():
         self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration*1e-6)
         self.sample_rate = 1/self.sample_rate
         
-        self.maxV = self.ps.setChannel('A', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+        self.vrange = self.ps.setChannel('A', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=timeout_ms, delay=int(delay*1e-6*self.sample_rate), enabled=True)
 
         self.ps.runBlock()
@@ -184,14 +215,13 @@ class Picoscope():
             if stopFreq > self.sample_rate*2:
                 print("warning: sample rate is less than Nyquist frequency!")
 
-
         self.connect()
         self.ps.setSigGenBuiltInSimple(offsetVoltage=offset, pkToPk=pkToPk, waveType=waveType, frequency=frequency,
                                        shots=shots, triggerSource='SoftTrig', stopFreq=stopFreq, increment=increment,
                                        numSweeps=numSweeps, dwellTime=dwellTime, sweepType='Up')
 
         
-        self.maxV = self.ps.setChannel('B', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+        self.vrange = self.ps.setChannel('B', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', -0.01, 'Falling', timeout_ms=1, delay=0, enabled=True)
         
         self.ps.runBlock()
@@ -245,7 +275,7 @@ class Picoscope():
         self.sample_rate = 1/rx_samplerate
 
 
-        self.maxV = self.ps.setChannel('B', 'DC', self.maxV, 0.0, enabled=True, BWLimited=False)
+        self.vrange = self.ps.setChannel('B', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', -0.01, 'Falling', timeout_ms=1, delay=0, enabled=True)
         self.ps.runBlock()
         self.trig_AWG()

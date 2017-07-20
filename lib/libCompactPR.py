@@ -3,7 +3,7 @@
 ##Notes: 
 
 from urllib.request import urlopen as uo
-from time import sleep
+from time import sleep, time
 import pickle
 import bisect
 import redpitaya as rp
@@ -109,12 +109,21 @@ class CP():
         elif self.pss:
             try:
                 maxV = float(g)
+                self.pss.set_maxV(maxV)
             except ValueError:
-                print('invalid gain level')
-            self.pss.set_maxV(maxV)
+                if g == 'auto':
+                    self.write('P100')
+                    t = time()
+                    self.pss.auto_range(float(row["delay(us)"]),float(row["time(us)"]))
+                    print(time()-t)
+                    self.write('P0')
+                else:
+                    raise ValueError('invalid gain level')
+                
             self.pss.prime_trigger(float(row["delay(us)"]),float(row["time(us)"]))
 
         g = 20
+        row['gain(db)'] = self.pss.vrange
         [pwidth,widemode] = self.convertFreq(row["freq(mhz)"])
         [hpf, lpf] = self.convertFilt(row["filtermode"])
         settings = {"tr" : "M1", "pe" : "M0"}
@@ -134,7 +143,7 @@ class CP():
             self.write('P0')
             data = self.scope(float(row["delay(us)"]), float(row["time(us)"]), float(row['gain(db)']))
         elif self.pss:
-            self.write('P10')
+            self.write('P100')
             self.pss.ps.waitReady()
             self.write('P0')
             data = self.pico()
