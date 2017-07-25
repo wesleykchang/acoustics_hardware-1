@@ -16,9 +16,9 @@ class Picoscope():
     An acquisition library for the Picoscope 2208B.
 
     List of commands and args (with their API calls) can be found here:
-    uses the picoscope python package and drivers from the picoscope website
+    https://github.com/colinoflynn/pico-python
 
-    Control is acheived by using standard SCPI calls over USBTMC python library
+    Uses a 3rd party python wrapper for official C driver functions
     """
 
     options = [
@@ -34,41 +34,53 @@ class Picoscope():
         20.0
     ]
 
-
+    AWG_max_samples = 32768
+    scope_max_samples = 128e6
     
     def __init__(self, avg_num=32, duration=30e-6, sample_rate=5e8,resonance=False, maxV = .2):
+        '''
+        creates picoscope object, but doesn't actually connect to instrumenet
+        CALL connect() TO ACTUALLY INITIATE CONNECTION
+        '''
         self.ps = None
         self.avg_num = avg_num
-        self.AWG_max_samples = 32768
-
         
-        # self.sample_rate = 32e6/duration # sampe rate in stamples/sec
-        if resonance == True:
-            self.sample_rate = sample_rate
-            self.vrange = maxV
+        self.sample_rate = sample_rate  # samples/sec
+        self.vrange = maxV  # clipping voltage
+        self.duration = duration  # capture duration in seconds
 
-            self.duration = duration
-            self.ps = ps2000a.PS2000a()
-            self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
-            self.sample_rate = 1/self.sample_rate
-            
     def connect(self):
+        '''
+        connects to the picoscope, sets up defaults, must be called separately to init.
+        will fail weirdly if called before process daemon-ization
+        '''
         if not self.ps:
-            self.sample_rate = 5e8  # sampe rate in stamples/sec
-            self.vrange = 0.5
-            self.duration = 30e-6
             self.ps = ps2000a.PS2000a()
+
+            self.set_averaging(self.avg_num)
             self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
             self.sample_rate = 1/self.sample_rate
+            print(self.sample_rate, self.nsamples, self.maxsamples)
 
-            self.ps.memorySegments(self.avg_num)
-            self.ps.setNoOfCaptures(self.avg_num)
-                
+    def set_averaging(self, num):
+        '''
+        set waveform averaging count
+        '''
+        self.ps.memorySegments(num)
+        self.ps.setNoOfCaptures(num)
+        self.avg_num = num
+        
     def cleanup(self, *args):
+        '''
+        closes connections and such
+        '''
         self.ps.stop()
         self.ps.close()
 
-    def read(self, delay, duration):
+    def read(self):
+        '''
+        pulls waves off of a completed picoscope run
+        '''
         try:
             waves = []
             for i in range(0, self.avg_num):
@@ -77,35 +89,38 @@ class Picoscope():
         except KeyboardInterrupt: #this fires if we SIGTERM
             return
 
-    def auto_range(self, delay, time):
-        self.connect()
-
-        #disable averaging
-        self.ps.memorySegments(1)
-        self.ps.setNoOfCaptures(1)
+    def auto_range(self, delay, duration):
+        '''
+        takes one waveform and sets the optimal range based on that
+        requires the pulser to be running
+        '''
+        
         avg_num = self.avg_num
-        self.avg_num = 1
-
+        
+        #disable averaging
+        self.set_averaging(1)
 
         #do auto ranging from 1V start
-        self.vrange = 1.0
-        self.prime_trigger(delay, time)
+        self.vrange = 2.0
+        self.prime_trigger(delay, duration)
         t,data = self.get_waveform()
         
         ma = np.max(data)
         mi = np.abs(np.min(data))
-        print(ma,mi)
         if mi > ma:
             ma = mi
-        self.set_maxV(ma+0.01)
+        if ma >= 1.95:
+            self.set_maxV(5.0)
+        else:
+            self.set_maxV(ma+0.01)
 
         #reset averaging
-        self.avg_num = avg_num
-        self.ps.memorySegments(self.avg_num)
-        self.ps.setNoOfCaptures(self.avg_num)
+        self.set_averaging(avg_num)
 
     def set_maxV(self,  maxV, offset=0.0, channel=1):
-        self.connect()
+        '''
+        set the clipping voltage
+        '''
         for opt in Picoscope.options:
             if maxV <= opt+0.005:
                 break
@@ -123,20 +138,16 @@ class Picoscope():
         Resets system to init settings
         """
         self.__init__()
+        self.ps = None
+        self.connect()
         
-    def trigger_now(self):
-        '''
-        instantly triggers the system
-        '''
-        return
-    
-    def prime_trigger(self, delay=0, duration=20.0, timeout_ms=10000):
+    def prime_trigger(self, delay=0, duration=20.0, timeout_ms=1000):
         '''
         readies the trigger for waveform collection
         '''
-        self.connect()
         self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration*1e-6)
         self.sample_rate = 1/self.sample_rate
+        print(self.sample_rate, self.nsamples, self.maxsamples)
         
         self.vrange = self.ps.setChannel('A', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=timeout_ms, delay=int(delay*1e-6*self.sample_rate), enabled=True)
@@ -155,14 +166,15 @@ class Picoscope():
         '''
         self.ps.waitReady()
         
-    def get_waveform(self, delay=1.5, duration=20, pct_diff_avg_cutoff=0.1, wait_for_trigger=True, return_waves=False):
+    def get_waveform(self, pct_diff_avg_cutoff=0.1, wait_for_trigger=True, return_waves=False):
         """
         The maximum sampling rate of the scope is 500MHz (2ns resolution).
-        By default, it is set to that. The buffer len is 20480
+        By default, it is set to that.
+        Discards waves whose amp-sum is pct_diff_avg_cutoff away from mean
         """
         if wait_for_trigger:
             self.ps.waitReady()
-        waves = self.read(delay, duration)
+        waves = self.read()
         
         amp_sum = list(map(np.sum, map(abs, waves)))
         m = np.mean(amp_sum)
@@ -220,7 +232,6 @@ class Picoscope():
                                        shots=shots, triggerSource='SoftTrig', stopFreq=stopFreq, increment=increment,
                                        numSweeps=numSweeps, dwellTime=dwellTime, sweepType='Up')
 
-        
         self.vrange = self.ps.setChannel('B', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', -0.01, 'Falling', timeout_ms=1, delay=0, enabled=True)
         

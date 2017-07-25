@@ -107,23 +107,23 @@ class CP():
             self.oscope.prime_trigger()
             g = 20
         elif self.pss:
+            #initiate ps connection, this is a product of having a daemonized process
+            self.pss.connect()
             try:
                 maxV = float(g)
                 self.pss.set_maxV(maxV)
             except ValueError:
                 if g == 'auto':
                     self.write('P100')
-                    t = time()
                     self.pss.auto_range(float(row["delay(us)"]),float(row["time(us)"]))
-                    print(time()-t)
                     self.write('P0')
                 else:
                     raise ValueError('invalid gain level')
                 
             self.pss.prime_trigger(float(row["delay(us)"]),float(row["time(us)"]))
+            row['gain(db)'] = self.pss.get_maxV() #get the actual clipping voltage
 
         g = 20
-        row['gain(db)'] = self.pss.vrange
         [pwidth,widemode] = self.convertFreq(row["freq(mhz)"])
         [hpf, lpf] = self.convertFilt(row["filtermode"])
         settings = {"tr" : "M1", "pe" : "M0"}
@@ -144,7 +144,7 @@ class CP():
             data = self.scope(float(row["delay(us)"]), float(row["time(us)"]), float(row['gain(db)']))
         elif self.pss:
             self.write('P100')
-            self.pss.ps.waitReady()
+            self.pss.wait_ready()
             self.write('P0')
             data = self.pico()
             
