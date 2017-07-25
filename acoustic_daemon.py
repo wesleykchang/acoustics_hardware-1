@@ -278,7 +278,7 @@ class UIDaemon(Daemon):
             index = int(request.args.get('index', ''))
             data = json.load(open(os.path.join('../Data',start_date,testid,files[index])))
             framerate = data.get("framerate")
-            print(framerate)
+            # print(framerate)
             if framerate == None:
                 framerate = 1.25e8
             xs = [x*(1/framerate) for x in range(len(data['amp']))] #scale x to be in us

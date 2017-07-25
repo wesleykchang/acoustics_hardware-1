@@ -60,7 +60,6 @@ class Picoscope():
             self.set_averaging(self.avg_num)
             self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
             self.sample_rate = 1/self.sample_rate
-            print(self.sample_rate, self.nsamples, self.maxsamples)
 
     def set_averaging(self, num):
         '''
@@ -161,7 +160,6 @@ class Picoscope():
         '''
         self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration*1e-6)
         self.sample_rate = 1/self.sample_rate
-        print(self.sample_rate, self.nsamples, self.maxsamples)
         
         self.vrange = self.ps.setChannel('A', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=timeout_ms, delay=int(delay*1e-6*self.sample_rate), enabled=True)
