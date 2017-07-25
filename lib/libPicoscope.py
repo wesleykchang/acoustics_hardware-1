@@ -89,7 +89,7 @@ class Picoscope():
         except KeyboardInterrupt: #this fires if we SIGTERM
             return
 
-    def auto_range(self, delay, duration):
+    def auto_range(self, delay=0.0, duration=20.0):
         '''
         takes one waveform and sets the optimal range based on that
         requires the pulser to be running
@@ -101,7 +101,7 @@ class Picoscope():
         self.set_averaging(1)
 
         #do auto ranging from 1V start
-        self.vrange = 2.0
+        self.vrange = 1.0
         self.prime_trigger(delay, duration)
         t,data = self.get_waveform()
         
@@ -109,10 +109,24 @@ class Picoscope():
         mi = np.abs(np.min(data))
         if mi > ma:
             ma = mi
-        if ma >= 1.95:
-            self.set_maxV(5.0)
+
+        #figure out if it needs 5V or 2V if >1V on first pass    
+        if ma >= 0.95:
+            self.vrange = 2.0
+            self.prime_trigger(delay, duration)
+            t,data = self.get_waveform()
+            ma = np.max(data)
+            mi = np.abs(np.min(data))
+            if mi > ma:
+                ma = mi
+            if ma >= 1.95:
+                self.set_maxV(5.0)
+            else:
+                self.set_maxV(2.0)
+
+        #just set maxV if there was no clipping
         else:
-            self.set_maxV(ma+0.01)
+            self.set_maxV(ma+0.005)
 
         #reset averaging
         self.set_averaging(avg_num)
@@ -122,7 +136,7 @@ class Picoscope():
         set the clipping voltage
         '''
         for opt in Picoscope.options:
-            if maxV <= opt+0.005:
+            if maxV <= opt+0.000001:
                 break
         self.vrange = opt
         return

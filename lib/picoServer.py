@@ -12,7 +12,7 @@ else:
         port = '5001'
 
 # pythonic function for poking the /get_wave url
-def get_wave(url='http://localhost', delay, duration, voltage):
+def get_wave(delay, duration, voltage, url='http://localhost'):
         data = requests.post(url+':'+port+'/get_wave',
                              data={'delay':delay, 'duration':duration, 'voltage':voltage})
         return json.loads(data.text)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
                 duration = float(x['duration'])
                 maxV = x['voltage']
                 if 'auto' in maxV:
-                        ps.auto_range()
+                        ps.auto_range(delay, duration)
                 else:
                         maxV = float(maxV)
                         ps.set_maxV(maxV)
