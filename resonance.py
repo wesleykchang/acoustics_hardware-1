@@ -91,14 +91,21 @@ class Resonator():
     test_name: optional argument to name the test. used to determine folder location
     """
     def __init__(self,start_f,stop_f,sweep_t,arb=False,test_name = "resonance_test"):
-        self.start_f = start_f
-        self.stop_f = stop_f
-        self.sweep_t = sweep_t
-        self.ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.2,sample_rate=sample_rate) ###Change this to be dynamic!!
+        self.start_f = int(start_f)
+        self.stop_f = int(stop_f)
+        self.sweep_t = int(sweep_t)
+        self.num_sweeps = 1
+        num_freqs = int(sweep_t/(1/start_f))
+        self.dwelltime = sweep_t/num_freqs
+
+        self.inc = (stop_f - start_f)/num_freqs
+
+        self.sample_rate = 5*stop_f
+        self.ps = Picoscope(avg_num=0, resonance=True, duration = sweep_t,maxV=.1,sample_rate=self.sample_rate) ###Change this to be dynamic!!
         self.arb =arb
 
         self.num_freqs = int(sweep_t/(1/start_f)) #number of frequencies for function generator. Makes sure there is at least one cycle for each.
-        self.sample_rate = 3*stop_f #adjusting this can sometimes speed up the FFT
+        self.sample_rate = 5*stop_f #adjusting this can sometimes speed up the FFT
 
         self.num_sweeps = 1 #number of times to sweep when averaging
 
@@ -106,9 +113,9 @@ class Resonator():
     def get_single_generator(self):
         """Gets a single waveform using the built-in function generator. Returns both a wave object
         and a spectrum object"""
-        w_data = self.ps.signal_generator(frequency=self.start_f, stopFreq=self.stop_f, shots=0, numSweeps=1, increment=inc, dwellTime=dwelltime)
+        w_data = self.ps.signal_generator(frequency=self.start_f, stopFreq=self.stop_f, shots=0, numSweeps=1, increment=self.inc, dwellTime=self.dwelltime)
         self.ps.signal_generator(frequency=1e6, shots=1) #necessary for returning the picoscope to 0
-        w = data.Wave(framerate=sample_rate, amps=w_data[1])
+        w = data.Wave(framerate=self.sample_rate, amps=w_data[1])
         w_s = w.to_spectrum()
         return [w,w_s]
 
@@ -191,7 +198,7 @@ class Resonator():
         """Will call either get_single_arb or get_single_generator based off of whether or not arb flag is enabled.
         Also implements averaging returns the averaged spectrum as a Spectrum object"""
         spec_list = []
-        for i in range(num_sweeps):
+        for i in range(self.num_sweeps):
             if self.arb:
                 wav,spec = self.get_single_arb()
             else:
@@ -201,8 +208,9 @@ class Resonator():
         avg_s = average_specs(spec_list)
 
         if plot:
+            plt.subplot(211)
             wav.plot()
-            plt.show()
+            plt.subplot(212)
             avg_s.plot()
             plt.show()
         return avg_s
@@ -240,11 +248,16 @@ if __name__ == '__main__':
         arb = True
     else:
         arb = False
+        
+    r = Resonator(start_f,stop_f,sweep_t,arb,test_name=testname)
+    while True:
+        s = r.get_data(plot=True)
+        s.plot()
+        user = input('run another test? Y/N: ')
+        if user != 'y' and user != 'Y':
+            break
+    plt.show()
 
-r = Resonator(start_f,stop_f,sweep_t,arb,test_name=testname)
-s = r.get_data()
-s.plot()
-plt.show()
 # plt.xlim([1e3,90e3])
 # plt.show()
 # r.loop(300)
