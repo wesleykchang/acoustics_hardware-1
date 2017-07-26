@@ -12,7 +12,7 @@ else:
         port = '5001'
 
 # pythonic function for poking the /get_wave url
-def get_wave(delay, duration, voltage, url='http://localhost'):
+def get_wave(delay, duration, voltage='auto', url='http://localhost'):
         data = requests.post(url+':'+port+'/get_wave',
                              data={'delay':delay, 'duration':duration, 'voltage':voltage})
         return json.loads(data.text)
@@ -52,12 +52,15 @@ if __name__ == "__main__":
                 x = flask.request.values
                 delay = float(x['delay'])
                 duration = float(x['duration'])
-                maxV = x['voltage']
-                if 'auto' in maxV:
-                        ps.auto_range(delay, duration)
+                if 'voltage' in x:
+                        maxV = x['voltage']
+                        if 'auto' in maxV:
+                                ps.auto_range(delay, duration)
+                        else:
+                                maxV = float(maxV)
+                                ps.set_maxV(maxV)
                 else:
-                        maxV = float(maxV)
-                        ps.set_maxV(maxV)
+                        ps.auto_range(delay, duration)
                         
                 ps.prime_trigger(delay, duration)
                 time, data = ps.get_waveform()
