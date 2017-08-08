@@ -91,8 +91,8 @@ serial_names = [
 
         
 #######PICOSCOPE#############################
-if not os.path.exists(path+'95-pico.rules'):
-    raise ValueError('Picoscope not installed yet! Do that first')
+# if not os.path.exists(path+'95-pico.rules'):
+#     raise ValueError('Picoscope not installed yet! Do that first')
 
 # with open(path+'95-pico.rules', 'r') as f:
 #     s = f.read().split('\n')[0]
