@@ -78,16 +78,16 @@ serial_names = [
     ]
 
 ######CREAETE SCRIPTS#######
-script_path = path+'scripts/'
-if os.path.exists(script_path):
-    shutil.rmtree(script_path)
-os.makedirs(script_path)
+# script_path = path+'scripts/'
+# if os.path.exists(script_path):
+#     shutil.rmtree(script_path)
+# os.makedirs(script_path)
 
-for name in all_names:
-    with open(script_path+name+'.sh', 'w') as f:
-        f.write('/usr/bin/docker start '+name)
-    with open(script_path+name+'_rm.sh', 'w') as f:
-        f.write('/usr/bin/docker stop '+name)
+# for name in all_names:
+#     with open(script_path+name+'.sh', 'w') as f:
+#         f.write('/usr/bin/docker start '+name)
+#     with open(script_path+name+'_rm.sh', 'w') as f:
+#         f.write('/usr/bin/docker stop '+name)
 
         
 #######PICOSCOPE#############################
