@@ -5,6 +5,7 @@ import json
 import numpy as np
 import base64
 import requests
+import time
 
 if len(sys.argv) > 1:
         port = sys.argv[1]
@@ -28,7 +29,8 @@ if __name__ == "__main__":
         avg_num = 32
         ps = lps.Picoscope(avg_num=avg_num)
         ps.connect()
-
+        t = -1  # time of last waveform
+        
         #test to see that server is alive
         @app.route('/')
         def hello_world():
@@ -38,17 +40,26 @@ if __name__ == "__main__":
         #gives some bs static data
         @app.route('/test')
         def getstuff():
+                global t
                 ps.set_maxV(1.0)
                 delay = 0.0 #us
                 duration = 20.0 #us
                 ps.prime_trigger(delay, duration, timeout_ms=1)
                 time, data = ps.get_waveform()
+                t = int(time.time()*1000)
                 return json.dumps(data)
 
+        
+        #returns the unix time in ms of the last read time
+        @app.route('/lastread')
+        def lastread():
+                return str(t)
+        
         #function that actually grabs a wave from the pico
         #PULSER MUST BE RUNNING AT A DECENT RATE (>50 pulses/sec) FOR THIS
         @app.route('/get_wave', methods=['POST'])
         def getter():
+                global t
                 x = flask.request.values
                 delay = float(x['delay'])
                 duration = float(x['duration'])
@@ -66,6 +77,7 @@ if __name__ == "__main__":
                 time, data = ps.get_waveform()
 
                 ret_data = {'data':data, 'framerate':ps.sample_rate}
+                t = int(time.time()*1000)
                 return json.dumps(ret_data)
 
         app.run(port=port,host="0.0.0.0")
