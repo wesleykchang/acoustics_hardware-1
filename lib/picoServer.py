@@ -45,7 +45,7 @@ if __name__ == "__main__":
                 delay = 0.0 #us
                 duration = 20.0 #us
                 ps.prime_trigger(delay, duration, timeout_ms=1)
-                time, data = ps.get_waveform()
+                t_series, data = ps.get_waveform()
                 t = int(time.time()*1000)
                 return json.dumps(data)
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
                         ps.auto_range(delay, duration)
                         
                 ps.prime_trigger(delay, duration)
-                time, data = ps.get_waveform()
+                t_series, data = ps.get_waveform()
 
                 ret_data = {'data':data, 'framerate':ps.sample_rate}
                 t = int(time.time()*1000)
