@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from picoscope import ps2000a
+from picoscope import ps4000
 import libCompactPR as cp
 import ctypes
 
@@ -13,7 +13,7 @@ except (TypeError,ImportError):
 
 class Picoscope():
     """
-    An acquisition library for the Picoscope 2208B.
+    An acquisition library for the Picoscope 4262.
 
     List of commands and args (with their API calls) can be found here:
     https://github.com/colinoflynn/pico-python
@@ -55,7 +55,7 @@ class Picoscope():
         will fail weirdly if called before process daemon-ization
         '''
         if not self.ps:
-            self.ps = ps2000a.PS2000a()
+            self.ps = ps4000.PS4000()
 
             self.set_averaging(self.avg_num)
             self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
