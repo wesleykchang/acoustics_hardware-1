@@ -13,7 +13,7 @@ except (TypeError,ImportError):
 
 class Picoscope():
     """
-    An acquisition library for the Picoscope 4262.
+    An acquisition library for the Picoscope 2208B.
 
     List of commands and args (with their API calls) can be found here:
     https://github.com/colinoflynn/pico-python
