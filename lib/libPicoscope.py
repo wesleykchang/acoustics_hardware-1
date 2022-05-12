@@ -68,6 +68,12 @@ class Picoscope():
         self.ps.memorySegments(num)
         self.ps.setNoOfCaptures(num)
         self.avg_num = num
+
+    def set_sample_rate(self, rate):
+        '''
+        set sampling rate in samples/sec
+        '''
+        self.sample_rate = rate
         
     def cleanup(self, *args):
         '''
@@ -81,10 +87,35 @@ class Picoscope():
         pulls waves off of a completed picoscope run
         '''
         try:
+            #waves = []
+            #for i in range(0, self.avg_num):
+            #    waves.append(self.ps.getDataV('A', self.nsamples, returnOverflow=False, segmentIndex=i))
+            #return waves
+
+            #waves = []
+            #for i in range(0, self.averaging):
+            #    waves.append(self.ps.getDataV(self.rs['_data_channel'], self.nsamples, returnOverflow=False, segmentIndex=i))
+            #print(time.time() - t)
+            #return waves
+
+            data = np.ascontiguousarray(np.zeros((self.avg_num, self.nsamples), dtype=np.int16))
+            ch = self.ps.CHANNELS['A']
+            for i, segment in enumerate(range(0, self.avg_num)):
+                self.ps._lowLevelSetDataBuffer(ch,data[i],0, segment)
+
+            overflow = np.ascontiguousarray(np.zeros(self.avg_num, dtype=np.int16))
+            self.ps._lowLevelGetValuesBulk(self.nsamples, 0, self.avg_num-1,1, 0, overflow)
+
+            # don't leave the API thinking these can be written to later
+            for i, segment in enumerate(range(0, self.avg_num)):
+                self.ps._lowLevelClearDataBuffer(ch, segment)
+
             waves = []
-            for i in range(0, self.avg_num):
-                waves.append(self.ps.getDataV('A', self.nsamples, returnOverflow=False, segmentIndex=i))
+            for wave in data:
+                waves.append(self.ps.rawToV('A', wave))
             return waves
+
+            
         except KeyboardInterrupt: #this fires if we SIGTERM
             return
 
@@ -188,12 +219,12 @@ class Picoscope():
             self.ps.waitReady()
         waves = self.read()
         
-        amp_sum = list(map(np.sum, map(abs, waves)))
-        m = np.mean(amp_sum)
-        amp_sum_pct = np.abs(np.divide(np.subtract(amp_sum, m), m))
-        waves_avg = np.array(waves)[amp_sum_pct < pct_diff_avg_cutoff]
+        #amp_sum = list(map(np.sum, map(abs, waves)))
+        #m = np.mean(amp_sum)
+        #amp_sum_pct = np.abs(np.divide(np.subtract(amp_sum, m), m))
+        #waves_avg = np.array(waves)[amp_sum_pct < pct_diff_avg_cutoff]
         
-        data = np.mean(np.transpose(waves_avg), axis=1).tolist()
+        data = np.mean(np.transpose(waves), axis=1).tolist()
         t = np.arange(self.nsamples) * (1/self.sample_rate)*1e6
         t = t.tolist()
         if return_waves:
@@ -244,17 +275,30 @@ class Picoscope():
                                        shots=shots, triggerSource='SoftTrig', stopFreq=stopFreq, increment=increment,
                                        numSweeps=numSweeps, dwellTime=dwellTime, sweepType='Up')
 
+        duration = dwellTime*((stopFreq - frequency)/increment + 1)
+        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration)
+        self.sample_rate = 1/self.sample_rate
+
         self.vrange = self.ps.setChannel('B', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', -0.01, 'Falling', timeout_ms=1, delay=0, enabled=True)
+        self.ps.setSimpleTrigger('A', 1.0, 'Falling', timeout_ms=1, delay=0, enabled=True)
         
-        self.ps.runBlock()
+        #self.ps.runBlock(pretrig=0.5)
+
+        self.ps.runBlock(pretrig=0.001/duration)
         self.trig_AWG()
+
         self.wait_ready()
 
         data = self.ps.getDataV('B', self.nsamples, returnOverflow=False)
         t = np.arange(0,len(data)) * 1/self.sample_rate
         
-        t.tolist()
+        t = t.tolist()
+        data = data.tolist()
+
+        self.ps.setSigGenBuiltInSimple(waveType='DCVoltage', offsetVoltage=0, shots=0)
+        self.trig_AWG()
+        time.sleep(0.05)
+
         # plt.plot(t, data)
         # plt.show()
         return [t,data]
@@ -311,10 +355,22 @@ class Picoscope():
         return [t,data]
         
 if __name__=="__main__":
+    ps = Picoscope(avg_num=64)
+    ps.connect()
+    ps.prime_trigger(timeout_ms=1)
+    data = ps.get_waveform()
+
+    t = time.time()
+    ps.set_sample_rate(5e8)
+    ps.prime_trigger(timeout_ms=1, duration=120)
+    data = ps.get_waveform()
+    print(time.time() - t)
+
+
     # cp = cp.CP("http://localhost:9003",rp_url="169.254.1.10")
-    ps = Picoscope(avg_num=0)
+    # ps = Picoscope(avg_num=0)
     # ps.generate_square(voltage=-2.0)
-    ps.signal_generator(stopFreq=1000, frequency=100, shots=0, numSweeps=1, increment=100, dwellTime=0.5)
+    # ps.signal_generator(stopFreq=1000, frequency=100, shots=0, numSweeps=1, increment=100, dwellTime=0.5)
     # x = np.add(np.zeros(16384, dtype=np.int16), -2)
     # y = np.add(np.zeros(16384, dtype=np.int16), 0)
     

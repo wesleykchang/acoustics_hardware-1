@@ -63,6 +63,17 @@ if __name__ == "__main__":
                 x = flask.request.values
                 delay = float(x['delay'])
                 duration = float(x['duration'])
+                
+                if 'avg_num' in x:
+                    ps.set_averaging(int(x['avg_num']))
+                else:
+                    ps.set_averaging(32)
+
+                if 'sample_rate' in x:
+                    ps.set_sample_rate(float(x['avg_num']))
+                else:
+                    ps.set_sample_rate(5e8)
+
                 if 'voltage' in x:
                         maxV = x['voltage']
                         if 'auto' in maxV:
@@ -79,6 +90,26 @@ if __name__ == "__main__":
                 ret_data = {'data':data, 'framerate':ps.sample_rate}
                 t = int(time.time()*1000)
                 return json.dumps(ret_data)
+
+
+        #runs the resonance sequence
+        @app.route('/get_resonance', methods=['POST'])
+        def get_resonance():
+                x = flask.request.values
+                start_freq = float(x['start_freq'])
+
+                end_freq = float(x['end_freq'])
+                increment = float(x['increment'])
+                dwell = float(x['dwell'])
+                voltage = float(x['voltage'])
+
+                ps.set_averaging(0)
+                ps.set_sample_rate(10*end_freq)
+                ps.set_maxV(voltage)
+
+                data = ps.signal_generator(stopFreq=end_freq, frequency=start_freq, shots=0, numSweeps=1, increment=increment, dwellTime=dwell)
+                return json.dumps(data)
+                
 
         app.run(port=port,host="0.0.0.0")
 
