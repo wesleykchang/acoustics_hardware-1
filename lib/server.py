@@ -95,19 +95,25 @@ if __name__ == "__main__":
         #runs the resonance sequence
         @app.route('/get_resonance', methods=['POST'])
         def get_resonance():
-                x = flask.request.values
-                start_freq = float(x['start_freq'])
-
-                end_freq = float(x['end_freq'])
-                increment = float(x['increment'])
-                dwell = float(x['dwell'])
-                voltage = float(x['voltage'])
+                params = flask.request.values
+                start_freq = float(params['start_freq'])
+                end_freq = float(params['end_freq'])
+                increment = float(params['increment'])
+                dwell = float(params['dwell'])
+                voltage = float(params['voltage'])
 
                 ps.set_averaging(0)
                 ps.set_sample_rate(10*end_freq)
                 ps.set_maxV(voltage)
 
-                data = ps.signal_generator(stopFreq=end_freq, frequency=start_freq, shots=0, numSweeps=1, increment=increment, dwellTime=dwell)
+                data = ps.signal_generator(
+                        stopFreq=end_freq,
+                        frequency=start_freq,
+                        shots=0, 
+                        numSweeps=1,
+                        increment=increment,
+                        dwellTime=dwell
+                )
                 return json.dumps(data)
                 
 

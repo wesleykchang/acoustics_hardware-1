@@ -1,0 +1,17 @@
+{
+    "sigGenBuiltIn": {
+        "offsetVoltage": 0.0,
+        "pkToPk": 2,
+        "waveType": "PS4000_SINE",
+        "startFrequency": 1.0E6,
+        "stopFrequency": "",
+        "increment": 10.0,
+        "dwellTime": 1E-3,
+        "sweepType": "UP",
+        "operationType": "",
+        "shots": "",
+        "sweeps": 0,
+        "triggerType": "SIGGEN_RISING",
+        "triggerSource": "SIGGEN_SCOPE_TRIG"
+    }
+}

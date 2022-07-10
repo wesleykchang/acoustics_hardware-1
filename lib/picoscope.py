@@ -1,259 +1,260 @@
-import numpy as np
-import time
-from picoscope import ps4000
-import libCompactPR as cp
+# Built on example from official DSK python wrapper library
+
 import ctypes
+import json
+import time
 
+from picosdk.ps4000 import ps4000 as ps
+from picosdk.functions import adc2mV, assert_pico_ok
 
-try:
-    import matplotlib.pyplot as plt
-    graphical = True
-except (TypeError,ImportError):
-    graphical = False
+chandle = ctypes.c_int16()
+
+with open("settings.json") as f:
+    settings = json.load(f)
+sigGenBuiltIn = settings["sigGenBuiltIn"]
 
 class Picoscope():
-    """
-    An acquisition library for the Picoscope 2208B.
+    def __init__(self, preTriggerSamples: int = 2500, postTriggerSamples: int = 2500):
 
-    List of commands and args (with their API calls) can be found here:
-    https://github.com/colinoflynn/pico-python
+        self.maxSamples = preTriggerSamples + postTriggerSamples
 
-    Uses a 3rd party python wrapper for official C driver functions
-    """
-
-    options = [
-        0.02,
-        0.05,
-        0.1,
-        0.2,
-        0.5,
-        1.0,
-        2.0,
-        5.0,
-        10.0,
-        20.0
-    ]
-
-    AWG_max_samples = 32768
-    scope_max_samples = 128e6
-    
-    def __init__(self, avg_num=32, duration=30e-6, sample_rate=5e8,resonance=False, maxV = .2):
-        '''
-        creates picoscope object, but doesn't actually connect to instrumenet
-        CALL connect() TO ACTUALLY INITIATE CONNECTION
-        '''
         self.ps = None
-        self.avg_num = avg_num
-        
-        self.sample_rate = sample_rate  # samples/sec
-        self.vrange = maxV  # clipping voltage
-        self.duration = duration  # capture duration in seconds
+        self.status = dict()
 
     def connect(self):
-        '''
-        connects to the picoscope, sets up defaults, must be called separately to init.
-        will fail weirdly if called before process daemon-ization
-        '''
         if not self.ps:
-            self.ps = ps4000.PS4000()
+            self.ps = ps
 
-            self.set_averaging(self.avg_num)
-            self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, self.duration)
-            self.sample_rate = 1/self.sample_rate
+        self.status["openunit"] = self.ps.ps4000OpenUnit(ctypes.byref(chandle))
 
-    def set_averaging(self, num):
-        '''
-        set waveform averaging count
-        '''
-        self.ps.memorySegments(num)
-        self.ps.setNoOfCaptures(num)
-        self.avg_num = num
+        assert_pico_ok(self.status["openunit"])
 
-    def set_sample_rate(self, rate):
-        '''
-        set sampling rate in samples/sec
-        '''
-        self.sample_rate = rate
+    def setSigGenBuiltIn(self, **nondefault_params):
+        """Sets up the signal generator to produce a signal from the selected waveType.
+
+        If startFrequency != stopFrequency it will sweep.
         
-    def cleanup(self, *args):
-        '''
-        closes connections and such
-        '''
-        self.ps.stop()
-        self.ps.close()
-
-    def read(self):
-        '''
-        pulls waves off of a completed picoscope run
-        '''
-        try:
-            #waves = []
-            #for i in range(0, self.avg_num):
-            #    waves.append(self.ps.getDataV('A', self.nsamples, returnOverflow=False, segmentIndex=i))
-            #return waves
-
-            #waves = []
-            #for i in range(0, self.averaging):
-            #    waves.append(self.ps.getDataV(self.rs['_data_channel'], self.nsamples, returnOverflow=False, segmentIndex=i))
-            #print(time.time() - t)
-            #return waves
-
-            data = np.ascontiguousarray(np.zeros((self.avg_num, self.nsamples), dtype=np.int16))
-            ch = self.ps.CHANNELS['A']
-            for i, segment in enumerate(range(0, self.avg_num)):
-                self.ps._lowLevelSetDataBuffer(ch,data[i],0, segment)
-
-            overflow = np.ascontiguousarray(np.zeros(self.avg_num, dtype=np.int16))
-            self.ps._lowLevelGetValuesBulk(self.nsamples, 0, self.avg_num-1,1, 0, overflow)
-
-            # don't leave the API thinking these can be written to later
-            for i, segment in enumerate(range(0, self.avg_num)):
-                self.ps._lowLevelClearDataBuffer(ch, segment)
-
-            waves = []
-            for wave in data:
-                waves.append(self.ps.rawToV('A', wave))
-            return waves
-
-            
-        except KeyboardInterrupt: #this fires if we SIGTERM
-            return
-
-    def auto_range(self, delay=0.0, duration=20.0):
-        '''
-        takes one waveform and sets the optimal range based on that
-        requires the pulser to be running
-        '''
-        
-        avg_num = self.avg_num
-        
-        #disable averaging
-        self.set_averaging(1)
-
-        #do auto ranging from 1V start
-        self.vrange = 1.0
-        self.prime_trigger(delay, duration)
-        t,data = self.get_waveform()
-        
-        ma = np.max(data)
-        mi = np.abs(np.min(data))
-        if mi > ma:
-            ma = mi
-
-        #figure out if it needs 5V or 2V if >1V on first pass    
-        if ma >= 0.95:
-            self.vrange = 2.0
-            self.prime_trigger(delay, duration)
-            t,data = self.get_waveform()
-            ma = np.max(data)
-            mi = np.abs(np.min(data))
-            if mi > ma:
-                ma = mi
-            if ma >= 1.95:
-                self.set_maxV(5.0)
-            else:
-                self.set_maxV(2.0)
-
-        #just set maxV if there was no clipping
-        else:
-            self.set_maxV(ma+0.005)
-
-        #reset averaging
-        self.set_averaging(avg_num)
-
-    def set_maxV(self,  maxV, offset=0.0, channel=1):
-        '''
-        set the clipping voltage
-        '''
-        for opt in Picoscope.options:
-            if maxV <= opt+0.000001:
-                break
-        self.vrange = opt
-        return
-    
-    def get_maxV(self, channel=1):
-        '''
-        gets the maximum voltage for the given channel in V
-        '''
-        return self.vrange
-    
-    def reset(self):
+        Args:
+            offsetVoltage (float): Optional. The voltage offset [uV].
+                Defaults to 0.0
+            pkToPk (int): Optional. Peak-to-peak voltage [uV].
+                Defaults to 2
+            waveType (str): Optional. The type of waveform to be generated.
+                Refer to programmers' guide for all available types. Defaults to 'Sine'
+            startFrequency (float): Optional. Starting frequency.
+                Defaults to 1.0E6
+            stopFrequency (float): Optional. Stopping (or reversing) frequency (included).
+                Defaults to None
+            increment (float): Optional. The amount by which the frequency rises (or falls).
+                Defaults to 10.0
+            dwellTime (float): Optional. The time [s] between frequency changes.
+                Defaults to 1E-3
+            sweepType (str): Optional. Determines sweeping direction.
+                Defaults to 'UP'
+            operationType (str): Optional. Configures white noise generator.
+                Defaults to None
+            shots (str): Optional. The number of cycles of the waveform to be produced
+                after a trigger event.
+                Defaults to None
+            sweeps (int): Optional. Number of sweep repetitions.
+            Defaults to None
+            triggerType (str): The type of trigger to be applied to signal generator.
+                Refer to programmers' guide for all available types.
+                Defaults to 'SIGGEN_RISING'
+            triggerSource (str): Optional. The source that triggers the signal generator.
+                Defaults to 'SIGGEN_SCOPE_TRIG'
         """
-        Resets system to init settings
-        """
-        self.__init__()
-        self.ps = None
-        self.connect()
-        
-    def prime_trigger(self, delay=0, duration=20.0, timeout_ms=1000):
-        '''
-        readies the trigger for waveform collection
-        '''
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration*1e-6)
-        self.sample_rate = 1/self.sample_rate
-        
-        self.vrange = self.ps.setChannel('A', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', 0.5, 'Rising', timeout_ms=timeout_ms, delay=int(delay*1e-6*self.sample_rate), enabled=True)
 
-        self.ps.runBlock()
+        for parameter, value in nondefault_params.items():
+            sigGenBuiltIn[parameter] = value
         
-    def stop_acq(self):
-        '''
-        stops acquisition
-        '''
-        self.ps.stop()
+        self.status["SigGen"] = self.ps.ps4000SetSigGenBuiltIn(
+            chandle,
+            sigGenBuiltIn.offsetVoltage,
+            sigGenBuiltIn.pkToPk,
+            sigGenBuiltIn.waveType,
+            sigGenBuiltIn.startFrequency,
+            sigGenBuiltIn.stopFrequency,
+            sigGenBuiltIn.increment,
+            sigGenBuiltIn.dwellTime,
+            sigGenBuiltIn.sweepType,
+            sigGenBuiltIn.operationType,
+            sigGenBuiltIn.shots,
+            sigGenBuiltIn.sweeps,
+            sigGenBuiltIn.triggerType,
+            sigGenBuiltIn.triggerSource,
+            None
+        )
 
-    def wait_ready(self):
-        '''
-        waits for picoscope to finish acquisition
-        '''
-        self.ps.waitReady()
-        
-    def get_waveform(self, pct_diff_avg_cutoff=0.1, wait_for_trigger=True, return_waves=False):
-        """
-        The maximum sampling rate of the scope is 500MHz (2ns resolution).
-        By default, it is set to that.
-        Discards waves whose amp-sum is pct_diff_avg_cutoff away from mean
-        """
-        if wait_for_trigger:
-            self.ps.waitReady()
-        waves = self.read()
-        
-        #amp_sum = list(map(np.sum, map(abs, waves)))
-        #m = np.mean(amp_sum)
-        #amp_sum_pct = np.abs(np.divide(np.subtract(amp_sum, m), m))
-        #waves_avg = np.array(waves)[amp_sum_pct < pct_diff_avg_cutoff]
-        
-        data = np.mean(np.transpose(waves), axis=1).tolist()
-        t = np.arange(self.nsamples) * (1/self.sample_rate)*1e6
-        t = t.tolist()
-        if return_waves:
-            return waves
-        else:
-            return [t, data]
+        assert_pico_ok(self.status["SigGen"])
+
+    def setSimpleTrigger(self):
+        pass
+
+    # setSamplingInterval doesn't exist
 
     def trig_AWG(self):
-        '''
-        starts the arbitrary wave generator. must prime scope trigger before calling
-        '''
-        self.ps.lib.ps2000aSigGenSoftwareControl(ctypes.c_int16(self.ps.handle), ctypes.c_int(0))
+        pass
+        #self.ps.lib.ps2000aSigGenSoftwareControl(ctypes.c_int16(self.ps.handle), ctypes.c_int(0))
 
-    def generate_square(self, pwidth=444e-9, voltage=-2.0):
-        '''
-        generates a square pulse at the specified width with specified voltage
-        '''
-        if voltage < -2.0:
-            voltage = -2.0
-        elif voltage > 2.0:
-            voltage = 2.0
-        
-        pulse = np.add(np.zeros(10), voltage)
-        zero = np.zeros(10)
-        wf = np.append(pulse, zero)
-        
-        self.generate_waveform(wf, pwidth*2)
 
-    def signal_generator(self, offset=0.0, waveType='Sine', pkToPk=2, frequency=1.0e6, stopFreq=None,
+    def wait_ready(self):
+
+        # Check for data collection to finish using ps4000IsReady
+        ready = ctypes.c_int16(0)
+        check = ctypes.c_int16(0)
+        while ready.value == check.value:
+            self.status["isReady"] = self.ps.ps4000IsReady(chandle, ctypes.byref(ready))
+
+
+    def setChannel(self, channel: int = 0, enabled: int = 0, dc: int = 1, channel_range: int = 7):
+        # Set up channel A
+        # handle = chandle
+        # channel = PS4000_CHANNEL_A = 0
+        # enabled = 1
+        # coupling type = PS4000_DC = 1
+        # range = PS4000_2V = 7
+
+        self.status["setCh"] = self.ps.ps4000SetChannel(
+            chandle,
+            channel,
+            enabled,
+            dc,
+            channel_range
+        )
+
+        assert_pico_ok(self.status["setCh"])
+
+    def setSingleTrigger(self, enabled: int = 1, source: int = 0, threshold: int = 1024, direction: int = 2, delay: int = 0, auto_trigger: int = 1000):
+        # Set up single trigger
+        # handle = chandle
+        # enabled = 1
+        # source = PS4000_CHANNEL_A = 0
+        # threshold = 1024 ADC counts
+        # direction = PS4000_RISING = 2
+        # delay = 0 s
+        # auto Trigger = 1000 ms
+
+        self.status["trigger"] = self.ps.ps4000SetSimpleTrigger(
+            chandle,
+            enabled,
+            source,
+            threshold,
+            direction,
+            delay,
+            auto_trigger
+        )
+        
+        assert_pico_ok(self.status["trigger"])
+
+    # def get_timebase(self, timebase: int = 8, timeIntervalns: ctypes.c_float() = None, returnedMaxSamples: ctypes.c_int32() = None):
+    #     # Get timebase information
+    #     # Warning: When using this example it may not be possible to access all Timebases as all channels are enabled by default when opening the scope.  
+    #     # To access these Timebases, set any unused analogue channels to off.
+    #     # handle = chandle
+    #     # timebase = 8 = timebase
+    #     # noSamples = maxSamples
+    #     # pointer to timeIntervalNanoseconds = ctypes.byref(timeIntervalns)
+    #     # pointer to maxSamples = ctypes.byref(returnedMaxSamples)
+    #     # segment index = 0
+
+    #     if timeIntervalns is None:
+    #         timeIntervalns=ctypes.c_float()
+
+    #     if returnedMaxSamples is None:
+    #         returnedMaxSamples = ctypes.c_int32()
+
+    #     self.status["getTimebase2"] = self.ps.ps4000GetTimebase2(
+    #         chandle,
+    #         timebase,
+    #         self.maxSamples,
+    #         ctypes.byref(timeIntervalns),
+    #         ctypes.c_int16(1),
+    #         ctypes.byref(returnedMaxSamples),
+    #         0
+    #     )
+            
+    #     assert_pico_ok(self.status["getTimebase2"])
+
+    def runBlock(self, timebase: int = 8, preTriggerSamples: int = 2500, postTriggerSamples: int = 2500):
+
+        # Run block capture
+        # handle = chandle
+        # number of pre-trigger samples = preTriggerSamples
+        # number of post-trigger samples = PostTriggerSamples
+        # timebase = 8 = 80 ns = timebase (see Programmer's guide for mre information on timebases)
+        # time indisposed ms = None (not needed in the example)
+        # segment index = 0
+        # lpReady = None (using ps4000IsReady rather than ps4000BlockReady)
+        # pParameter = None
+        
+        self.status["runBlock"] = self.ps.ps4000RunBlock(
+            chandle,
+            preTriggerSamples,
+            postTriggerSamples,
+            timebase,
+            ctypes.c_int16(1),
+            None,
+            0,
+            None,
+            None
+        )
+
+        assert_pico_ok(self.status["runBlock"])
+
+    # def set_buffer_location(self):
+    #     # Set data buffer location for data collection from channel A
+    #     # handle = chandle
+    #     # source = PS4000_CHANNEL_A = 0
+    #     # pointer to buffer max = ctypes.byref(bufferAMax)
+    #     # pointer to buffer min = ctypes.byref(bufferAMin)
+    #     # buffer length = maxSamples
+        
+    #     bufferMax = (ctypes.c_int16 * self.maxSamples)()
+    #     bufferMin = (ctypes.c_int16 * self.maxSamples)() # used for downsampling which isn't in the scope of this example
+
+    #     self.status["setDataBuffers"] = self.ps.ps4000SetDataBuffers(
+    #         chandle,
+    #         0,
+    #         ctypes.byref(bufferMax),
+    #         ctypes.byref(bufferMin),
+    #         self.maxSamples
+    #     )
+        
+    #     assert_pico_ok(self.status["setDataBuffers"])
+
+
+    def getData(self, overflow = ctypes.c_int16()):
+        # Retrived data from scope to buffers assigned above
+        # handle = chandle
+        # start index = 0
+        # pointer to number of samples = ctypes.byref(cmaxSamples)
+        # downsample ratio = 0
+        # downsample ratio mode = PS4000_RATIO_MODE_NONE
+        # pointer to overflow = ctypes.byref(overflow))
+
+        # create converted type maxSamples
+        cmaxSamples = ctypes.c_int32(self.maxSamples)
+
+        self.status["getValues"] = self.ps.ps4000GetValues(
+            chandle,
+            0,
+            ctypes.byref(cmaxSamples),
+            0,
+            0,
+            0,
+            ctypes.byref(overflow)
+        )
+
+        assert_pico_ok(self.status["getValues"])
+
+        # convert ADC counts data to mV
+        chRange = 7
+        adc2mVChAMax =  adc2mV(bufferMax, chRange, maxADC)
+
+        return adc2mVChAMax
+
+    def sweep(self, offset=0.0, waveType='Sine', pkToPk=2, frequency=1.0e6, stopFreq=None,
                          increment=10.0, shots=10, dwellTime=0.001, numSweeps=0):
         '''
         generates a signal.
@@ -271,15 +272,13 @@ class Picoscope():
                 print("warning: sample rate is less than Nyquist frequency!")
 
         self.connect()
-        self.ps.setSigGenBuiltInSimple(offsetVoltage=offset, pkToPk=pkToPk, waveType=waveType, frequency=frequency,
-                                       shots=shots, triggerSource='SoftTrig', stopFreq=stopFreq, increment=increment,
-                                       numSweeps=numSweeps, dwellTime=dwellTime, sweepType='Up')
+        self.setSigGenBuiltInSimple()
 
         duration = dwellTime*((stopFreq - frequency)/increment + 1)
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration)
-        self.sample_rate = 1/self.sample_rate
+        # self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration)
+        # self.sample_rate = 1/self.sample_rate
 
-        self.vrange = self.ps.setChannel('B', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
+        self.vrange = self.setChannel('B', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
         self.ps.setSimpleTrigger('A', 1.0, 'Falling', timeout_ms=1, delay=0, enabled=True)
         
         #self.ps.runBlock(pretrig=0.5)
@@ -289,117 +288,11 @@ class Picoscope():
 
         self.wait_ready()
 
-        data = self.ps.getDataV('B', self.nsamples, returnOverflow=False)
-        t = np.arange(0,len(data)) * 1/self.sample_rate
-        
-        t = t.tolist()
+        data = self.getDataV('B', self.nsamples, returnOverflow=False)
         data = data.tolist()
 
-        self.ps.setSigGenBuiltInSimple(waveType='DCVoltage', offsetVoltage=0, shots=0)
+        self.setSigGenBuiltInSimple(waveType='DCVoltage', offsetVoltage=0, shots=0)
         self.trig_AWG()
         time.sleep(0.05)
 
-        # plt.plot(t, data)
-        # plt.show()
-        return [t,data]
-
-        
-    def generate_waveform(self, waveform, duration, rx_samplerate, dual=False, npulses=1):
-        '''
-        generates an arbitrary waveform given by the Voltage amplitude values in waveform
-        the length of the waveform array has a max of 32768
-        duration is the time duration that this waveform will be spread over
-        waveform is in volts. Max voltage is +- 2V
-        Voltage does not return to zero automatically and will stay at the last setting
-        '''
-        self.connect()
-
-        npulses = npulses+1
-        duration = duration / 5
-        
-        if dual:
-            indexMode = 'Dual'
-        else:
-            indexMode = 'Single'
-
-        maxV = max(waveform)
-        minV = min(waveform)
-        pkToPk = maxV - minV
-        offset = (maxV - abs(minV))/2
-        
-        waveform = np.divide(np.subtract(waveform, minV), pkToPk) #scale to 1:0
-        waveform = np.multiply(np.subtract(waveform, 0.5), 2.0) #scale to 1:-1
-        waveform = np.array(np.multiply(waveform, 32767), dtype=np.int16) #scale to 32767:-32767
-
-        
-        self.ps.setAWGSimple(waveform, duration, pkToPk=pkToPk, offsetVoltage=offset,
-                             triggerSource='SoftTrig', indexMode=indexMode, shots=npulses)
-
-
-
-        #change the sample_rate on the receive side.
-        self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/rx_samplerate, duration*5)
-        self.sample_rate = 1/rx_samplerate
-
-
-        self.vrange = self.ps.setChannel('B', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('B', -0.01, 'Falling', timeout_ms=1, delay=0, enabled=True)
-        self.ps.runBlock()
-        self.trig_AWG()
-        self.wait_ready()
-        data = self.ps.getDataV('B', self.nsamples, returnOverflow=False)
-        t = np.arange(0,len(data)) * 1/self.sample_rate
-        t.tolist()
-        # plt.plot(t, data)
-        # plt.show()
-        return [t,data]
-        
-if __name__=="__main__":
-    ps = Picoscope(avg_num=64)
-    ps.connect()
-    ps.prime_trigger(timeout_ms=1)
-    data = ps.get_waveform()
-
-    t = time.time()
-    ps.set_sample_rate(5e8)
-    ps.prime_trigger(timeout_ms=1, duration=120)
-    data = ps.get_waveform()
-    print(time.time() - t)
-
-
-    # cp = cp.CP("http://localhost:9003",rp_url="169.254.1.10")
-    # ps = Picoscope(avg_num=0)
-    # ps.generate_square(voltage=-2.0)
-    # ps.signal_generator(stopFreq=1000, frequency=100, shots=0, numSweeps=1, increment=100, dwellTime=0.5)
-    # x = np.add(np.zeros(16384, dtype=np.int16), -2)
-    # y = np.add(np.zeros(16384, dtype=np.int16), 0)
-    
-    # arr = np.append(x,y)
-    # t, data = ps.generate_waveform(arr, 50e-6)
-    
-    # plt.plot(t, data)
-    # plt.show()
-    
-    
-    # cp.write('V100')
-    # cp.write('V?')
-    # print(cp.read())
-    # ps.prime_trigger()
-    # cp.write('P50')
-    # data = ps.get_waveform(return_waves=True)
-    # cp.write('P0')
-    # for wave in data:
-    #     plt.plot(wave)
-    # plt.show()
-
-    # cp.write('V300')
-    # cp.write('V?')
-    # print(cp.read())
-    # ps.prime_trigger()
-    # cp.write('P50')
-    # data = ps.get_waveform(return_waves=True)
-
-    # cp.write('P0')
-    # for wave in data:
-    #     plt.plot(wave)
-    # plt.show()
+        return data        
