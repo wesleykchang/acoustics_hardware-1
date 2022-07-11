@@ -2,6 +2,7 @@
 
 import ctypes
 import json
+from picosdk.errors import PicoSDKCtypesError
 from picosdk.ps4000 import ps4000 as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 
@@ -40,9 +41,16 @@ class Picoscope():
         if not self.ps:
             self.ps = ps
 
-        status = self.ps.ps4000OpenUnit(ctypes.byref(ctypes.c_int16()))
+        for _ in range(3):
+            try:
+                status = self.ps.ps4000OpenUnit(ctypes.byref(self.chandle))
+                assert_pico_ok(status)
+                break
+            except PicoSDKCtypesError:
+                pass
 
         assert_pico_ok(status)
+
 
     def _setup(self, **nondefault_params):
         """Sets up the signal generator to produce a signal from the selected waveType.
