@@ -7,7 +7,7 @@ import time
 from picosdk.ps4000 import ps4000 as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 
-import functions as utils
+import utils as utils
 
 chandle = ctypes.c_int16()
 
