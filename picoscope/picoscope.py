@@ -4,8 +4,8 @@ import ctypes
 import json
 import time
 
-# from picosdk.ps4000 import ps4000 as ps
-# from picosdk.functions import adc2mV, assert_pico_ok
+from picosdk.ps4000 import ps4000 as ps
+from picosdk.functions import adc2mV, assert_pico_ok
 
 import utils
 
