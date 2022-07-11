@@ -7,21 +7,45 @@ import time
 from picosdk.ps4000 import ps4000 as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 
+import functions as utils
+
 chandle = ctypes.c_int16()
 
 with open("settings.json") as f:
     settings = json.load(f)
 sigGenBuiltIn = settings["sigGenBuiltIn"]
 
-class Picoscope():
-    def __init__(self, preTriggerSamples: int = 2500, postTriggerSamples: int = 2500):
 
-        self.maxSamples = preTriggerSamples + postTriggerSamples
+class Picoscope():
+    """
+    
+    Attributes:
+        channel (str): Optional. The physical channel, either A or B.
+            Defaults to 'B'
+    """
+
+    def __init__(self):#, preTriggerSamples: int = 2500, postTriggerSamples: int = 2500):
+
+        # self.maxSamples = preTriggerSamples + postTriggerSamples
 
         self.ps = None
         self.status = dict()
 
+    def set_input_channel(self, params: dict):
+        """Sets the physical input channel, either A or B.
+        
+        Args:
+            params (dict): All sweep parameters. See settings for further info
+        """
+
+        if not params.has_key('channel'):
+            params['channel'] = 'B'
+
+        self.channel = params['channel']
+
     def connect(self):
+        """Connects to oscilloscope."""
+
         if not self.ps:
             self.ps = ps
 
@@ -29,7 +53,7 @@ class Picoscope():
 
         assert_pico_ok(self.status["openunit"])
 
-    def setSigGenBuiltIn(self, **nondefault_params):
+    def setSigGenBuiltInSimple(self, **nondefault_params):
         """Sets up the signal generator to produce a signal from the selected waveType.
 
         If startFrequency != stopFrequency it will sweep.
@@ -65,18 +89,19 @@ class Picoscope():
                 Defaults to 'SIGGEN_SCOPE_TRIG'
         """
 
+        # Use nondefault params
         for parameter, value in nondefault_params.items():
             sigGenBuiltIn[parameter] = value
         
         self.status["SigGen"] = self.ps.ps4000SetSigGenBuiltIn(
-            chandle,
+            ctypes.byref(chandle),
             sigGenBuiltIn.offsetVoltage,
             sigGenBuiltIn.pkToPk,
             sigGenBuiltIn.waveType,
-            sigGenBuiltIn.startFrequency,
-            sigGenBuiltIn.stopFrequency,
+            sigGenBuiltIn.start_freq,
+            sigGenBuiltIn.end_freq,
             sigGenBuiltIn.increment,
-            sigGenBuiltIn.dwellTime,
+            sigGenBuiltIn.dwell,
             sigGenBuiltIn.sweepType,
             sigGenBuiltIn.operationType,
             sigGenBuiltIn.shots,
@@ -88,93 +113,81 @@ class Picoscope():
 
         assert_pico_ok(self.status["SigGen"])
 
-    def setSimpleTrigger(self):
-        pass
+    def setChannel(self, voltage_range: dict):
+        """Sets various channel parameters.
+        
+        Args:
+            voltage_range (int): Optional. Specifies measuring voltage range [V].
+                Refer to programmers' manual for further info.
+                Note that I have modified this parameter slightly from the SDK.
+                Defaults to 5 [V].
+        """
 
-    # setSamplingInterval doesn't exist
+        channel = f'PS4000_CHANNEL_{self.channel}'
 
-    def trig_AWG(self):
-        pass
-        #self.ps.lib.ps2000aSigGenSoftwareControl(ctypes.c_int16(self.ps.handle), ctypes.c_int(0))
+        if not voltage_range.has_key('voltage'):
+            voltage_range['voltage'] = 5.0
 
-
-    def wait_ready(self):
-
-        # Check for data collection to finish using ps4000IsReady
-        ready = ctypes.c_int16(0)
-        check = ctypes.c_int16(0)
-        while ready.value == check.value:
-            self.status["isReady"] = self.ps.ps4000IsReady(chandle, ctypes.byref(ready))
-
-
-    def setChannel(self, channel: int = 0, enabled: int = 0, dc: int = 1, channel_range: int = 7):
-        # Set up channel A
-        # handle = chandle
-        # channel = PS4000_CHANNEL_A = 0
-        # enabled = 1
-        # coupling type = PS4000_DC = 1
-        # range = PS4000_2V = 7
+        parsed_voltage_range = utils.parse_voltage_range(
+            numerical_voltage_range=voltage_range['voltage']
+        )
 
         self.status["setCh"] = self.ps.ps4000SetChannel(
             chandle,
             channel,
-            enabled,
-            dc,
-            channel_range
+            True,
+            True,
+            parsed_voltage_range
         )
 
         assert_pico_ok(self.status["setCh"])
 
-    def setSingleTrigger(self, enabled: int = 1, source: int = 0, threshold: int = 1024, direction: int = 2, delay: int = 0, auto_trigger: int = 1000):
-        # Set up single trigger
+    def get_timebase(self, timebase: int = 0):
+        # Get timebase information
+        # Warning: When using this example it may not be possible to access all Timebases as all channels are enabled by default when opening the scope.  
+        # To access these Timebases, set any unused analogue channels to off.
         # handle = chandle
-        # enabled = 1
-        # source = PS4000_CHANNEL_A = 0
-        # threshold = 1024 ADC counts
-        # direction = PS4000_RISING = 2
-        # delay = 0 s
-        # auto Trigger = 1000 ms
+        # timebase = 8 = timebase
+        # noSamples = maxSamples
+        # pointer to timeIntervalNanoseconds = ctypes.byref(timeIntervalns)
+        # pointer to maxSamples = ctypes.byref(returnedMaxSamples)
+        # segment index = 0
 
-        self.status["trigger"] = self.ps.ps4000SetSimpleTrigger(
+        timeIntervalns=ctypes.c_float()
+        returnedMaxSamples = ctypes.c_int32()
+
+        self.status["getTimebase2"] = self.ps.ps4000GetTimebase2(
             chandle,
-            enabled,
-            source,
-            threshold,
-            direction,
-            delay,
-            auto_trigger
+            timebase,
+            self.maxSamples,
+            ctypes.byref(timeIntervalns),
+            ctypes.c_int16(1),
+            ctypes.byref(returnedMaxSamples),
+            0
         )
-        
-        assert_pico_ok(self.status["trigger"])
-
-    # def get_timebase(self, timebase: int = 8, timeIntervalns: ctypes.c_float() = None, returnedMaxSamples: ctypes.c_int32() = None):
-    #     # Get timebase information
-    #     # Warning: When using this example it may not be possible to access all Timebases as all channels are enabled by default when opening the scope.  
-    #     # To access these Timebases, set any unused analogue channels to off.
-    #     # handle = chandle
-    #     # timebase = 8 = timebase
-    #     # noSamples = maxSamples
-    #     # pointer to timeIntervalNanoseconds = ctypes.byref(timeIntervalns)
-    #     # pointer to maxSamples = ctypes.byref(returnedMaxSamples)
-    #     # segment index = 0
-
-    #     if timeIntervalns is None:
-    #         timeIntervalns=ctypes.c_float()
-
-    #     if returnedMaxSamples is None:
-    #         returnedMaxSamples = ctypes.c_int32()
-
-    #     self.status["getTimebase2"] = self.ps.ps4000GetTimebase2(
-    #         chandle,
-    #         timebase,
-    #         self.maxSamples,
-    #         ctypes.byref(timeIntervalns),
-    #         ctypes.c_int16(1),
-    #         ctypes.byref(returnedMaxSamples),
-    #         0
-    #     )
             
-    #     assert_pico_ok(self.status["getTimebase2"])
+        assert_pico_ok(self.status["getTimebase2"])
+
+    def setSimpleTrigger(self, threshold: float = -0.01, direction: str = 'Falling', delay: float = 0.0):
+        """Arms the trigger.
+        
+        Args:
+
+                
+        """
+
+        autoTrigger_ms = 100
+
+        self.status["SimpleTrigger"] = self.ps.ps4000SetSimpleTrigger(
+            ctypes.byref(chandle),
+            1,
+            self.channel,
+            threshold,
+            delay,
+            autoTrigger_ms
+        )
+
+        assert_pico_ok(self.status["SimpleTrigger"])
 
     def runBlock(self, timebase: int = 8, preTriggerSamples: int = 2500, postTriggerSamples: int = 2500):
 
@@ -201,6 +214,14 @@ class Picoscope():
         )
 
         assert_pico_ok(self.status["runBlock"])
+
+    def wait_ready(self):
+        """Waits for data collection to finish"""
+
+        ready = ctypes.c_int16(0)
+        check = ctypes.c_int16(0)
+        while ready.value == check.value:
+            self.status["isReady"] = self.ps.ps4000IsReady(chandle, ctypes.byref(ready))
 
     # def set_buffer_location(self):
     #     # Set data buffer location for data collection from channel A
@@ -250,49 +271,37 @@ class Picoscope():
 
         # convert ADC counts data to mV
         chRange = 7
+        maxADC = ctypes.c_int16(32767)
         adc2mVChAMax =  adc2mV(bufferMax, chRange, maxADC)
 
         return adc2mVChAMax
 
-    def sweep(self, offset=0.0, waveType='Sine', pkToPk=2, frequency=1.0e6, stopFreq=None,
-                         increment=10.0, shots=10, dwellTime=0.001, numSweeps=0):
-        '''
-        generates a signal.
-        waveTypes are:
-        'Sine'
-        'Square'
-        'Triangle'
-        'RampUp'
-        'RampDown'
-        'DCVoltage'
-        '''
-        
-        if stopFreq != None:
-            if stopFreq > self.sample_rate*2:
-                print("warning: sample rate is less than Nyquist frequency!")
+    def sweep(self, params: dict):
+        '''Wrapper for frequency sweep.
 
+        params (dict): All sweep parameters. See settings for further info
+
+        '''
+
+        # ps.set_averaging(0)
+
+        # ps.set_sample_rate(10*params['end_freq'])
+        # sample_rate = utils.set_sample_rate(
+        #     xx,
+        #     end_freq=params['end_freq']
+        # )
+
+        self.set_input_channel(params=params)
         self.connect()
-        self.setSigGenBuiltInSimple()
+        self.setSigGenBuiltInSimple(params=params)
 
-        duration = dwellTime*((stopFreq - frequency)/increment + 1)
-        # self.sample_rate, self.nsamples, self.maxsamples = self.ps.setSamplingInterval(1/self.sample_rate, duration)
-        # self.sample_rate = 1/self.sample_rate
-
-        self.vrange = self.setChannel('B', 'DC', self.vrange, 0.0, enabled=True, BWLimited=False)
-        self.ps.setSimpleTrigger('A', 1.0, 'Falling', timeout_ms=1, delay=0, enabled=True)
-        
-        #self.ps.runBlock(pretrig=0.5)
-
-        self.ps.runBlock(pretrig=0.001/duration)
-        self.trig_AWG()
-
+        self.setChannel(voltage_range=params)
+        self.get_timebase()
+        self.setSimpleTrigger()
+        self.runBlock()
         self.wait_ready()
+        data = self.getData(self.nsamples)
 
-        data = self.getDataV('B', self.nsamples, returnOverflow=False)
-        data = data.tolist()
-
-        self.setSigGenBuiltInSimple(waveType='DCVoltage', offsetVoltage=0, shots=0)
-        self.trig_AWG()
         time.sleep(0.05)
 
-        return data        
+        return data.tolist()
