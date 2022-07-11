@@ -14,12 +14,17 @@ if __name__ == "__main__":
     #start up the picoscope connection
     app = flask.Flask("pico")
     ps = picoscope.Picoscope()
-    ps.connect()
     
     #test to see that server is alive
     @app.route('/')
     def hello_world():
-        return "Welcome to the Picoscope"
+        return "Flask Picoscope server working"
+
+    @app.route('/connect')
+    def connect():
+        ps.connect()
+
+        return "Picoscope connected"
 
     # Runs resonance
     @app.route('/get_resonance', methods=['POST'])
