@@ -5,11 +5,6 @@ import picoscope
 
 PORT = '5001'
 
-# # pythonic function for poking the /test url
-# def test(url='http://localhost'):
-#     data = requests.get(url+':'+port+'/test')
-#     return json.loads(data.text)
-
 if __name__ == "__main__":
     #start up the picoscope connection
     app = flask.Flask("pico")
@@ -18,7 +13,7 @@ if __name__ == "__main__":
     #test to see that server is alive
     @app.route('/')
     def hello_world():
-        return "Flask Picoscope server working"
+        return "Flask Picoscope server: running"
 
     @app.route('/connect')
     def connect():
