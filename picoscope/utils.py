@@ -1,9 +1,5 @@
 import json
 
-with open("settings.json") as f:
-    settings = json.load(f)
-voltage_range_conversion_table = settings["voltage_range_conversion_table"]
-
 def parse_voltage_range(numerical_voltage_range) -> float:
     """Parses voltage range from volts to a categorical number value.
 
@@ -16,6 +12,10 @@ def parse_voltage_range(numerical_voltage_range) -> float:
     Raises:
         ValueError: 
     """
+
+    with open("settings.json") as f:
+        settings = json.load(f)
+    voltage_range_conversion_table = settings["voltage_range_conversion_table"]
 
     for range_, voltage in voltage_range_conversion_table.values():
         if voltage == numerical_voltage_range:
