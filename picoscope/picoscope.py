@@ -1,16 +1,11 @@
-# Built on example from official DSK python wrapper library
+"""Contains class Picoscope """
 
 import ctypes
 import json
-import time
-
 from picosdk.ps4000 import ps4000 as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 
 import utils
-
-chandle = ctypes.c_int16()
-
 
 class Picoscope():
     """
@@ -24,11 +19,11 @@ class Picoscope():
 
         # self.maxSamples = preTriggerSamples + postTriggerSamples
 
+        self.chandle = ctypes.c_int16()
         self.ps = None
-        self.status = dict()
 
-    def set_input_channel(self, params: dict):
-        """Sets the physical input channel, either A or B.
+    def _set_input_channel(self, params: dict):
+        """Sets the physical input channel (either A or B).
         
         Args:
             params (dict): All sweep parameters. See settings for further info
@@ -45,11 +40,11 @@ class Picoscope():
         if not self.ps:
             self.ps = ps
 
-        self.status["openunit"] = self.ps.ps4000OpenUnit(ctypes.byref(chandle))
+        status = self.ps.ps4000OpenUnit(ctypes.byref(ctypes.c_int16()))
 
-        assert_pico_ok(self.status["openunit"])
+        assert_pico_ok(status)
 
-    def setSigGenBuiltInSimple(self, **nondefault_params):
+    def _setup(self, **nondefault_params):
         """Sets up the signal generator to produce a signal from the selected waveType.
 
         If startFrequency != stopFrequency it will sweep.
@@ -93,8 +88,8 @@ class Picoscope():
         for parameter, value in nondefault_params.items():
             sigGenBuiltIn[parameter] = value
         
-        self.status["SigGen"] = self.ps.ps4000SetSigGenBuiltIn(
-            ctypes.byref(chandle),
+        status = self.ps.ps4000SetSigGenBuiltIn(
+            self.chandle,
             sigGenBuiltIn.offsetVoltage,
             sigGenBuiltIn.pkToPk,
             sigGenBuiltIn.waveType,
@@ -111,9 +106,9 @@ class Picoscope():
             None
         )
 
-        assert_pico_ok(self.status["SigGen"])
+        assert_pico_ok(status)
 
-    def setChannel(self, voltage_range: dict):
+    def _set_channel_params(self, voltage_range: dict):
         """Sets various channel parameters.
         
         Args:
@@ -132,17 +127,17 @@ class Picoscope():
             numerical_voltage_range=voltage_range['voltage']
         )
 
-        self.status["setCh"] = self.ps.ps4000SetChannel(
-            chandle,
+        status = self.ps.ps4000SetChannel(
+            self.chandle,
             channel,
             True,
             True,
             parsed_voltage_range
         )
 
-        assert_pico_ok(self.status["setCh"])
+        assert_pico_ok(status)
 
-    def get_timebase(self, timebase: int = 0):
+    def _get_timebase(self, timebase: int = 0):
         # Get timebase information
         # Warning: When using this example it may not be possible to access all Timebases as all channels are enabled by default when opening the scope.  
         # To access these Timebases, set any unused analogue channels to off.
@@ -156,8 +151,8 @@ class Picoscope():
         timeIntervalns=ctypes.c_float()
         returnedMaxSamples = ctypes.c_int32()
 
-        self.status["getTimebase2"] = self.ps.ps4000GetTimebase2(
-            chandle,
+        status = self.ps.ps4000GetTimebase2(
+            self.chandle,
             timebase,
             self.maxSamples,
             ctypes.byref(timeIntervalns),
@@ -166,9 +161,9 @@ class Picoscope():
             0
         )
             
-        assert_pico_ok(self.status["getTimebase2"])
+        assert_pico_ok(status)
 
-    def setSimpleTrigger(self, threshold: float = -0.01, direction: str = 'Falling', delay: float = 0.0):
+    def _set_simple_trigger(self, threshold: float = -0.01, direction: str = 'Falling', delay: float = 0.0):
         """Arms the trigger.
         
         Args:
@@ -178,8 +173,8 @@ class Picoscope():
 
         autoTrigger_ms = 100
 
-        self.status["SimpleTrigger"] = self.ps.ps4000SetSimpleTrigger(
-            ctypes.byref(chandle),
+        status = self.ps.ps4000SetSimpleTrigger(
+            self.chandle,
             1,
             self.channel,
             threshold,
@@ -187,9 +182,9 @@ class Picoscope():
             autoTrigger_ms
         )
 
-        assert_pico_ok(self.status["SimpleTrigger"])
+        assert_pico_ok(status)
 
-    def runBlock(self, timebase: int = 8, preTriggerSamples: int = 2500, postTriggerSamples: int = 2500):
+    def _run_block(self, timebase: int = 8, preTriggerSamples: int = 2500, postTriggerSamples: int = 2500):
 
         # Run block capture
         # handle = chandle
@@ -201,8 +196,8 @@ class Picoscope():
         # lpReady = None (using ps4000IsReady rather than ps4000BlockReady)
         # pParameter = None
         
-        self.status["runBlock"] = self.ps.ps4000RunBlock(
-            chandle,
+        status = self.ps.ps4000RunBlock(
+            self.chandle,
             preTriggerSamples,
             postTriggerSamples,
             timebase,
@@ -213,39 +208,44 @@ class Picoscope():
             None
         )
 
-        assert_pico_ok(self.status["runBlock"])
+        assert_pico_ok(status)
 
-    def wait_ready(self):
+    def _wait_ready(self):
         """Waits for data collection to finish"""
 
         ready = ctypes.c_int16(0)
         check = ctypes.c_int16(0)
         while ready.value == check.value:
-            self.status["isReady"] = self.ps.ps4000IsReady(chandle, ctypes.byref(ready))
+            self.status["isReady"] = self.ps.ps4000IsReady(self.chandle, ctypes.byref(ready))
 
-    # def set_buffer_location(self):
-    #     # Set data buffer location for data collection from channel A
-    #     # handle = chandle
-    #     # source = PS4000_CHANNEL_A = 0
-    #     # pointer to buffer max = ctypes.byref(bufferAMax)
-    #     # pointer to buffer min = ctypes.byref(bufferAMin)
-    #     # buffer length = maxSamples
+    def _set_data_buffer(self):
+
+        # def set_buffer_location(self):
+        #     # Set data buffer location for data collection from channel A
+        #     # handle = chandle
+        #     # source = PS4000_CHANNEL_A = 0
+        #     # pointer to buffer max = ctypes.byref(bufferAMax)
+        #     # pointer to buffer min = ctypes.byref(bufferAMin)
+        #     # buffer length = maxSamples
+            
+        #     bufferMax = (ctypes.c_int16 * self.maxSamples)()
+        #     bufferMin = (ctypes.c_int16 * self.maxSamples)() # used for downsampling which isn't in the scope of this example
+
+        buffer_max = (ctypes.c_int16 * self.maxSamples)()
+        buffer_min = (ctypes.c_int16 * self.maxSamples)() # used for downsampling, usually outside this scope
+
+        status = self.ps.ps4000SetDataBuffers(
+            self.chandle,
+            0,
+            ctypes.byref(buffer_max),
+            ctypes.byref(buffer_min),
+            self.maxSamples
+        )
         
-    #     bufferMax = (ctypes.c_int16 * self.maxSamples)()
-    #     bufferMin = (ctypes.c_int16 * self.maxSamples)() # used for downsampling which isn't in the scope of this example
-
-    #     self.status["setDataBuffers"] = self.ps.ps4000SetDataBuffers(
-    #         chandle,
-    #         0,
-    #         ctypes.byref(bufferMax),
-    #         ctypes.byref(bufferMin),
-    #         self.maxSamples
-    #     )
-        
-    #     assert_pico_ok(self.status["setDataBuffers"])
+        assert_pico_ok(status)
 
 
-    def getData(self, overflow = ctypes.c_int16()):
+    def _get_data(self, overflow = ctypes.c_int16()):
         # Retrived data from scope to buffers assigned above
         # handle = chandle
         # start index = 0
@@ -257,8 +257,8 @@ class Picoscope():
         # create converted type maxSamples
         cmaxSamples = ctypes.c_int32(self.maxSamples)
 
-        self.status["getValues"] = self.ps.ps4000GetValues(
-            chandle,
+        status = self.ps.ps4000GetValues(
+            self.chandle,
             0,
             ctypes.byref(cmaxSamples),
             0,
@@ -267,7 +267,7 @@ class Picoscope():
             ctypes.byref(overflow)
         )
 
-        assert_pico_ok(self.status["getValues"])
+        assert_pico_ok(status)
 
         # convert ADC counts data to mV
         chRange = 7
@@ -276,8 +276,22 @@ class Picoscope():
 
         return adc2mVChAMax
 
+    def _stop(self):
+        """Stop the scope"""
+
+        status = ps.ps4000Stop(self.chandle)
+
+        assert_pico_ok(status)
+
+    # def _close(self):
+    #     status = ps.ps4000CloseUnit(self.chandle)
+
+    #     assert_pico_ok(status)
+
     def sweep(self, params: dict):
         '''Wrapper for frequency sweep.
+
+        Follows recommended block mode procedure as laid out by programmers' guide.
 
         params (dict): All sweep parameters. See settings for further info
 
@@ -291,17 +305,39 @@ class Picoscope():
         #     end_freq=params['end_freq']
         # )
 
-        self.set_input_channel(params=params)
+        self._set_input_channel(params=params)
+
+        # 1. Open the oscilloscope
         self.connect()
-        self.setSigGenBuiltInSimple(params=params)
+        
+        # 1.5 Setup
+        self._setup(params=params)
+        
+        # 2. Select channel ranges and AC/DC coupling
+        self._set_channel_params(voltage_range=params)
 
-        self.setChannel(voltage_range=params)
-        self.get_timebase()
-        self.setSimpleTrigger()
-        self.runBlock()
-        self.wait_ready()
-        data = self.getData(self.nsamples)
+        # 3. Select timebases
+        self._get_timebase()
 
-        time.sleep(0.05)
+        # 4. Trigger setup
+        self._set_simple_trigger()
+
+        # 5. Start collecting data
+        self._run_block()
+
+        # 6. Wait until oscilloscope is ready
+        self._wait_ready()
+
+        # 7. Tell the driver where the memory buffer is
+        self._set_data_buffer()
+
+        # 8. Transfer data from oscilloscope to PC
+        data = self._get_data(self.nsamples)
+
+        # 9. Stop oscilloscope
+        self._stop()
+
+        # 10. Close unit and disconnect scope
+        # self._close()
 
         return data.tolist()

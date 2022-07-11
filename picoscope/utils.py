@@ -24,7 +24,7 @@ def parse_voltage_range(numerical_voltage_range) -> float:
 
     # Ensure voltage range was matched
     if 'parsed_voltage_range' not in locals():
-        raise ValueError("Passed voltage doesn\'t match conversion volta")
+        raise ValueError("Passed voltage doesn\'t match conversion voltage")
 
     return float(parsed_voltage_range)
 
