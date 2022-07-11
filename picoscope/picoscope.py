@@ -4,16 +4,12 @@ import ctypes
 import json
 import time
 
-from picosdk.ps4000 import ps4000 as ps
-from picosdk.functions import adc2mV, assert_pico_ok
+# from picosdk.ps4000 import ps4000 as ps
+# from picosdk.functions import adc2mV, assert_pico_ok
 
-import utils as utils
+import utils
 
 chandle = ctypes.c_int16()
-
-with open("settings.json") as f:
-    settings = json.load(f)
-sigGenBuiltIn = settings["sigGenBuiltIn"]
 
 
 class Picoscope():
@@ -89,6 +85,10 @@ class Picoscope():
                 Defaults to 'SIGGEN_SCOPE_TRIG'
         """
 
+        with open("settings.json") as f:
+            settings = json.load(f)
+        sigGenBuiltIn = settings["sigGenBuiltIn"]
+
         # Use nondefault params
         for parameter, value in nondefault_params.items():
             sigGenBuiltIn[parameter] = value
@@ -120,10 +120,10 @@ class Picoscope():
             voltage_range (int): Optional. Specifies measuring voltage range [V].
                 Refer to programmers' manual for further info.
                 Note that I have modified this parameter slightly from the SDK.
-                Defaults to 5 [V].
+                Defaults to 5 [V]
         """
 
-        channel = f'PS4000_CHANNEL_{self.channel}'
+        channel = f"PS4000_CHANNEL_{self.channel}"
 
         if not voltage_range.has_key('voltage'):
             voltage_range['voltage'] = 5.0
