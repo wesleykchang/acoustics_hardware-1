@@ -1,3 +1,5 @@
+"""Flask app connecting pithy container to picoscope container"""
+
 import flask
 import json
 
@@ -5,7 +7,7 @@ import picoscope
 
 PORT = '5001'
 
-app = flask.Flask("pico")
+app = flask.Flask(__name__)
 
 #start up the picoscope connection
 # Initializing class without connecting to picoscope
@@ -28,7 +30,7 @@ def connect():
 # Runs resonance
 @app.route('/get_resonance', methods=['POST'])
 def get_resonance():
-    params = flask.request.values    
+    params = flask.request.values.to_dict()    
     data = picoscope_.sweep(params=params)
 
     return json.dumps(data)
