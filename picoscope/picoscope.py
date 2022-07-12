@@ -29,7 +29,7 @@ class Picoscope():
             params (dict): All sweep parameters. See settings for further info
         """
 
-        if not params.has_key('channel'):
+        if not 'channel' in params:
             params['channel'] = 'B'
 
         self.channel = params['channel']
