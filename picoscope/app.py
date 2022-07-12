@@ -9,19 +9,19 @@ app = flask.Flask("pico")
 
 #start up the picoscope connection
 # Initializing class without connecting to picoscope
-ps = picoscope.Picoscope()
+picoscope_ = picoscope.Picoscope()
 
 #test to see that server is alive
 @app.route('/')
 def hello_world():
-    return "Flask Picoscope server: running"
+    return "Flask picoscope server running"
 
 # Connect to picoscope
 # Keeping it here because the wrapper connection
 # tends to fail a couple of times
 @app.route('/connect')
 def connect():
-    ps.connect()
+    picoscope_.connect()
 
     return "Picoscope connected"
 
@@ -29,7 +29,7 @@ def connect():
 @app.route('/get_resonance', methods=['POST'])
 def get_resonance():
     params = flask.request.values    
-    data = ps.sweep(params=params)
+    data = picoscope_.sweep(params=params)
 
     return json.dumps(data)
     
