@@ -2,7 +2,6 @@
 
 import ctypes
 import json
-from picosdk.errors import PicoSDKCtypesError
 from picosdk.ps4000 import ps4000 as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 
