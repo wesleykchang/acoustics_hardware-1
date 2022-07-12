@@ -1,8 +1,7 @@
-import pytest
+# import pytest
 
-from picoscope import picoscope
+# from picoscope import picoscope
 
-class TestPicoscope:
-    def test_connect(self):
-
-    def 
+# class TestPicoscope:
+#     def test_connect(self):
+#         pass
