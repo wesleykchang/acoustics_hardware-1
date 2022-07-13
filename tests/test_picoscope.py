@@ -4,9 +4,9 @@ from picoscope import picoscope
 
 params = {
     'exp_name': 'Kokam-000-2022-04-06',
-    'start_freq': 1000,
-    'end_freq': 21000,
-    'increment': 100,
+    'start_freq': 1000.0,
+    'end_freq': 19000.0,
+    'increment': 100.0,
     'dwell': .001,
     'voltage': 0.2,
     'sweep_interval': 150,
@@ -14,63 +14,79 @@ params = {
     'no_cycles': 1,
     'warm_up': 60,
     'rest': 60,
-    'channel': 'A'
+    'channel': 0,
+    'voltage_range': 5.0
 }
 
-@pytest.fixture
-def instance():
-    picoscope_ = picoscope.Picoscope()
-
-    return picoscope_
-
-def test_class_instance(instance):
-    assert isinstance(instance, picoscope.Picoscope)
 
 # REMINDER: Pytest runs in sequence which is why we can set up the
 # unit tests in this fashion
-def test_set_default_input_channel(instance):
-    instance._set_input_channel(params)
+def test_set_default_input_channel():
+    params['channel'] = picoscope._set_input_channel(params=params)
 
-    assert instance.channel == 'A'
+    assert params['channel'] == 0
 
-def test_set_custom_input_channel(instance):
+
+def test_incorrectly_formatted_input_channel():
+    params['channel'] = 'A'
+    with pytest.raises(ValueError):
+        picoscope._set_input_channel(params=params)
+
+
+def test_custom_input_channel():
     del params['channel']
 
-    instance._set_input_channel(params)
-    instance._set_input_channel
+    params['channel'] = picoscope._set_input_channel(params=params)
 
-    assert instance.channel == 'B'
+    assert params['channel'] == 1
 
-def test_connect(instance):
-    instance.connect()
 
-def test_stop(instance):
-    instance._stop()
+def test_connect():
+    picoscope.connect()
 
-def test_setup(instance):
-    instance._setup()
 
-# def test_set_channel_params(instance):
-#     instance._set_channel_params()
+def test_set_channel_params():
+    picoscope._set_channel_params()
 
-# def test_get_timebase(instance):
-#     instance._get_timebase()
 
-# def test_set_simple_trigger(instance):
-#     instance._set_simple_trigger()
+def test_get_timebase():
+    picoscope._get_timebase()
 
-# def test_run_block(instance):
-#     instance._run_block()
 
-# def test_wait_ready(instance):
-#     instance._wait_ready()
+def test_set_simple_trigger():
+    picoscope._set_simple_trigger()
 
-# def test_set_data_buffer(instance):
-#     instance._set_data_buffer()
 
-# def test_get_data():
-#     instance._get_data()
+def test_define_procedure():
+    picoscope._define_procedure(**params)
 
-# # Integration
-# def test_sweep(instance):
-#     instance.sweep(params=params)
+
+def test_run_block():
+    picoscope._run_block()
+
+
+def test_wait_ready():
+    picoscope._wait_ready()
+
+
+def test_set_data_buffer():
+    picoscope._set_data_buffer()
+
+
+def test_get_data():
+    picoscope._get_data()
+
+
+def test_stop():
+    picoscope._stop()
+
+
+# Integration
+def test_sweep():
+    resonance_data = picoscope.sweep(params=params)
+
+    assert isinstance(resonance_data, list)
+
+
+def test_close():
+    picoscope.close()

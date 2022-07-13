@@ -12,10 +12,6 @@ logging.basicConfig(filename='logs/logs.log',
 def configure_routes(app):
     from picoscope import picoscope
 
-    #start up the picoscope connection
-    # Initializing class without connecting to picoscope
-    picoscope_ = picoscope.Picoscope()
-
     #test to see that server is alive
     @app.route('/')
     def hello_world():
@@ -27,17 +23,26 @@ def configure_routes(app):
     # tends to fail a couple of times
     @app.route('/connect')
     def connect():
-        picoscope_.connect()
+        picoscope.connect()
 
         return "Picoscope connected"
 
     # Runs resonance
     @app.route('/get_resonance', methods=['POST'])
     def get_resonance():
-        params = flask.request.values.to_dict()
-        data = picoscope_.sweep(params=params)
+        params_dict_w_strs = flask.request.values.to_dict()
+        params = dict([key, float(val)] for key, val in params_dict_w_strs.items())
+
+        data = picoscope.sweep(params=params)
 
         return json.dumps(data)
+
+    @app.route('/disconnect')
+    def disconnect():
+        """Mainly for testing purposes. Disconnects the oscilloscope."""
+        picoscope.close()
+
+        return 'Picoscope disconnected'
 
 
 PORT = '5001'
