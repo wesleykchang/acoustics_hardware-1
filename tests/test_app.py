@@ -1,21 +1,45 @@
+import flask
+import json
 import pytest
 
-import app.app as app
+from app import configure_routes
+
+params = {
+    'exp_name': 'Kokam-000-2022-04-06',
+    'start_freq': 1000,
+    'end_freq': 21000,
+    'increment': 100,
+    'dwell': .001,
+    'voltage': 0.2,
+    'sweep_interval': 150,
+    'c_rate': 1 / 2.,
+    'no_cycles': 1,
+    'warm_up': 60,
+    'rest': 60
+}
 
 @pytest.fixture
-def test_app():
-    return app.test_client()
+def client():
+    app = flask.Flask(__name__)
+    configure_routes(app)
+    client = app.test_client()
 
-# @pytest.mark.integtest
-# def test_picoscope_connection():
-#     with app() as app_:
-#         response = app_.get('/connect')
-#         assert response.status_code == 200
-#         assert b"Picoscope connected" in response.data
+    return client
 
-# @pytest.mark.integtest
-# def test_sweep():
-#     with app() as app_:
-#         response = app_.get('get_resonance')
-#         assert response.status_code == 200
-#         assert isinstance(response.data, list)
+def test_base_route(client):
+    response = client.get('/')
+    
+    assert response.status_code == 200
+
+def test_connection(client):
+    response = client.get('/connect')
+
+    assert response.status_code == 200
+    assert response.get_data() == b'Picoscope connected'
+
+def test_sweep(client):
+    _ = client.get('/connect')
+    response = client.post('/get_resonance', data=params)
+    
+    assert response.status_code == 200
+    assert isinstance(response.get_data(), list)

@@ -1,11 +1,13 @@
-"""Contains class Picoscope """
+"""Contains class Picoscope: A wrapper for the C drivers"""
 
 import ctypes
 import json
 from picosdk.ps4000 import ps4000 as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 
-import utils
+import picoscope.utils as utils
+
+chandle = ctypes.c_int16()
 
 
 class Picoscope():
@@ -15,12 +17,10 @@ class Picoscope():
         channel (str): Optional. The physical channel, either A or B.
             Defaults to 'B'
     """
+
     def __init__(self):
-
+        pass
         # self.maxSamples = preTriggerSamples + postTriggerSamples
-
-        self.chandle = ctypes.c_int16()
-        self.ps = None
 
     def _set_input_channel(self, params: dict):
         """Sets the physical input channel (either A or B).
@@ -43,10 +43,7 @@ class Picoscope():
             The retry must be external, i.e. when running pithy/startup
         """
 
-        if not self.ps:
-            self.ps = ps
-
-        status = self.ps.ps4000OpenUnit(ctypes.byref(self.chandle))
+        status = ps.ps4000OpenUnit(ctypes.byref(chandle))
 
         assert_pico_ok(status)
 
@@ -54,39 +51,43 @@ class Picoscope():
         """Sets up the signal generator to produce a signal from the selected waveType.
 
         If startFrequency != stopFrequency it will sweep.
+
+        Note:
+            All params are optional. Defaults defined in settings.json
         
         Args:
-            offsetVoltage (float): Optional. The voltage offset [uV].
-                Defaults to 0.0
-            pkToPk (int): Optional. Peak-to-peak voltage [uV].
+            offsetVoltage (int): The voltage offset [uV].
+                Defaults to 0
+            pkToPk (int): Peak-to-peak voltage [uV].
                 Defaults to 2
-            waveType (str): Optional. The type of waveform to be generated.
-                Refer to programmers' guide for all available types. Defaults to 'Sine'
-            startFrequency (float): Optional. Starting frequency.
+            waveType (int): The type of waveform to be generated.
+                Refer to programmers' guide for all available types. Defaults to 0 (Sine)
+            startFrequency (float): Starting frequency.
                 Defaults to 1.0E6
-            stopFrequency (float): Optional. Stopping (or reversing) frequency (included).
+            stopFrequency (float): Stopping (or reversing) frequency (included).
                 Defaults to None
-            increment (float): Optional. The amount by which the frequency rises (or falls).
+            increment (float): The amount by which the frequency rises (or falls).
                 Defaults to 10.0
-            dwellTime (float): Optional. The time [s] between frequency changes.
+            dwellTime (float): The time [s] between frequency changes.
                 Defaults to 1E-3
-            sweepType (str): Optional. Determines sweeping direction.
-                Defaults to 'UP'
-            operationType (str): Optional. Configures white noise generator.
-                Defaults to None
-            shots (str): Optional. The number of cycles of the waveform to be produced
-                after a trigger event.
-                Defaults to None
-            sweeps (int): Optional. Number of sweep repetitions.
-            Defaults to None
-            triggerType (str): The type of trigger to be applied to signal generator.
+            sweepType (int): Determines sweeping direction.
+                Refer to programmers' guide for all available types. Defaults to 0 (UP)
+            operationType (int): Configures white noise generator.
                 Refer to programmers' guide for all available types.
-                Defaults to 'SIGGEN_RISING'
-            triggerSource (str): Optional. The source that triggers the signal generator.
-                Defaults to 'SIGGEN_SCOPE_TRIG'
+                Defaults to 0 (white noise disabled)
+            shots (0): The number of cycles of the waveform to be produced after a trigger event.
+                Cannot be a nonzero value if sweeping. Defaults to 0.
+            sweeps (int): Number of sweep repetitions.
+                Defaults to None
+            triggerType (int): The type of trigger to be applied to signal generator.
+                Refer to programmers' guide for all available types.
+                Defaults to 0 (SIGGEN_RISING)
+            triggerSource (int): The source that triggers the signal generator.
+                Refer to programmers' guide for all available types.
+                Defaults to 1 (SIGGEN_SCOPE_TRIG)
         """
 
-        with open("settings.json") as f:
+        with open("picoscope/settings.json") as f:
             settings = json.load(f)
         sigGenBuiltIn = settings["sigGenBuiltIn"]
 
@@ -94,14 +95,23 @@ class Picoscope():
         for parameter, value in nondefault_params.items():
             sigGenBuiltIn[parameter] = value
 
-        status = self.ps.ps4000SetSigGenBuiltIn(
-            self.chandle, sigGenBuiltIn.offsetVoltage, sigGenBuiltIn.pkToPk,
-            sigGenBuiltIn.waveType, sigGenBuiltIn.start_freq,
-            sigGenBuiltIn.end_freq, sigGenBuiltIn.increment,
-            sigGenBuiltIn.dwell, sigGenBuiltIn.sweepType,
-            sigGenBuiltIn.operationType, sigGenBuiltIn.shots,
-            sigGenBuiltIn.sweeps, sigGenBuiltIn.triggerType,
-            sigGenBuiltIn.triggerSource, None)
+        status = ps.ps4000SetSigGenBuiltIn(
+            chandle,
+            ctypes.c_int32(sigGenBuiltIn['offsetVoltage']),
+            ctypes.c_uint32(sigGenBuiltIn['pkToPk']),
+            ctypes.c_int16(sigGenBuiltIn['waveType']),
+            ctypes.c_float(sigGenBuiltIn['start_freq']),
+            ctypes.c_float(sigGenBuiltIn['end_freq']),
+            ctypes.c_float(sigGenBuiltIn['increment']),
+            ctypes.c_float(sigGenBuiltIn['dwell']),
+            ctypes.c_uint16(sigGenBuiltIn['sweepType']),
+            ctypes.c_int16(sigGenBuiltIn['operationType']),
+            ctypes.c_uint32(sigGenBuiltIn['shots']),
+            ctypes.c_uint32(sigGenBuiltIn['sweeps']),
+            ctypes.c_wchar_p("SIGGEN_RISING"),
+            ctypes.c_wchar_p("SIGGEN_SCOPE_TRIG"),
+            ctypes.c_int16(0)
+        )
 
         assert_pico_ok(status)
 
@@ -115,16 +125,14 @@ class Picoscope():
                 Defaults to 5 [V]
         """
 
-        # channel = f'PS4000_CHANNEL_{self.channel}'
-
         if not voltage_range.has_key('voltage'):
             voltage_range['voltage'] = 5.0
 
         parsed_voltage_range = utils.parse_voltage_range(
             numerical_voltage_range=voltage_range['voltage'])
 
-        status = self.ps.ps4000SetChannel(self.chandle, channel, True, True,
-                                          parsed_voltage_range)
+        status = ps.ps4000SetChannel(chandle, self.channel, True, True,
+                                     parsed_voltage_range)
 
         assert_pico_ok(status)
 
@@ -142,8 +150,7 @@ class Picoscope():
         timeIntervalns = ctypes.c_float()
         returnedMaxSamples = ctypes.c_int32()
 
-        status = self.ps.ps4000GetTimebase2(self.chandle, timebase,
-                                            self.maxSamples,
+        status = self.ps.ps4000GetTimebase2(chandle, timebase, self.maxSamples,
                                             ctypes.byref(timeIntervalns),
                                             ctypes.c_int16(1),
                                             ctypes.byref(returnedMaxSamples),
@@ -164,9 +171,8 @@ class Picoscope():
 
         autoTrigger_ms = 100
 
-        status = self.ps.ps4000SetSimpleTrigger(self.chandle, 1, self.channel,
-                                                threshold, delay,
-                                                autoTrigger_ms)
+        status = ps.ps4000SetSimpleTrigger(chandle, 1, self.channel, threshold,
+                                           delay, autoTrigger_ms)
 
         assert_pico_ok(status)
 
@@ -185,9 +191,9 @@ class Picoscope():
         # lpReady = None (using ps4000IsReady rather than ps4000BlockReady)
         # pParameter = None
 
-        status = self.ps.ps4000RunBlock(self.chandle, preTriggerSamples,
-                                        postTriggerSamples, timebase,
-                                        ctypes.c_int16(1), None, 0, None, None)
+        status = ps.ps4000RunBlock(chandle, preTriggerSamples,
+                                   postTriggerSamples, timebase,
+                                   ctypes.c_int16(1), None, 0, None, None)
 
         assert_pico_ok(status)
 
@@ -198,7 +204,7 @@ class Picoscope():
         check = ctypes.c_int16(0)
         while ready.value == check.value:
             self.status["isReady"] = self.ps.ps4000IsReady(
-                self.chandle, ctypes.byref(ready))
+                chandle, ctypes.byref(ready))
 
     def _set_data_buffer(self):
 
@@ -217,10 +223,9 @@ class Picoscope():
         buffer_min = (ctypes.c_int16 * self.maxSamples
                       )()  # used for downsampling, usually outside this scope
 
-        status = self.ps.ps4000SetDataBuffers(self.chandle, 0,
-                                              ctypes.byref(buffer_max),
-                                              ctypes.byref(buffer_min),
-                                              self.maxSamples)
+        status = ps.ps4000SetDataBuffers(chandle, 0, ctypes.byref(buffer_max),
+                                         ctypes.byref(buffer_min),
+                                         self.maxSamples)
 
         assert_pico_ok(status)
 
@@ -236,28 +241,20 @@ class Picoscope():
         # create converted type maxSamples
         cmaxSamples = ctypes.c_int32(self.maxSamples)
 
-        status = self.ps.ps4000GetValues(self.chandle, 0,
-                                         ctypes.byref(cmaxSamples), 0, 0, 0,
-                                         ctypes.byref(overflow))
+        status = ps.ps4000GetValues(chandle, 0, ctypes.byref(cmaxSamples), 0,
+                                    0, 0, ctypes.byref(overflow))
 
         assert_pico_ok(status)
-
-        # convert ADC counts data to mV
-        chRange = 7
-        maxADC = ctypes.c_int16(32767)
-        adc2mVChAMax = adc2mV(bufferMax, chRange, maxADC)
-
-        return adc2mVChAMax
 
     def _stop(self):
         """Stop the scope"""
 
-        status = ps.ps4000Stop(self.chandle)
+        status = ps.ps4000Stop(chandle)
 
         assert_pico_ok(status)
 
     # def _close(self):
-    #     status = ps.ps4000CloseUnit(self.chandle)
+    #     status = ps.ps4000CloseUnit(chandle)
 
     #     assert_pico_ok(status)
 
@@ -281,7 +278,7 @@ class Picoscope():
         self._set_input_channel(params=params)
 
         # 1. Open the oscilloscope
-        self.connect()
+        # self.connect()
 
         # 1.5 Setup
         self._setup(params=params)
@@ -305,7 +302,11 @@ class Picoscope():
         self._set_data_buffer()
 
         # 8. Transfer data from oscilloscope to PC
-        data = self._get_data(self.nsamples)
+        data_adc = self._get_data(self.nsamples)
+
+        maxADC = ctypes.c_int16(32767)
+
+        return adc2mV(bufferMax, chRange, maxADC)
 
         # 9. Stop oscilloscope
         self._stop()
