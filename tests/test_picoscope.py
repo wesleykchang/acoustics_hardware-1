@@ -15,7 +15,7 @@ params = {
     'warm_up': 60,
     'rest': 60,
     'channel': 0,
-    'voltage_range': 5.0
+    'voltage_range': 1.0
 }
 
 
@@ -46,7 +46,7 @@ def test_connect():
 
 
 def test_set_channel_params():
-    picoscope._set_channel_params()
+    picoscope._set_channel_params(enum_voltage_range=6, channel=1)
 
 
 def test_get_timebase():
@@ -70,15 +70,21 @@ def test_wait_ready():
 
 
 def test_set_data_buffer():
-    picoscope._set_data_buffer()
+    picoscope._set_data_buffer(channel=1)
 
 
 def test_get_data():
     picoscope._get_data()
 
 
+def test_to_mV():
+    data_in_mV = picoscope.to_mV(enum_voltage_range=1)
+    
+    assert isinstance(data_in_mV, list)
+
+
 def test_stop():
-    picoscope._stop()
+    picoscope.stop()
 
 
 # Integration
