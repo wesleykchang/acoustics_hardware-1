@@ -1,5 +1,6 @@
 import flask
 import json
+import os
 import pytest
 
 from app import configure_routes
@@ -32,6 +33,10 @@ def test_base_route(client):
 
     assert response.status_code == 200
     assert response.get_data() == b'Flask picoscope server running'
+
+
+def test_logs():
+    assert os.path.isfile('logs/logs.log')
 
 def test_connection(client):
     response = client.get('/connect')
