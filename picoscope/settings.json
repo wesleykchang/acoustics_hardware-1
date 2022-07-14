@@ -1,18 +1,18 @@
 {
     "sigGenBuiltIn": {
-        "offsetVoltage": 0.0,
+        "offsetVoltage": 0,
         "pkToPk": 2,
-        "waveType": "PS4000_SINE",
-        "start_freq": 1.0E6,
-        "end_freq": "",
+        "waveType": 0,
+        "start_freq": 1.0E4,
+        "end_freq": 20E4,
         "increment": 10.0,
         "dwell": 1E-3,
-        "sweepType": "UP",
-        "operationType": "",
-        "shots": "",
+        "sweepType": 0,
+        "operationType": 0,
+        "shots": 1,
         "sweeps": 0,
-        "triggerType": "SIGGEN_RISING",
-        "triggerSource": "SIGGEN_SCOPE_TRIG"
+        "triggerType": 0,
+        "triggerSource": 1
     },
     "voltage_range_conversion_table": {
         "0": 1E-2,
