@@ -10,11 +10,3 @@
 
 #logs
 logs/**
-
-Data/
-
-epoch/node_modules/
-
-DB_push_status.txt
-table_state.json
-		
