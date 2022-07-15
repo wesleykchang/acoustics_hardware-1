@@ -5,7 +5,6 @@ import json
 import logging
 import os
 
-
 log_filename = "logs/logs.log"
 os.makedirs(os.path.dirname(log_filename), exist_ok=True)
 logging.basicConfig(filename=log_filename,
@@ -41,6 +40,7 @@ def configure_routes(app):
         Returns:
             str: Status message
         """
+
         picoscope.connect()
 
         return "Picoscope connected"
@@ -59,7 +59,7 @@ def configure_routes(app):
         sweeps, and finally returns the data
 
         Returns:
-            _type_: _description_
+            dict: waveform data
         """
 
         params_dict_w_strs = flask.request.values.to_dict()

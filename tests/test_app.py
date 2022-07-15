@@ -20,6 +20,7 @@ params = {
     'voltage_range': 1.0
 }
 
+
 @pytest.fixture
 def client():
     app = flask.Flask(__name__)
@@ -27,6 +28,7 @@ def client():
     client = app.test_client()
 
     return client
+
 
 def test_base_route(client):
     response = client.get('/')
@@ -38,11 +40,13 @@ def test_base_route(client):
 def test_logs():
     assert os.path.isfile('logs/logs.log')
 
+
 def test_connection(client):
     response = client.get('/connect')
 
     assert response.status_code == 200
     assert response.get_data() == b'Picoscope connected'
+
 
 def test_sweep(client):
     response = client.post('/get_resonance', data=params)
@@ -52,7 +56,8 @@ def test_sweep(client):
     assert response.status_code == 200
     assert isinstance(data, list)
 
-def test_close(client):
+
+def test_disconnect(client):
     response = client.get('/disconnect')
 
     assert response.status_code == 200

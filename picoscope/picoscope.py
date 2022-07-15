@@ -31,7 +31,7 @@ def _set_input_channel(params: dict):
 
     Returns:
         channel (int): Because the lazy parsing of params in
-            app/get_resonance makes 'channel' a float instead of int.
+            app/get_resonance makes channel a float instead of int.
     """
 
     if not 'channel' in params:
@@ -115,13 +115,14 @@ def _define_procedure(**nondefault_params):
         raise ValueError(f'end_freq cannot be larger than 2E4')
 
     status = ps.ps4000SetSigGenBuiltIn(
-        chandle, signal_params['offsetVoltage'], signal_params['pkToPk'],
-        signal_params['waveType'], signal_params['start_freq'],
-        signal_params['end_freq'], signal_params['increment'],
-        signal_params['dwell'], signal_params['sweepType'],
-        signal_params['operationType'], signal_params['shots'],
-        signal_params['sweeps'], signal_params['triggerType'],
-        signal_params['triggerSource'], 0)
+        chandle, signal_params['offsetVoltage'],
+        signal_params['pkToPk'], signal_params['waveType'],
+        signal_params['start_freq'], signal_params['end_freq'],
+        signal_params['increment'], signal_params['dwell'],
+        signal_params['sweepType'], signal_params['operationType'],
+        signal_params['shots'], signal_params['sweeps'],
+        signal_params['triggerType'], signal_params['triggerSource'],
+        0)
 
     assert_pico_ok(status)
 
@@ -135,7 +136,8 @@ def _set_channel_params(enum_voltage_range: int, channel: int):
         channel (int): Oscilloscope channel.
     """
 
-    status = ps.ps4000SetChannel(chandle, channel, 1, 1, enum_voltage_range)
+    status = ps.ps4000SetChannel(chandle, channel, 1, 1,
+                                 enum_voltage_range)
 
     assert_pico_ok(status)
 
@@ -152,8 +154,10 @@ def _get_timebase(timebase: int = 0, oversample: int = 1):
     returnedMaxSamples = ctypes.c_int32()
 
     status = ps.ps4000GetTimebase2(chandle, timebase, MAX_SAMPLES,
-                                   ctypes.byref(ctypes.c_int32(0)), oversample,
-                                   ctypes.byref(returnedMaxSamples), 0)
+                                   ctypes.byref(ctypes.c_int32(0)),
+                                   oversample,
+                                   ctypes.byref(returnedMaxSamples),
+                                   0)
 
     assert_pico_ok(status)
 
@@ -174,7 +178,8 @@ def _set_simple_trigger(threshold: int = 10,
     """
 
     status = ps.ps4000SetSimpleTrigger(chandle, 1, channel, threshold,
-                                       direction, delay, autoTrigger_ms)
+                                       direction, delay,
+                                       autoTrigger_ms)
 
     assert_pico_ok(status)
 
@@ -190,8 +195,9 @@ def _run_block(timebase: int = 8,
         postTriggerSamples (int, optional): _description_. Defaults to 2500.
     """
 
-    status = ps.ps4000RunBlock(chandle, preTriggerSamples, postTriggerSamples,
-                               timebase, 0, 0, 0, 0, 0)
+    status = ps.ps4000RunBlock(chandle, preTriggerSamples,
+                               postTriggerSamples, timebase, 0, 0, 0,
+                               0, 0)
 
     assert_pico_ok(status)
 
@@ -215,8 +221,8 @@ def _set_data_buffer(channel):
     bufferLth = MAX_SAMPLES
 
     # Note that we use the pseudo-pointer byref
-    status = ps.ps4000SetDataBuffer(chandle, channel, ctypes.byref(buffer),
-                                    bufferLth)
+    status = ps.ps4000SetDataBuffer(chandle, channel,
+                                    ctypes.byref(buffer), bufferLth)
 
     assert_pico_ok(status)
 
@@ -224,8 +230,9 @@ def _set_data_buffer(channel):
 def _get_data():
     """Pulls the data from the oscilloscope."""
 
-    status = ps.ps4000GetValues(chandle, 0, ctypes.byref(c_max_samples), 0, 0,
-                                0, ctypes.byref(overflow))
+    status = ps.ps4000GetValues(chandle, 0,
+                                ctypes.byref(c_max_samples), 0, 0, 0,
+                                ctypes.byref(overflow))
 
     assert_pico_ok(status)
 
@@ -243,6 +250,7 @@ def close():
 
     This method is generally only used for tests.
     """
+
     status = ps.ps4000CloseUnit(chandle)
 
     assert_pico_ok(status)
@@ -288,7 +296,8 @@ def sweep(params: dict):
         numerical_voltage_range=params['voltage_range'])
 
     # 2. Select channel ranges and AC/DC coupling
-    _set_channel_params(enum_voltage_range=enum_voltage_range, channel=channel)
+    _set_channel_params(enum_voltage_range=enum_voltage_range,
+                        channel=channel)
 
     # 3. Select timebases
     _get_timebase()
@@ -310,6 +319,7 @@ def sweep(params: dict):
 
     # 9. Stop oscilloscope
     stop()
+
     data_mV = to_mV(enum_voltage_range=enum_voltage_range)
 
     return data_mV
