@@ -4,6 +4,7 @@ import flask
 import json
 import logging
 import os
+from picosdk import errors
 
 log_filename = "logs/logs.log"
 os.makedirs(os.path.dirname(log_filename), exist_ok=True)
@@ -83,4 +84,4 @@ def configure_routes(app):
 configure_routes(app)
 
 if __name__ == '__main__':
-    app.run(port=PORT, host="0.0.0.0")
+    app.run(port=PORT, host="0.0.0.0", debug=True)
