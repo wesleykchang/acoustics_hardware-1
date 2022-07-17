@@ -10,16 +10,20 @@ import logging
 from picosdk.ps4000 import ps4000 as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 
-import picoscope.utils as utils
+from picoscope import utils
 
 logging.basicConfig(filename='logs/logs.log',
                     level=logging.INFO,
                     format='%(asctime)s: %(message)s')
 
-chandle = ctypes.c_int16()
 MAX_SAMPLES = 8192
-buffer = (ctypes.c_int16 * MAX_SAMPLES)()
-overflow = ctypes.c_int16()
+TIMEBASE = 0
+OVERSAMPLE = 1
+SEGMENT_INDEX = 0  # zero-based, specifies which memory segment to use
+
+c_handle = ctypes.c_int16()
+c_buffer = (ctypes.c_int16 * MAX_SAMPLES)()
+c_overflow = ctypes.c_int16()
 c_max_samples = ctypes.c_int32(MAX_SAMPLES)
 
 
@@ -51,7 +55,7 @@ def connect():
         The retry must be external, i.e. when running pithy/startup.
     """
 
-    status = ps.ps4000OpenUnit(ctypes.byref(chandle))
+    status = ps.ps4000OpenUnit(ctypes.byref(c_handle))
 
     assert_pico_ok(status)
 
@@ -114,15 +118,17 @@ def _define_procedure(**nondefault_params):
     if signal_params['end_freq'] > 2E4:
         raise ValueError(f'end_freq cannot be larger than 2E4')
 
+    ext_in_threshold = 0  # Not using so setting to 0
+
     status = ps.ps4000SetSigGenBuiltIn(
-        chandle, signal_params['offsetVoltage'],
+        c_handle, signal_params['offsetVoltage'],
         signal_params['pkToPk'], signal_params['waveType'],
         signal_params['start_freq'], signal_params['end_freq'],
         signal_params['increment'], signal_params['dwell'],
         signal_params['sweepType'], signal_params['operationType'],
         signal_params['shots'], signal_params['sweeps'],
         signal_params['triggerType'], signal_params['triggerSource'],
-        0)
+        ext_in_threshold)
 
     assert_pico_ok(status)
 
@@ -136,28 +142,32 @@ def _set_channel_params(enum_voltage_range: int, channel: int):
         channel (int): Oscilloscope channel.
     """
 
-    status = ps.ps4000SetChannel(chandle, channel, 1, 1,
+    is_channel = True
+    is_dc = True
+
+    status = ps.ps4000SetChannel(c_handle, channel, is_channel, is_dc,
                                  enum_voltage_range)
 
     assert_pico_ok(status)
 
 
-def _get_timebase(timebase: int = 0, oversample: int = 1):
-    """Gets timebase information
-    
-    Args:
-        timebase (int, optional): Enumerated. Refer to programmers' manual
-            manual for further info. Defaults to 0
+def _get_timebase():
+    """_summary_
+
+    _extended_summary_
+
     """
 
-    # timeIntervalns = ctypes.c_float()  # Not sure on this (see NULL pointes in arg 4)
+    time_interval_ns = ctypes.c_int32(
+        0)  # Not sure on this (see NULL pointes in arg 4)
     returnedMaxSamples = ctypes.c_int32()
+    n_samples = MAX_SAMPLES
 
-    status = ps.ps4000GetTimebase2(chandle, timebase, MAX_SAMPLES,
-                                   ctypes.byref(ctypes.c_int32(0)),
-                                   oversample,
+    status = ps.ps4000GetTimebase2(c_handle, TIMEBASE, n_samples,
+                                   ctypes.byref(time_interval_ns),
+                                   OVERSAMPLE,
                                    ctypes.byref(returnedMaxSamples),
-                                   0)
+                                   SEGMENT_INDEX)
 
     assert_pico_ok(status)
 
@@ -166,7 +176,7 @@ def _set_simple_trigger(threshold: int = 10,
                         direction: int = 3,
                         delay: int = 0,
                         channel: int = 1,
-                        autoTrigger_ms: int = 100):
+                        autoTrigger_ms: int = 1000):
     """Cocks the gun.
 
     Args:
@@ -174,30 +184,31 @@ def _set_simple_trigger(threshold: int = 10,
         direction (int, optional): _description_. Defaults to 3.
         delay (int, optional): _description_. Defaults to 0.
         channel (int, optional): _description_. Defaults to 1.
-        autoTrigger_ms (int, optional): _description_. Defaults to 100.
+        autoTrigger_ms (int, optional): _description_. Defaults to 1000.
     """
 
-    status = ps.ps4000SetSimpleTrigger(chandle, 1, channel, threshold,
-                                       direction, delay,
-                                       autoTrigger_ms)
+    enable_trigger = 1
+
+    status = ps.ps4000SetSimpleTrigger(c_handle, enable_trigger,
+                                       channel, threshold, direction,
+                                       delay, autoTrigger_ms)
 
     assert_pico_ok(status)
 
 
-def _run_block(timebase: int = 8,
-               preTriggerSamples: int = 2500,
-               postTriggerSamples: int = 2500):
-    """Pulls the trigger: Starts the sweep.
+def _run_block():
+    """Pulls the trigger: Starts the sweep."""
 
-    Args:
-        timebase (int, optional): _description_. Defaults to 8.
-        preTriggerSamples (int, optional): _description_. Defaults to 2500.
-        postTriggerSamples (int, optional): _description_. Defaults to 2500.
-    """
+    pre_trigger_samples = 0
+    post_trigger_samples = MAX_SAMPLES
+    time_indisposed_ms = 0
+    lp_ready = 0
+    p_parameter = 0
 
-    status = ps.ps4000RunBlock(chandle, preTriggerSamples,
-                               postTriggerSamples, timebase, 0, 0, 0,
-                               0, 0)
+    status = ps.ps4000RunBlock(c_handle, pre_trigger_samples,
+                               post_trigger_samples, TIMEBASE,
+                               OVERSAMPLE, time_indisposed_ms,
+                               SEGMENT_INDEX, lp_ready, p_parameter)
 
     assert_pico_ok(status)
 
@@ -208,7 +219,7 @@ def _wait_ready():
     ready = ctypes.c_int16(0)
     check = ctypes.c_int16(0)
     while ready.value == check.value:
-        status = ps.ps4000IsReady(chandle, ctypes.byref(ready))
+        status = ps.ps4000IsReady(c_handle, ctypes.byref(ready))
 
 
 def _set_data_buffer(channel):
@@ -218,11 +229,12 @@ def _set_data_buffer(channel):
         channel (int): Picoscope channel, either 0 (A) or 1 (B).
     """
 
-    bufferLth = MAX_SAMPLES
+    buffer_length = MAX_SAMPLES
 
     # Note that we use the pseudo-pointer byref
-    status = ps.ps4000SetDataBuffer(chandle, channel,
-                                    ctypes.byref(buffer), bufferLth)
+    status = ps.ps4000SetDataBuffer(c_handle, channel,
+                                    ctypes.byref(c_buffer),
+                                    buffer_length)
 
     assert_pico_ok(status)
 
@@ -230,9 +242,15 @@ def _set_data_buffer(channel):
 def _get_data():
     """Pulls the data from the oscilloscope."""
 
-    status = ps.ps4000GetValues(chandle, 0,
-                                ctypes.byref(c_max_samples), 0, 0, 0,
-                                ctypes.byref(overflow))
+    start_index = 0
+    downsample_ratio = 0
+    downsample_ratio_mode = 0  # None
+
+    status = ps.ps4000GetValues(c_handle, start_index,
+                                ctypes.byref(c_max_samples),
+                                downsample_ratio,
+                                downsample_ratio_mode, SEGMENT_INDEX,
+                                ctypes.byref(c_overflow))
 
     assert_pico_ok(status)
 
@@ -240,7 +258,7 @@ def _get_data():
 def stop():
     """Stops the picoscope. A necessary step at the end of each sweep."""
 
-    status = ps.ps4000Stop(chandle)
+    status = ps.ps4000Stop(c_handle)
 
     assert_pico_ok(status)
 
@@ -251,7 +269,7 @@ def close():
     This method is generally only used for tests.
     """
 
-    status = ps.ps4000CloseUnit(chandle)
+    status = ps.ps4000CloseUnit(c_handle)
 
     assert_pico_ok(status)
 
@@ -261,15 +279,17 @@ def to_mV(enum_voltage_range: int, max_ADC: int = 32767):
 
     Args:
         enum_voltage_range (int): Enumerated voltage range.
-        max_ADC (int, optional): All values are normalized between \pm max_ADC.
-            No reason to tamper with this! Defaults to 32767.
+        max_ADC (int, optional): All values are normalized between
+            plus/minus max_ADC. No reason to tamper with this!
+            Defaults to 32767.
 
     Returns:
         list: Amplitudes in mV.
     """
+
     c_max_ADC = ctypes.c_int16(max_ADC)
 
-    return adc2mV(buffer, enum_voltage_range, c_max_ADC)
+    return adc2mV(c_buffer, enum_voltage_range, c_max_ADC)
 
 
 def sweep(params: dict):

@@ -11,7 +11,7 @@
         "operationType": 0,
         "shots": 1,
         "sweeps": 0,
-        "triggerType": 0,
+        "triggerType": 1,
         "triggerSource": 1
     },
     "voltage_range_conversion_table": {
