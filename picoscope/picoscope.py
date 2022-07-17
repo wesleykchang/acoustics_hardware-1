@@ -34,7 +34,7 @@ def _set_input_channel(params: dict):
         params (dict): All sweep parameters. See settings.json.
 
     Returns:
-        channel (int): Because the lazy parsing of params in
+        channel (int): The lazy parsing of params in
             app/get_resonance makes channel a float instead of int.
     """
 
@@ -50,9 +50,10 @@ def connect():
     """Connects to oscilloscope.
     
     Note:
-        There's an persistent bug where this method fails several times before a connection
-        can be established. However, adding a try/except block doesn't solve it.
-        The retry must be external, i.e. when running pithy/startup.
+        There's an persistent bug where this method fails several times
+        before a connection can be established. However, adding a
+        try/except block doesn't solve it. The retry must be external,
+        i.e. when running pithy/startup.
     """
 
     status = ps.ps4000OpenUnit(ctypes.byref(c_handle))
@@ -61,7 +62,7 @@ def connect():
 
 
 def _define_procedure(**nondefault_params):
-    """Sets up the signal generator to produce a signal from the selected waveType.
+    """Sets up the signal generator to produce a waveType signal.
 
     If startFrequency != stopFrequency it will sweep.
 
@@ -74,7 +75,8 @@ def _define_procedure(**nondefault_params):
         pkToPk (int): Peak-to-peak voltage [uV].
             Defaults to 2.
         waveType (int): The type of waveform to be generated.
-            Refer to programmers' guide for all available types. Defaults to 0 (Sine).
+            Refer to programmer's guide for all available types.
+            Defaults to 0 (Sine).
         startFrequency (float): Starting frequency.
             Defaults to 1.0E6.
         stopFrequency (float): Stopping (or reversing) frequency (included).
@@ -84,24 +86,26 @@ def _define_procedure(**nondefault_params):
         dwellTime (float): The time [s] between frequency changes.
             Defaults to 1E-3.
         sweepType (int): Determines sweeping type.
-            Refer to programmers' guide for all available types. Defaults to 0 (UP).
+            Refer to programmer's guide for all available types.
+            Defaults to 0 (UP).
         operationType (int): Configures white noise generator.
-            Refer to programmers' guide for all available types.
+            Refer to programmer's guide for all available types.
             Defaults to 0 (white noise disabled).
-        shots (int): The number of cycles of the waveform to be produced after a trigger event.
-            If this is set to a non-zero value, then sweeps must be 0. Defaults to 0.
+        shots (int): The number of cycles of the waveform to be produced
+            after a trigger event. Defaults to 1.
         sweeps (int): Number of sweep repetitions.
-            Defaults to None.
-        triggerType (int): The type of trigger to be applied to signal generator.
-            Refer to programmers' guide for all available types.
-            Defaults to 0 (SIGGEN_RISING).
+            Defaults to 0.
+        triggerType (int): The type of trigger to be applied to signal
+            generator. Refer to programmer's guide for all available types.
+            Defaults to 1 (SIGGEN_FALLING).
         triggerSource (int): The source that triggers the signal generator.
-            Refer to programmers' guide for all available types.
+            Refer to programmer's guide for all available types.
             Defaults to 1 (SIGGEN_SCOPE_TRIG).
 
     NOTE:
-        If a trigger source other than 0 (SIGGEN_NONE) is specified, then either shots or
-    sweeps, but not both, must be set to a non-zero value.
+        If a trigger source other than 0 (SIGGEN_NONE) is specified,
+        then either shots or sweeps, but not both, must be set to a
+        non-zero value.
 
     Example:
         picoscope._setup(**params) <- Note the double-star.
@@ -138,8 +142,8 @@ def _set_channel_params(enum_voltage_range: int, channel: int):
 
     Args:
         voltage_range (float): Enum specifying measuring voltage range.
-            Refer to programmers' manual for further info.
-        channel (int): Oscilloscope channel.
+            Refer to programmer's manual for further info.
+        channel (int): Picoscope channel, either 0 (A) or 1 (B).
     """
 
     is_channel = True
@@ -152,14 +156,13 @@ def _set_channel_params(enum_voltage_range: int, channel: int):
 
 
 def _get_timebase():
-    """_summary_
+    """Basically sets the sampling rate.
 
-    _extended_summary_
-
+    There's a whole section devoted to this subject in the
+    programmer's guide.
     """
 
-    time_interval_ns = ctypes.c_int32(
-        0)  # Not sure on this (see NULL pointes in arg 4)
+    time_interval_ns = ctypes.c_int32(0)
     returnedMaxSamples = ctypes.c_int32()
     n_samples = MAX_SAMPLES
 
@@ -172,18 +175,23 @@ def _get_timebase():
     assert_pico_ok(status)
 
 
-def _set_simple_trigger(threshold: int = 10,
+def _set_simple_trigger(channel: int,
+                        threshold: int = 10,
                         direction: int = 3,
                         delay: int = 0,
-                        channel: int = 1,
                         autoTrigger_ms: int = 1000):
     """Cocks the gun.
 
     Args:
-        threshold (int, optional): _description_. Defaults to 10.
-        direction (int, optional): _description_. Defaults to 3.
-        delay (int, optional): _description_. Defaults to 0.
-        channel (int, optional): _description_. Defaults to 1.
+        channel (int): Picoscope channel, either 0 (A) or 1 (B).
+        threshold (int, optional): The ADC count at which the
+            trigger will fire. Defaults to 10.
+        direction (int, optional): The direction in which the
+            signal must move to cause a trigger.
+            Defaults to 3 (FALLING).
+        delay (int, optional): The time, in sample periods,
+            between the trigger occuring and the first sample
+            being taken. Defaults to 0.
         autoTrigger_ms (int, optional): _description_. Defaults to 1000.
     """
 
@@ -214,7 +222,7 @@ def _run_block():
 
 
 def _wait_ready():
-    """Waits for data collection to finish before moving onto collecting data."""
+    """Waits for data collection to finish before collecting data."""
 
     ready = ctypes.c_int16(0)
     check = ctypes.c_int16(0)
@@ -222,8 +230,10 @@ def _wait_ready():
         status = ps.ps4000IsReady(c_handle, ctypes.byref(ready))
 
 
-def _set_data_buffer(channel):
-    """C-type stuff. Allocates memory to receive the oscilloscope to dump from memory.
+def _set_data_buffer(channel: int):
+    """Allocates memory to receive the oscilloscope to dump from memory.
+
+    C-type stuff.
 
     Args:
         channel (int): Picoscope channel, either 0 (A) or 1 (B).
@@ -256,7 +266,10 @@ def _get_data():
 
 
 def stop():
-    """Stops the picoscope. A necessary step at the end of each sweep."""
+    """Stops the picoscope.
+    
+    This is a necessary step at the end of each sweep.
+    """
 
     status = ps.ps4000Stop(c_handle)
 
@@ -266,7 +279,7 @@ def stop():
 def close():
     """Closes the oscilloscope connection, the opposite of connect().
 
-    This method is generally only used for tests.
+    Generally speaking, this should only be used for tests.
     """
 
     status = ps.ps4000CloseUnit(c_handle)
@@ -295,7 +308,7 @@ def to_mV(enum_voltage_range: int, max_ADC: int = 32767):
 def sweep(params: dict):
     '''Wrapper for frequency sweep.
 
-    Follows recommended block mode procedure as laid out by programmers' guide.
+    Follows recommended block mode procedure as laid out by programmer's guide.
 
     params (dict): All sweep parameters. See settings for further info.
 
@@ -323,7 +336,7 @@ def sweep(params: dict):
     _get_timebase()
 
     # 4. Trigger setup
-    _set_simple_trigger()
+    _set_simple_trigger(channel=channel)
 
     # 5. Start collecting data
     _run_block()
