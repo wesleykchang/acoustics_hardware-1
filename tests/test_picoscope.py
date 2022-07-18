@@ -31,6 +31,9 @@ def test_define_procedure():
 def test_run_block():
     picoscope._run_block()
 
+def test_abitrary_wave_generator():
+    picoscope._trigger_awg()
+
 
 def test_wait_ready():
     picoscope._wait_ready()

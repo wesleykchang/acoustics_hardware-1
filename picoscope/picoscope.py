@@ -183,7 +183,7 @@ def _set_simple_trigger(channel: int,
 
 
 def _run_block():
-    """Pulls the trigger: Starts the sweep."""
+    """Starts collecting data."""
 
     pre_trigger_samples = 0
     post_trigger_samples = MAX_SAMPLES
@@ -198,6 +198,17 @@ def _run_block():
 
     assert_pico_ok(status)
 
+def _trigger_awg():
+    """Pulls the trigger: Starts the sweep.
+    
+    Triggers the arbitrary wave generator.
+    """
+
+    state = 1
+
+    status = ps.ps4000SigGenSoftwareControl(c_handle, state)
+
+    assert_pico_ok(status)
 
 def _wait_ready():
     """Waits for data collection to finish before collecting data."""
@@ -244,9 +255,7 @@ def _get_data():
 
 
 def stop():
-    """Stops the picoscope.
-    
-    This is a necessary step at the end of each sweep.
+    """Stops the picoscope, a necessary step at the end of each sweep.
     """
 
     status = ps.ps4000Stop(c_handle)
@@ -315,6 +324,9 @@ def sweep(params: dict):
 
     # 5. Start collecting data
     _run_block()
+    
+    # 5.5 Start arbitrary wave generator
+    _trigger_awg()
 
     # 6. Wait until oscilloscope is ready
     _wait_ready()
