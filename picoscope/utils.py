@@ -31,22 +31,18 @@ def parse_voltage_range(numerical_voltage_range: float) -> int:
 
     return int(parsed_voltage_range)
 
-def set_sample_rate(end_freq: float):
-    """
+def set_input_channel(params: dict):
+    """Sets the physical input channel, either 0 (A) or 1 (B).
 
+    The lazy parsing of params in app/get_resonance makes channel
+    a float instead of int. So it either returns 1 if it's not
+    specified in the input, or int(float(channel)).
+    
     Args:
-        INCOMPLETE
-        end_freq (float): Highest frequency to be "played" in sweep [Hz]
+        params (dict): All sweep parameters. See settings.json.
 
     Returns:
-        sample_rate (float): Sampling rate [Hz]
-    
-    Raises:
-        ValueError: If sample rate is less than the Nyquist frequency.
+        channel (int): Enum of the channel.
     """
 
-    if end_freq != None:
-        if end_freq > sample_rate*2:
-            raise ValueError("Sample rate is less than Nyquist frequency!")
-
-    return sample_rate
+    return int(params['channel']) if 'channel' in params else 1

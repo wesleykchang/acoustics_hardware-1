@@ -5,20 +5,8 @@ import pytest
 
 from app import configure_routes
 
-params = {
-    'start_freq': 1000.0,
-    'end_freq': 19000.0,
-    'increment': 100.0,
-    'dwell': .001,
-    'voltage': 0.2,
-    'sweep_interval': 150,
-    'c_rate': 1 / 2.,
-    'no_cycles': 1,
-    'warm_up': 60,
-    'rest': 60,
-    'channel': 0,
-    'voltage_range': 1.0
-}
+with open("tests/config.json") as f:
+    params = json.load(f)
 
 
 @pytest.fixture

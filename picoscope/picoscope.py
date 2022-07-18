@@ -22,23 +22,6 @@ c_overflow = ctypes.c_int16()
 c_max_samples = ctypes.c_int32(MAX_SAMPLES)
 
 
-def _set_input_channel(params: dict):
-    """Sets the physical input channel, either 0 (A) or 1 (B).
-
-    The lazy parsing of params in app/get_resonance makes channel
-    a float instead of int. So it either returns 1 if it's not
-    specified in the input, or int(float(channel)).
-    
-    Args:
-        params (dict): All sweep parameters. See settings.json.
-
-    Returns:
-        channel (int): Enum of the channel.
-    """
-
-    return int(params['channel']) if 'channel' in params else 1
-
-
 def connect():
     """Connects to oscilloscope.
     
@@ -308,7 +291,7 @@ def sweep(params: dict):
         params (dict): All experiment parameters
     '''
 
-    channel = _set_input_channel(params=params)
+    channel = utils.set_input_channel(params=params)
 
     # 1. Open the oscilloscope
     # Calling externally so keeping commented.
