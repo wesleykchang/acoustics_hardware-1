@@ -1,12 +1,12 @@
 {
     "sigGenBuiltIn": {
-        "offsetVoltage": 0,
-        "pkToPk": 2,
-        "waveType": 0,
         "start_freq": 1.0E4,
         "end_freq": 20E4,
         "increment": 10.0,
         "dwell": 1E-3,
+        "offsetVoltage": 0,
+        "pkToPk": 10,
+        "waveType": 0,
         "sweepType": 0,
         "operationType": 0,
         "shots": 1,

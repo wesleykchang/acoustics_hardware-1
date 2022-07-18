@@ -6,17 +6,12 @@ be called externally (except in tests).
 
 import ctypes
 import json
-import logging
 from picosdk.ps4000 import ps4000 as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 
 from picoscope import utils
 
-logging.basicConfig(filename='logs/logs.log',
-                    level=logging.INFO,
-                    format='%(asctime)s: %(message)s')
-
-MAX_SAMPLES = 8192
+MAX_SAMPLES = int(5E6)
 TIMEBASE = 0
 OVERSAMPLE = 1
 SEGMENT_INDEX = 0  # zero-based, specifies which memory segment to use
@@ -29,21 +24,19 @@ c_max_samples = ctypes.c_int32(MAX_SAMPLES)
 
 def _set_input_channel(params: dict):
     """Sets the physical input channel, either 0 (A) or 1 (B).
+
+    The lazy parsing of params in app/get_resonance makes channel
+    a float instead of int. So it either returns 1 if it's not
+    specified in the input, or int(float(channel)).
     
     Args:
         params (dict): All sweep parameters. See settings.json.
 
     Returns:
-        channel (int): The lazy parsing of params in
-            app/get_resonance makes channel a float instead of int.
+        channel (int): Enum of the channel.
     """
 
-    if not 'channel' in params:
-        channel = 1
-    else:
-        channel = int(params['channel'])
-
-    return channel
+    return int(params['channel']) if 'channel' in params else 1
 
 
 def connect():
@@ -141,7 +134,7 @@ def _set_channel_params(enum_voltage_range: int, channel: int):
     """Sets various channel parameters.
 
     Args:
-        voltage_range (float): Enum specifying measuring voltage range.
+        enum_voltage_range (int): Enum specifying measuring voltage range.
             Refer to programmer's manual for further info.
         channel (int): Picoscope channel, either 0 (A) or 1 (B).
     """
@@ -176,7 +169,7 @@ def _get_timebase():
 
 
 def _set_simple_trigger(channel: int,
-                        threshold: int = 10,
+                        threshold: int = 300,
                         direction: int = 3,
                         delay: int = 0,
                         autoTrigger_ms: int = 1000):
@@ -185,14 +178,16 @@ def _set_simple_trigger(channel: int,
     Args:
         channel (int): Picoscope channel, either 0 (A) or 1 (B).
         threshold (int, optional): The ADC count at which the
-            trigger will fire. Defaults to 10.
+            trigger will fire. Defaults to 300.
         direction (int, optional): The direction in which the
             signal must move to cause a trigger.
             Defaults to 3 (FALLING).
         delay (int, optional): The time, in sample periods,
             between the trigger occuring and the first sample
             being taken. Defaults to 0.
-        autoTrigger_ms (int, optional): _description_. Defaults to 1000.
+        autoTrigger_ms (int, optional): The number of milliseconds
+            the device will wait if no trigger occurs.
+            Defaults to 1000.
     """
 
     enable_trigger = 1
@@ -287,20 +282,17 @@ def close():
     assert_pico_ok(status)
 
 
-def to_mV(enum_voltage_range: int, max_ADC: int = 32767):
+def to_mV(enum_voltage_range: int):
     """Converts amplitude in ADCs to mV.
 
     Args:
         enum_voltage_range (int): Enumerated voltage range.
-        max_ADC (int, optional): All values are normalized between
-            plus/minus max_ADC. No reason to tamper with this!
-            Defaults to 32767.
 
     Returns:
         list: Amplitudes in mV.
     """
 
-    c_max_ADC = ctypes.c_int16(max_ADC)
+    c_max_ADC = ctypes.c_int16(MAX_SAMPLES)
 
     return adc2mV(c_buffer, enum_voltage_range, c_max_ADC)
 
@@ -319,7 +311,7 @@ def sweep(params: dict):
     channel = _set_input_channel(params=params)
 
     # 1. Open the oscilloscope
-    # Calling externally
+    # Calling externally so keeping commented.
     # connect()
 
     # 1.5 Define signal
