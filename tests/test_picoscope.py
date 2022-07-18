@@ -18,6 +18,8 @@ params = {
     'voltage_range': 1.0
 }
 
+CHANNEL = 1
+
 
 # REMINDER: Pytest runs in sequence which is why we can set up the
 # unit tests in this fashion
@@ -46,7 +48,7 @@ def test_connect():
 
 
 def test_set_channel_params():
-    picoscope._set_channel_params(enum_voltage_range=6, channel=1)
+    picoscope._set_channel_params(enum_voltage_range=6, channel=CHANNEL)
 
 
 def test_get_timebase():
@@ -54,7 +56,7 @@ def test_get_timebase():
 
 
 def test_set_simple_trigger():
-    picoscope._set_simple_trigger()
+    picoscope._set_simple_trigger(channel=CHANNEL)
 
 
 def test_define_procedure():
@@ -70,7 +72,7 @@ def test_wait_ready():
 
 
 def test_set_data_buffer():
-    picoscope._set_data_buffer(channel=1)
+    picoscope._set_data_buffer(channel=CHANNEL)
 
 
 def test_get_data():
