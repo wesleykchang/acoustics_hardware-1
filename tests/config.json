@@ -4,5 +4,6 @@
     "increment": 100.0,
     "dwell": 0.001,
     "channel": 0,
-    "voltage_range": 1.0
+    "voltage_range": 1.0,
+    "max_samples": 10000
 }

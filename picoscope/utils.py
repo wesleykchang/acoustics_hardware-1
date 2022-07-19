@@ -31,6 +31,7 @@ def parse_voltage_range(numerical_voltage_range: float) -> int:
 
     return int(parsed_voltage_range)
 
+
 def set_input_channel(params: dict):
     """Sets the physical input channel, either 0 (A) or 1 (B).
 

@@ -4,7 +4,7 @@ import flask
 import json
 import logging
 import os
-from picosdk import errors
+import werkzeug
 
 log_filename = "logs/logs.log"
 os.makedirs(os.path.dirname(log_filename), exist_ok=True)
@@ -18,9 +18,8 @@ app = flask.Flask(__name__)
 
 
 def configure_routes(app):
-    from picoscope import picoscope
+    from picoscope import picoscope, sweep
 
-    #test to see that server is alive
     @app.route('/')
     def hello_world():
         """
@@ -68,7 +67,7 @@ def configure_routes(app):
         params = dict([key, float(val)]
                       for key, val in params_dict_w_strs.items())
 
-        data = picoscope.sweep(params=params)
+        data = sweep.sweep(params=params)
 
         return json.dumps(data)
 
@@ -79,6 +78,10 @@ def configure_routes(app):
         picoscope.close()
 
         return 'Picoscope disconnected'
+
+    @app.errorhandler(werkzeug.exceptions.BadRequest)
+    def handle_bad_request(e):
+        return '', 404
 
 
 configure_routes(app)

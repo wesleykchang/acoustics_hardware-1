@@ -25,6 +25,11 @@ def test_base_route(client):
     assert response.get_data() == b'Flask picoscope server running'
 
 
+def test_random_route_failure(client):
+    response = client.get('/some_nonexistent_url')
+    assert response.status_code == 404
+
+
 def test_logs():
     assert os.path.isfile('logs/logs.log')
 

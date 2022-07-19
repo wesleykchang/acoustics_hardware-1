@@ -12,7 +12,7 @@ def test_parse_voltage_range():
 
 
 def test_parse_voltage_range_failure():
-    with pytest.raises(ValueError) as e_info:
+    with pytest.raises(ValueError):
         utils.parse_voltage_range(4.9)
 
 

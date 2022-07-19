@@ -12,7 +12,8 @@
         "shots": 10,
         "sweeps": 0,
         "triggerType": 2,
-        "triggerSource": 4
+        "triggerSource": 4,
+        "samples_max": 1E6
     },
     "voltage_range_conversion_table": {
         "0": 1E-2,
