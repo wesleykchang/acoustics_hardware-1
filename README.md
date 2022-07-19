@@ -14,11 +14,16 @@ Branch `dev` is actively maintained. At the time of writing it only has an imple
 ├── picoscope
 │   ├── picoscope.py
 │   ├── settings.json
+│   ├── sweep.py
 │   └── utils.py
 ├── README.md
-└── tests
-    ├── test_app.py
-    ├── test_picoscope.py
-    └── test_utils.py
+├── requirements.txt
+├── tests
+    ├── config.json
+    ├── __init__.py
+    ├── test_app.py
+    ├── test_picoscope.py
+    ├── test_sweep.py
+    └── test_utils.py
 
 ```
