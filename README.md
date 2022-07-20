@@ -1,6 +1,6 @@
 # Acoustics Hardware
 
-Let's clarify something up top: The package name is a misnomer. It should totally be named `acoustics_software`. However, we keep it for the sake of version history.
+Let's clarify something up top: The package name might be a little confusing. It's called acoustics hardware because it controls the oscilloscope.
 
 Now, this package is written and maintained by the acoustics team at [Club Steingart](https://lab.dansteingart.com/). It contains functionality for controlling 2000- & 4000-level oscilloscopes from Picotech.
 
