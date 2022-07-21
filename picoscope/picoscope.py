@@ -113,13 +113,14 @@ def define_procedure(**nondefault_params):
     ext_in_threshold = 0  # Not using so setting to 0
 
     status = ps.ps4000SetSigGenBuiltIn(
-        c_handle, signal_params['offsetVoltage'], signal_params['pkToPk'],
-        signal_params['waveType'], signal_params['start_freq'],
-        signal_params['end_freq'], signal_params['increment'],
-        signal_params['dwell'], signal_params['sweepType'],
-        signal_params['operationType'], signal_params['shots'],
-        signal_params['sweeps'], signal_params['triggerType'],
-        signal_params['triggerSource'], ext_in_threshold)
+        c_handle, signal_params['offsetVoltage'],
+        int(signal_params['pkToPk']), signal_params['waveType'],
+        signal_params['start_freq'], signal_params['end_freq'],
+        signal_params['increment'], signal_params['dwell'],
+        signal_params['sweepType'], signal_params['operationType'],
+        signal_params['shots'], signal_params['sweeps'],
+        signal_params['triggerType'], signal_params['triggerSource'],
+        ext_in_threshold)
 
     assert_pico_ok(status)
 
@@ -154,7 +155,8 @@ def get_timebase():
     n_samples = max_samples
 
     status = ps.ps4000GetTimebase2(c_handle, TIMEBASE, n_samples,
-                                   ctypes.byref(time_interval_ns), OVERSAMPLE,
+                                   ctypes.byref(time_interval_ns),
+                                   OVERSAMPLE,
                                    ctypes.byref(returnedMaxSamples),
                                    SEGMENT_INDEX)
 
@@ -163,7 +165,7 @@ def get_timebase():
 
 def set_simple_trigger(channel: int,
                        threshold: int = 300,
-                       direction: int = 3,
+                       direction: int = 4,
                        delay: int = 0,
                        autoTrigger_ms: int = 1000):
     """Cocks the gun.
@@ -174,7 +176,7 @@ def set_simple_trigger(channel: int,
             trigger will fire. Defaults to 300.
         direction (int, optional): The direction in which the
             signal must move to cause a trigger.
-            Defaults to 3 (FALLING).
+            Defaults to 4 (RISING_OR_FALLING).
         delay (int, optional): The time, in sample periods,
             between the trigger occuring and the first sample
             being taken. Defaults to 0.
@@ -185,9 +187,9 @@ def set_simple_trigger(channel: int,
 
     enable_trigger = 1
 
-    status = ps.ps4000SetSimpleTrigger(c_handle, enable_trigger, channel,
-                                       threshold, direction, delay,
-                                       autoTrigger_ms)
+    status = ps.ps4000SetSimpleTrigger(c_handle, enable_trigger,
+                                       channel, threshold, direction,
+                                       delay, autoTrigger_ms)
 
     assert_pico_ok(status)
 
@@ -202,14 +204,14 @@ def run_block():
     p_parameter = 0
 
     status = ps.ps4000RunBlock(c_handle, pre_trigger_samples,
-                               post_trigger_samples, TIMEBASE, OVERSAMPLE,
-                               time_indisposed_ms, SEGMENT_INDEX, lp_ready,
-                               p_parameter)
+                               post_trigger_samples, TIMEBASE,
+                               OVERSAMPLE, time_indisposed_ms,
+                               SEGMENT_INDEX, lp_ready, p_parameter)
 
     assert_pico_ok(status)
 
 
-def trigger_awg():
+def pull_trigger():
     """Pulls the trigger: Starts the sweep.
     
     Triggers the arbitrary wave generator.
@@ -243,7 +245,8 @@ def set_data_buffer(channel: int):
     buffer_length = max_samples
 
     # Note that we use the pseudo-pointer byref
-    status = ps.ps4000SetDataBuffer(c_handle, channel, ctypes.byref(c_buffer),
+    status = ps.ps4000SetDataBuffer(c_handle, channel,
+                                    ctypes.byref(c_buffer),
                                     buffer_length)
 
     assert_pico_ok(status)
@@ -257,9 +260,34 @@ def get_data():
     downsample_ratio_mode = 0  # None
 
     status = ps.ps4000GetValues(c_handle, start_index,
-                                ctypes.byref(c_max_samples), downsample_ratio,
+                                ctypes.byref(c_max_samples),
+                                downsample_ratio,
                                 downsample_ratio_mode, SEGMENT_INDEX,
                                 ctypes.byref(c_overflow))
+
+    assert_pico_ok(status)
+
+
+def teardown():
+    offset_voltage = 0
+    pk_to_pk = 0
+    wave_type = 8  # DC
+    start_freq = 0
+    end_freq = 0
+    increment = 0
+    dwell = 0
+    sweep_type = 0
+    operation_type = 0
+    shots = 1
+    sweeps = 0
+    trigger_type = 1  # FALLING
+    trigger_source = 1  # Software
+    ext_in_threshold = 0
+
+    status = ps.ps4000SetSigGenBuiltIn(
+        c_handle, offset_voltage, pk_to_pk, wave_type, start_freq,
+        end_freq, increment, dwell, sweep_type, operation_type, shots,
+        sweeps, trigger_type, trigger_source, ext_in_threshold)
 
     assert_pico_ok(status)
 

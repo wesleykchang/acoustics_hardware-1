@@ -36,8 +36,8 @@ def test_run_block():
     picoscope.run_block()
 
 
-def test_abitrary_wave_generator():
-    picoscope.trigger_awg()
+def test_trigger_pull():
+    picoscope.pull_trigger()
 
 
 def test_wait_ready():
@@ -52,14 +52,18 @@ def test_get_data():
     picoscope.get_data()
 
 
-def test_to_mV():
-    data_in_mV = picoscope.to_mV(enum_voltage_range=1)
-
-    assert isinstance(data_in_mV, list)
+def test_teardown():
+    picoscope.teardown()
 
 
 def test_stop():
     picoscope.stop()
+
+
+def test_to_mV():
+    data_in_mV = picoscope.to_mV(enum_voltage_range=1)
+
+    assert isinstance(data_in_mV, list)
 
 
 def test_close():

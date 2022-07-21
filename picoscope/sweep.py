@@ -49,7 +49,7 @@ def sweep(params: dict):
     picoscope.run_block()
 
     # 5.5 Start arbitrary wave generator
-    picoscope.trigger_awg()
+    picoscope.pull_trigger()
 
     # 6. Wait until oscilloscope is ready
     picoscope.wait_ready()
@@ -60,7 +60,8 @@ def sweep(params: dict):
     # 8. Transfer data from oscilloscope to PC
     picoscope.get_data()
 
-    # 9. Stop oscilloscope
+    # 9. Teardown
+    picoscope.teardown()
     picoscope.stop()
 
     data_mV = picoscope.to_mV(enum_voltage_range=enum_voltage_range)
