@@ -6,7 +6,7 @@ with open("tests/config.json") as f:
     params = json.load(f)
 
 CHANNEL = 1
-
+enum_sampling_rate = 9
 
 def test_connect():
     picoscope.connect()
@@ -21,7 +21,7 @@ def test_set_channel_params():
 
 
 def test_get_timebase():
-    picoscope.get_timebase()
+    picoscope.get_timebase(enum_sampling_rate=enum_sampling_rate)
 
 
 def test_set_simple_trigger():
@@ -33,7 +33,7 @@ def test_define_procedure():
 
 
 def test_run_block():
-    picoscope.run_block()
+    picoscope.run_block(enum_sampling_rate=enum_sampling_rate)
 
 
 def test_trigger_pull():

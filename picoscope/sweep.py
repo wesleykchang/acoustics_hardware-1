@@ -40,13 +40,24 @@ def sweep(params: dict):
         enum_voltage_range=enum_voltage_range, channel=channel)
 
     # 3. Select timebases
-    picoscope.get_timebase()
+
+    no_frequencies = utils.get_no_frequencies(
+        start_freq=params['start_freq'],
+        end_freq=params['end_freq'],
+        increment=params['increment']
+    )
+    enum_sampling_rate = utils.calculate_sampling_rate(
+        max_samples=params['max_samples'],
+        dwell=params['dwell'],
+        no_frequencies=no_frequencies
+    )
+    picoscope.get_timebase(enum_sampling_rate=enum_sampling_rate)
 
     # 4. Trigger setup
     picoscope.set_simple_trigger(channel=channel)
 
     # 5. Start collecting data
-    picoscope.run_block()
+    picoscope.run_block(enum_sampling_rate=enum_sampling_rate)
 
     # 5.5 Start arbitrary wave generator
     picoscope.pull_trigger()

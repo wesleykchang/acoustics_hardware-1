@@ -3,6 +3,9 @@ import pytest
 
 from picoscope import utils
 
+no_frequencies_reference = 10
+enum_sampling_rate_reference = 9
+
 with open("tests/config.json") as f:
     params = json.load(f)
 
@@ -34,3 +37,32 @@ def test_custom_input_channel():
     params['channel'] = utils.set_input_channel(params=params)
 
     assert params['channel'] == 1
+
+
+def test_get_no_frequencies():
+    no_frequencies = utils.get_no_frequencies(
+        start_freq=params['start_freq'],
+        end_freq=params['end_freq'],
+        increment=params['increment'])
+
+    assert no_frequencies == no_frequencies_reference
+
+
+@pytest.fixture
+def no_freqs():
+    no_freqs = utils.get_no_frequencies(
+        start_freq=params['start_freq'],
+        end_freq=params['end_freq'],
+        increment=params['increment'])
+
+    return no_freqs
+
+
+def test_sampling_rate_calculation(no_freqs):
+    enum_sampling_rate = utils.calculate_sampling_rate(
+        max_samples=params['max_samples'],
+        dwell=params['dwell'],
+        no_frequencies=no_freqs,
+    )
+
+    assert enum_sampling_rate == enum_sampling_rate_reference

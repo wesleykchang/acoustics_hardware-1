@@ -6,7 +6,6 @@ from picosdk.errors import PicoSDKCtypesError
 from picosdk.functions import adc2mV, assert_pico_ok
 from picosdk.ps4000 import ps4000 as ps
 
-TIMEBASE = 0
 OVERSAMPLE = 1
 SEGMENT_INDEX = 0  # specifies which memory segment to use
 
@@ -61,7 +60,7 @@ def define_procedure(**nondefault_params):
         offsetVoltage (int): The voltage offset [uV].
             Defaults to 0.
         pkToPk (int): Peak-to-peak voltage [uV].
-            Defaults to 2.
+            Defaults to 2E6.
         waveType (int): The type of waveform to be generated.
             Refer to programmer's guide for all available types.
             Defaults to 0 (Sine).
@@ -143,18 +142,21 @@ def set_channel_params(enum_voltage_range: int, channel: int):
     assert_pico_ok(status)
 
 
-def get_timebase():
+def get_timebase(enum_sampling_rate: int):
     """Basically sets the sampling rate.
 
     There's a whole section devoted to this subject in the
     programmer's guide.
+
+    enum_sampling_rate (int): Enumerated sampling rate.
+        See utils.calculate_sampling_rate().
     """
 
     time_interval_ns = ctypes.c_int32(0)
     returnedMaxSamples = ctypes.c_int32()
     n_samples = max_samples
 
-    status = ps.ps4000GetTimebase2(c_handle, TIMEBASE, n_samples,
+    status = ps.ps4000GetTimebase2(c_handle, enum_sampling_rate, n_samples,
                                    ctypes.byref(time_interval_ns),
                                    OVERSAMPLE,
                                    ctypes.byref(returnedMaxSamples),
@@ -185,6 +187,8 @@ def set_simple_trigger(channel: int,
             Defaults to 1000.
     """
 
+
+
     enable_trigger = 1
 
     status = ps.ps4000SetSimpleTrigger(c_handle, enable_trigger,
@@ -194,8 +198,12 @@ def set_simple_trigger(channel: int,
     assert_pico_ok(status)
 
 
-def run_block():
-    """Starts collecting data."""
+def run_block(enum_sampling_rate: int):
+    """Starts collecting data.
+    
+    enum_sampling_rate (int): Enumerated sampling rate.
+        See utils.calculate_sampling_rate().
+    """
 
     pre_trigger_samples = 0
     post_trigger_samples = max_samples
@@ -204,7 +212,7 @@ def run_block():
     p_parameter = 0
 
     status = ps.ps4000RunBlock(c_handle, pre_trigger_samples,
-                               post_trigger_samples, TIMEBASE,
+                               post_trigger_samples, enum_sampling_rate,
                                OVERSAMPLE, time_indisposed_ms,
                                SEGMENT_INDEX, lp_ready, p_parameter)
 
@@ -214,7 +222,7 @@ def run_block():
 def pull_trigger():
     """Pulls the trigger: Starts the sweep.
     
-    Triggers the arbitrary wave generator.
+    Triggers the wave generator.
     """
 
     state = 1
@@ -225,7 +233,7 @@ def pull_trigger():
 
 
 def wait_ready():
-    """Waits for data collection to finish before collecting data."""
+    """Waits for data collection to finish before data is collected."""
 
     ready = ctypes.c_int16(0)
     check = ctypes.c_int16(0)

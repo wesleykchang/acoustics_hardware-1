@@ -47,3 +47,48 @@ def set_input_channel(params: dict):
     """
 
     return int(params['channel']) if 'channel' in params else 1
+
+
+def get_no_frequencies(start_freq: float, end_freq: float, increment: float) -> int:
+    """Gets the number of frequencies in sweep.
+
+    Helper function for set_sampling_rate()
+
+    Args:
+        start_freq (float): Starting frequency [Hz].
+        end_freq (float): Last frequency [Hz].
+        increment (float): Step between each frequency in sweep [Hz].
+
+    Returns:
+        int: Number of frequencies in sweep.
+    """
+
+    if start_freq > end_freq:
+        raise(ValueError, "End freq must be equal to or larger than start freq!")
+
+    return (end_freq - start_freq) / increment
+
+def calculate_sampling_rate(max_samples: int, dwell: float, no_frequencies: int) -> int:
+    """Calculates the appropriate (enumerated) sampling rate.
+
+    Necessary to set GetTimease() appropriately.
+
+    The actual value that's passed to GetTimebase() is an enumerated value.
+    1E-7 (100 ns) is 0, 2E-7 (200 ns) is 1, etc.
+
+    Args:
+        max_samples (int): Maximum number of samples to be collected.
+        dwell (float): The time [s] between frequency changes.
+        no_frequencies (int): Number of frequencies in sweep.
+
+    Returns:
+        int: The **enumerated** sampling rate.
+    """
+    
+    baseline = 1E-7  # s
+
+    sweep_duration = dwell * no_frequencies  # [s]
+    sampling_rate = sweep_duration / max_samples  # [s]
+    enum_sampling_rate = sampling_rate / baseline - 1
+
+    return int(enum_sampling_rate)
