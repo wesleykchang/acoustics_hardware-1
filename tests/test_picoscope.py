@@ -1,12 +1,15 @@
 import json
+import pytest
 
-from picoscope import picoscope
+from picoscope import picoscope, utils
 
 with open("tests/config.json") as f:
     params = json.load(f)
 
 CHANNEL = 1
-enum_sampling_rate = 9
+enum_sampling_interval = 9
+enum_voltage_range = 6
+
 
 def test_connect():
     picoscope.connect()
@@ -17,11 +20,36 @@ def test_set_globals():
 
 
 def test_set_channel_params():
-    picoscope.set_channel_params(enum_voltage_range=6, channel=CHANNEL)
+    picoscope.set_channel_params(
+        enum_voltage_range=enum_voltage_range, channel=CHANNEL)
 
 
-def test_get_timebase():
-    picoscope.get_timebase(enum_sampling_rate=enum_sampling_rate)
+@pytest.fixture
+def no_frequencies():
+    no_frequencies = utils.get_no_frequencies(
+        start_freq=params['start_freq'],
+        end_freq=params['end_freq'],
+        increment=params['increment']
+    )
+
+    return no_frequencies
+
+@pytest.fixture
+def sampling_interval_params(no_frequencies):
+    sampling_interval, enum_sampling_interval = utils.calculate_sampling_interval(
+        max_samples=params['max_samples'],
+        dwell=params['dwell'],
+        no_frequencies=no_frequencies
+    )
+
+    return [sampling_interval, enum_sampling_interval]
+
+
+def test_get_timebase(sampling_interval_params):
+    picoscope.get_timebase(
+        sampling_interval=sampling_interval_params[0],
+        enum_sampling_interval=sampling_interval_params[1]
+    )
 
 
 def test_set_simple_trigger():
@@ -33,7 +61,7 @@ def test_define_procedure():
 
 
 def test_run_block():
-    picoscope.run_block(enum_sampling_rate=enum_sampling_rate)
+    picoscope.run_block(enum_sampling_interval=enum_sampling_interval)
 
 
 def test_trigger_pull():

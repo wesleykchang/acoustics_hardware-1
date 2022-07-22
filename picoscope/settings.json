@@ -1,7 +1,7 @@
 {
     "sigGenBuiltIn": {
         "start_freq": 1.0E4,
-        "end_freq": 20E4,
+        "end_freq": 2.0E4,
         "increment": 10.0,
         "dwell": 1E-3,
         "offsetVoltage": 0,

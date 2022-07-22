@@ -4,7 +4,8 @@ import pytest
 from picoscope import utils
 
 no_frequencies_reference = 10
-enum_sampling_rate_reference = 9
+sampling_interval_reference = 1E-6
+enum_sampling_interval_reference = 9
 
 with open("tests/config.json") as f:
     params = json.load(f)
@@ -58,11 +59,12 @@ def no_freqs():
     return no_freqs
 
 
-def test_sampling_rate_calculation(no_freqs):
-    enum_sampling_rate = utils.calculate_sampling_rate(
+def test_sampling_interval_calculation(no_freqs):
+    sampling_interval, enum_sampling_interval = utils.calculate_sampling_interval(
         max_samples=params['max_samples'],
         dwell=params['dwell'],
         no_frequencies=no_freqs,
     )
 
-    assert enum_sampling_rate == enum_sampling_rate_reference
+    assert sampling_interval == sampling_interval_reference
+    assert enum_sampling_interval == enum_sampling_interval_reference

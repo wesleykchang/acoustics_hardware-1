@@ -142,21 +142,24 @@ def set_channel_params(enum_voltage_range: int, channel: int):
     assert_pico_ok(status)
 
 
-def get_timebase(enum_sampling_rate: int):
+def get_timebase(sampling_interval: float, enum_sampling_interval: int):
     """Basically sets the sampling rate.
 
     There's a whole section devoted to this subject in the
     programmer's guide.
 
-    enum_sampling_rate (int): Enumerated sampling rate.
-        See utils.calculate_sampling_rate().
+    Args:
+        sampling_interval (float): The sampling interval [s].
+        enum_sampling_rate (int): Enumerated sampling rate.
+            See utils.calculate_sampling_rate().
     """
 
-    time_interval_ns = ctypes.c_int32(0)
+    time_interval_ns = ctypes.c_int32(int(sampling_interval*1E9))
     returnedMaxSamples = ctypes.c_int32()
     n_samples = max_samples
 
-    status = ps.ps4000GetTimebase2(c_handle, enum_sampling_rate, n_samples,
+    status = ps.ps4000GetTimebase2(c_handle, enum_sampling_interval,
+                                   n_samples,
                                    ctypes.byref(time_interval_ns),
                                    OVERSAMPLE,
                                    ctypes.byref(returnedMaxSamples),
@@ -187,8 +190,6 @@ def set_simple_trigger(channel: int,
             Defaults to 1000.
     """
 
-
-
     enable_trigger = 1
 
     status = ps.ps4000SetSimpleTrigger(c_handle, enable_trigger,
@@ -198,7 +199,7 @@ def set_simple_trigger(channel: int,
     assert_pico_ok(status)
 
 
-def run_block(enum_sampling_rate: int):
+def run_block(enum_sampling_interval: int):
     """Starts collecting data.
     
     enum_sampling_rate (int): Enumerated sampling rate.
@@ -212,9 +213,10 @@ def run_block(enum_sampling_rate: int):
     p_parameter = 0
 
     status = ps.ps4000RunBlock(c_handle, pre_trigger_samples,
-                               post_trigger_samples, enum_sampling_rate,
-                               OVERSAMPLE, time_indisposed_ms,
-                               SEGMENT_INDEX, lp_ready, p_parameter)
+                               post_trigger_samples,
+                               enum_sampling_interval, OVERSAMPLE,
+                               time_indisposed_ms, SEGMENT_INDEX,
+                               lp_ready, p_parameter)
 
     assert_pico_ok(status)
 

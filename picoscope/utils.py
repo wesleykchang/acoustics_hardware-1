@@ -18,7 +18,8 @@ def parse_voltage_range(numerical_voltage_range: float) -> int:
     with open("picoscope/settings.json") as f:
         settings = json.load(f)
 
-    voltage_range_conversion_table = settings["voltage_range_conversion_table"]
+    voltage_range_conversion_table = settings[
+        "voltage_range_conversion_table"]
 
     for range_, voltage in voltage_range_conversion_table.items():
         if float(voltage) == numerical_voltage_range:
@@ -27,7 +28,8 @@ def parse_voltage_range(numerical_voltage_range: float) -> int:
 
     # Ensure voltage range was matched
     if 'parsed_voltage_range' not in locals():
-        raise ValueError("Passed voltage doesn\'t match conversion voltage!")
+        raise ValueError(
+            "Passed voltage doesn\'t match conversion voltage!")
 
     return int(parsed_voltage_range)
 
@@ -49,7 +51,8 @@ def set_input_channel(params: dict):
     return int(params['channel']) if 'channel' in params else 1
 
 
-def get_no_frequencies(start_freq: float, end_freq: float, increment: float) -> int:
+def get_no_frequencies(start_freq: float, end_freq: float,
+                       increment: float) -> int:
     """Gets the number of frequencies in sweep.
 
     Helper function for set_sampling_rate()
@@ -64,14 +67,17 @@ def get_no_frequencies(start_freq: float, end_freq: float, increment: float) -> 
     """
 
     if start_freq > end_freq:
-        raise(ValueError, "End freq must be equal to or larger than start freq!")
+        raise (ValueError,
+               "End freq must be equal to or larger than start freq!")
 
     return (end_freq - start_freq) / increment
 
-def calculate_sampling_rate(max_samples: int, dwell: float, no_frequencies: int) -> int:
-    """Calculates the appropriate (enumerated) sampling rate.
 
-    Necessary to set GetTimease() appropriately.
+def calculate_sampling_interval(max_samples: int, dwell: float,
+                                no_frequencies: int) -> int:
+    """Calculates the appropriate sampling interval.
+
+    Necessary to set GetTimebase() appropriately.
 
     The actual value that's passed to GetTimebase() is an enumerated value.
     1E-7 (100 ns) is 0, 2E-7 (200 ns) is 1, etc.
@@ -82,13 +88,14 @@ def calculate_sampling_rate(max_samples: int, dwell: float, no_frequencies: int)
         no_frequencies (int): Number of frequencies in sweep.
 
     Returns:
-        int: The **enumerated** sampling rate.
+        float: The sampling interval [s].
+        int: The **enumerated** sampling interval.
     """
-    
+
     baseline = 1E-7  # s
 
     sweep_duration = dwell * no_frequencies  # [s]
-    sampling_rate = sweep_duration / max_samples  # [s]
-    enum_sampling_rate = sampling_rate / baseline - 1
+    sampling_interval = sweep_duration / max_samples  # [s]
+    enum_sampling_interval = sampling_interval / baseline - 1
 
-    return int(enum_sampling_rate)
+    return sampling_interval, int(enum_sampling_interval)
