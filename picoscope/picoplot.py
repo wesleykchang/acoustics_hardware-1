@@ -72,3 +72,5 @@ class Picoplot:
         plt.savefig(
             f'tests/data/test_fig_{now.strftime("%Y-%m-%d %H:%M")}.png'
         )
+
+        return 'figure saved'

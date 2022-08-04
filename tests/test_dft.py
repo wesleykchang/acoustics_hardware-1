@@ -1,20 +1,11 @@
-import json
 import numpy as np
 import pytest
 
-from picoscope import dft, picoscope, sweep
-
-with open("tests/params.json") as f:
-    params = json.load(f)
-
-start_freq = params['start_freq']
-end_freq = params['end_freq']
-increment = params['increment']
-dwell = params['dwell']
+from picoscope import dft
 
 
 @pytest.fixture
-def frequencies():
+def frequencies(params):
     '''Gets the frequencies used in experiment's sweep.
 
     Args:
@@ -25,6 +16,10 @@ def frequencies():
     Returns:
         (np.array): All the frequencies used in frequency sweep
     '''
+
+    start_freq = params['start_freq']
+    end_freq = params['end_freq']
+    increment = params['increment']
     
     no_frequencies = (end_freq - start_freq) / increment + 1
 
@@ -33,21 +28,12 @@ def frequencies():
     return frequencies
 
 
-@pytest.fixture(scope='session')
-def picodata():
-    picoscope.connect()
-    picodata = sweep.sweep(params=params)
-    picoscope.disconnect()
-
-    return picodata
-
-
 @pytest.fixture
-def sample_rate(frequencies, picodata):
+def sample_rate(params, frequencies, picodata):
     sample_rate = dft._get_sample_rate(
         no_points_per_sweep=len(picodata),
         no_frequencies=len(frequencies),
-        dwell=dwell
+        dwell=params['dwell']
     )
 
     return sample_rate
@@ -107,11 +93,11 @@ def test_get_fft_freq_bins(detrended_waves, sample_rate):
     assert isinstance(freq_bins, np.ndarray)
 
 # Integration
-def test_dft(picodata, frequencies):
+def test_dft(params, picodata, frequencies):
     freq_bins, amps = dft.dft(
         waves=picodata,
         frequencies=frequencies,
-        dwell=dwell
+        dwell=params['dwell']
     )
 
     assert isinstance(freq_bins, np.ndarray)

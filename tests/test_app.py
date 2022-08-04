@@ -5,10 +5,6 @@ import pytest
 
 from app import configure_routes
 
-with open("tests/params.json") as f:
-    params = json.load(f)
-
-
 @pytest.fixture
 def client():
     app = flask.Flask(__name__)
@@ -41,7 +37,7 @@ def test_connection(client):
     assert response.get_data() == b'Picoscope connected'
 
 
-def test_sweep(client):
+def test_sweep(client, params):
     response = client.post('/get_resonance', data=params)
 
     data = json.loads(response.get_data())
