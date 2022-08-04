@@ -5,7 +5,7 @@ import pytest
 
 from app import configure_routes
 
-with open("tests/config.json") as f:
+with open("tests/params.json") as f:
     params = json.load(f)
 
 

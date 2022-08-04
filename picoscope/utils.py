@@ -1,4 +1,34 @@
+from enum import Enum, auto
 import json
+import warnings
+
+
+class AutoEnum(Enum):
+    """Zero-based auto enum because I do be specific like that."""
+
+    def _generate_next_value_(name, start, count, last_values):
+        if len(last_values) > 0:
+            return last_values[-1] + 1
+        return 0
+
+
+class TriggerType(AutoEnum):
+    RISING = auto()
+    FALLING = auto()
+    GATE_HIGH = auto()
+    GATE_LOW = auto()
+    TRIG_TYPE = auto()
+
+
+class WaveType(AutoEnum):
+    SINE = auto()
+    SQUARE = auto()
+    TRIANGLE = auto()
+    RAMP_UP = auto()
+    RAMP_DOWN = auto()
+    SINC = auto()
+    GAUSSIAN = auto()
+    HALF_SINE = auto()
 
 
 def parse_voltage_range(numerical_voltage_range: float) -> int:
@@ -55,7 +85,7 @@ def get_no_frequencies(start_freq: float, end_freq: float,
                        increment: float) -> int:
     """Gets the number of frequencies in sweep.
 
-    Helper function for set_sampling_rate()
+    Helper function for calculate_sampling_rate()
 
     Args:
         start_freq (float): Starting frequency [Hz].
@@ -70,7 +100,7 @@ def get_no_frequencies(start_freq: float, end_freq: float,
         raise (ValueError,
                "End freq must be equal to or larger than start freq!")
 
-    return (end_freq - start_freq) / increment
+    return (end_freq - start_freq) / increment + 1
 
 
 def calculate_sampling_interval(max_samples: int, dwell: float,
@@ -88,7 +118,6 @@ def calculate_sampling_interval(max_samples: int, dwell: float,
         no_frequencies (int): Number of frequencies in sweep.
 
     Returns:
-        float: The sampling interval [s].
         int: The **enumerated** sampling interval.
     """
 
@@ -96,6 +125,10 @@ def calculate_sampling_interval(max_samples: int, dwell: float,
 
     sweep_duration = dwell * no_frequencies  # [s]
     sampling_interval = sweep_duration / max_samples  # [s]
+
+    if sampling_interval < baseline:
+        sampling_interval = baseline
+        warnings.warn(f'Sampling interval set smaller than baseline {int(baseline*1E9)} [ns]. Changing to min val')
     enum_sampling_interval = sampling_interval / baseline - 1
 
-    return sampling_interval, int(enum_sampling_interval)
+    return int(enum_sampling_interval)

@@ -75,7 +75,7 @@ def configure_routes(app):
     def disconnect():
         """Mainly for testing purposes. Disconnects the oscilloscope."""
 
-        picoscope.close()
+        picoscope.disconnect()
 
         return 'Picoscope disconnected'
 

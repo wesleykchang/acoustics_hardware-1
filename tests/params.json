@@ -1,0 +1,9 @@
+{
+    "start_freq": 1000.0,
+    "end_freq": 10000.0,
+    "increment": 1000.0,
+    "dwell": 0.001,
+    "channel": 1,
+    "voltage_range": 5,
+    "max_samples": 1E6
+}
