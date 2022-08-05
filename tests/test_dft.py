@@ -33,7 +33,8 @@ def sample_rate(params, frequencies, picodata):
     sample_rate = dft._get_sample_rate(
         no_points_per_sweep=len(picodata),
         no_frequencies=len(frequencies),
-        dwell=params['dwell']
+        dwell=params['dwell'],
+        max_frequency=params['end_freq']
     )
 
     return sample_rate
@@ -41,20 +42,6 @@ def sample_rate(params, frequencies, picodata):
 
 def test_sample_rate(sample_rate):
     assert isinstance(sample_rate, float)
-
-
-def test_is_sample_rate_adequate(sample_rate, frequencies):
-    dft._is_sample_rate_adequate(
-        sample_rate=sample_rate,
-        max_frequency=max(frequencies)
-    )
-
-
-def test_inadequate_sample_rate(sample_rate):
-    dft._is_sample_rate_adequate(
-        sample_rate=sample_rate,
-        max_frequency=1E6
-    )
 
 @pytest.fixture
 def zero_padded_waves(picodata):

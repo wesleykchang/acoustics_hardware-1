@@ -12,6 +12,8 @@ Branch `dev` is actively maintained. At the time of writing it only has an imple
 ./
 ├── app.py
 ├── picoscope
+│   ├── dft.py
+│   ├── picoplot.py
 │   ├── picoscope.py
 │   ├── settings.json
 │   ├── sweep.py
@@ -19,9 +21,11 @@ Branch `dev` is actively maintained. At the time of writing it only has an imple
 ├── README.md
 ├── requirements.txt
 ├── tests
-    ├── config.json
+    ├── conftest.py
     ├── __init__.py
-    ├── test_app.py
+    ├── params.json
+    ├── test_dft.py
+    ├── test_picoplot.py
     ├── test_picoscope.py
     ├── test_sweep.py
     └── test_utils.py

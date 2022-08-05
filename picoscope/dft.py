@@ -1,4 +1,6 @@
-
+"""Discrete Fourier Transform. dft() is a wrapper and thus the only function
+to be called externally.
+"""
 
 import numpy as np
 from scipy import signal
@@ -56,9 +58,7 @@ def _get_fft_amps(waves: np.array) -> np.array:
     return normalized_amps
 
 def _get_fft_freq_bins(waves: np.array, sample_rate: float) -> np.array:
-    """_summary_
-
-    _extended_summary_
+    """Calculates dft frequency bins.
 
     Args:
         waves (np.array): 2D wave array of waveforms,
@@ -77,7 +77,7 @@ def _get_fft_freq_bins(waves: np.array, sample_rate: float) -> np.array:
 
 
 def _get_sample_rate(no_points_per_sweep: int, no_frequencies: int,
-                     dwell: float) -> float:
+                     dwell: float, max_frequency) -> float:
     """Calculates sampling rate in ResoStat frequency sweep.
 
     Args:
@@ -87,28 +87,20 @@ def _get_sample_rate(no_points_per_sweep: int, no_frequencies: int,
             in experiment
         dwell (float): The time spent on each frequency during each sweep
 
+    Raises:
+        AssertionError: If sample rate is less than twice the maximum
+            frequency.
+
     Returns:
         (float): The sampling rate [s].
     """
-    return no_points_per_sweep / no_frequencies / dwell
 
+    sample_rate = no_points_per_sweep / no_frequencies / dwell
 
-def _is_sample_rate_adequate(sample_rate: float,
-                             max_frequency: int) -> None:
-    """Sanity check for FFT quality.
-    
-    Sample_rate must be at least twice the highest signal frequency (Nyquist).
+    if sample_rate < 2 * max_frequency:
+        raise AssertionError('Sample rate is too low')
 
-    Args:
-        sample_rate (float): The calculated sample rate,
-            see _get_sample_rate()
-        max_frequency (int): The highest frequency used in frequency sweep
-    """
-
-    try:
-        assert sample_rate >= 2 * max_frequency
-    except AssertionError:
-        print("\nSample rate doesn\'t fulfill requirements.\n")
+    return sample_rate
 
 
 def _normalize_amps(amps: np.array) -> np.array:
@@ -146,24 +138,6 @@ def _zero_pad(sweep: np.array, pad_x: int = 2) -> np.array:
     return padded_sweep
 
 
-def remove_outliers_np(array: np.array,
-                       z_max: float = 3.0) -> np.array:
-    """Removes outliers by filtering the z-score (i.e. no of stdevs from mean).
-    
-    Args:
-        array (np.array): Only tested on 1D arrays. If doesn't work on 2D
-            then it only needs slight tweaks.
-        z_max (float): Optional. Max z-score (st devs) to include when
-            when removing outliers. Defaults to 3.0
-    Returns:
-        (np.array)
-    """
-
-    z_score = stats.zscore(array)
-
-    return array[(np.abs(z_score) < z_max)]
-
-
 def dft(waves: np.array, frequencies: list, dwell: float, pad_x: int = 2) -> list([np.array, np.array]):
     """Wrapper for the Discrete Fourier Transform.
 
@@ -184,17 +158,11 @@ def dft(waves: np.array, frequencies: list, dwell: float, pad_x: int = 2) -> lis
     sample_rate = _get_sample_rate(
         no_points_per_sweep=len(waves),
         no_frequencies=len(frequencies),
-        dwell=dwell)
-    _is_sample_rate_adequate(
-        sample_rate=sample_rate,
-        max_frequency=max(frequencies)
-    )
+        dwell=dwell,
+        max_frequency=frequencies[-1])
 
     padded_waves = _zero_pad(sweep=waves, pad_x=pad_x)
-    padded_waves = padded_waves[~np.isnan(padded_waves)]
-    detrended_waves = _detrend(waves=padded_waves)  # remove
-    # detrended_waves_wo_outliers = remove_outliers_np(
-        # detrended_waves)
+    detrended_waves = _detrend(waves=padded_waves)
 
     amps = _get_fft_amps(
         waves=detrended_waves

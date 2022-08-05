@@ -13,6 +13,13 @@ class Picoplot:
 
 
     def freq_step(self, frequencies: np.array, dwell: float):
+        """Frequency step plot.
+
+        Args:
+            frequencies (np.array): List of frequencies used in sweep.
+            dwell (float): Duration of each frequency in sweep.
+        """
+
         no_freqs = len(frequencies)
         freqs = np.insert(frequencies, 0, 0)
         t_freqs = np.linspace(0, no_freqs * dwell, no_freqs + 1)
@@ -26,7 +33,12 @@ class Picoplot:
         self.ax2.set_title(now.strftime("%Y-%m-%d %H:%M"))
 
 
-    def plot_dft(self, freq_bins, amps):
+    def plot_dft(self, freq_bins: np.array, amps: np.array):
+        """A lineplot of discrete fourier transform.
+        
+        freq_bins (np.array): Frequency bins.
+        amps (np.array): Frequency bin amplitudes.
+        """
 
         self.axs[1].plot(freq_bins/1000, amps, c='k')
         self.axs[1].set_xlabel('Frequency [kHz]')
@@ -38,7 +50,7 @@ class Picoplot:
         """Plots params value on fig.
         
         Args:
-            params (float): Experiment params
+            params (float): Picoscope params.
         """
 
         y_pos = 0.6
@@ -53,7 +65,12 @@ class Picoplot:
 
 
     def plot_waveform(self, wave: list, duration: float):
-        # Waveform
+        """Plots raw waveform.
+
+        Args:
+            wave (list): Yeaaaaaaa.
+            duration (float): Sweep duration.
+        """
         sweep_linspace = np.linspace(0, duration, len(wave))
         self.axs[0].plot(sweep_linspace,
                       wave,
