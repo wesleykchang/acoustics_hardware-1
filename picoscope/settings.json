@@ -7,7 +7,7 @@
         "offset_voltage": 0,
         "pk_to_pk": 2E6,
         "wave_type": "SINE",
-        "sweep_type": "UP",
+        "sweep_type": "DOWN",
         "shots": 0,
         "sweeps": 1,
         "trigger_type": "FALLING",

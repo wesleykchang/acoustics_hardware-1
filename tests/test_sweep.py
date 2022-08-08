@@ -30,4 +30,3 @@ def test_successful_sweep(params, connection):
     picodata = sweep.sweep(params=params)
 
     assert isinstance(picodata, list)
-

@@ -5,6 +5,7 @@ from picoscope import utils
 
 no_frequencies_reference = 10
 enum_sampling_interval_reference = 0
+no_samples_reference = 1E5
 
 
 def test_parse_voltage_range():
@@ -51,10 +52,20 @@ def test_get_no_frequencies(no_freqs):
 
 
 def test_sampling_interval_calculation(params, no_freqs):
-    enum_sampling_interval = utils.calculate_sampling_interval(
-        max_samples=params['max_samples'],
+    enum_sampling_interval, _ = utils.set_sampling_params(
+        no_samples=params['max_samples'],
         dwell=params['dwell'],
         no_frequencies=no_freqs,
     )
 
     assert enum_sampling_interval == enum_sampling_interval_reference
+
+
+def test_no_samples_adjusted(params, no_freqs):
+    _, no_samples = utils.set_sampling_params(
+        no_samples=params['max_samples'],
+        dwell=params['dwell'],
+        no_frequencies=no_freqs,
+    )
+
+    assert no_samples == int(no_samples_reference)

@@ -25,7 +25,16 @@ def sweep(params: dict):
 
     channel = utils.set_input_channel(params=params)
 
-    picoscope.set_globals(samples_max=params['max_samples'])
+    no_frequencies = utils.get_no_frequencies(
+        start_freq=params['start_freq'],
+        end_freq=params['end_freq'],
+        increment=params['increment'])
+    enum_sampling_interval, no_samples = utils.set_sampling_params(
+        no_samples=params['max_samples'],
+        dwell=params['dwell'],
+        no_frequencies=no_frequencies)
+
+    picoscope.set_globals(no_samples_=no_samples)
 
     # 1. Open the oscilloscope
 
@@ -40,18 +49,6 @@ def sweep(params: dict):
         enum_voltage_range=enum_voltage_range, channel=channel)
 
     # 3. Select timebases
-    
-    no_frequencies = utils.get_no_frequencies(
-        start_freq=params['start_freq'],
-        end_freq=params['end_freq'],
-        increment=params['increment']
-    )
-    enum_sampling_interval = utils.calculate_sampling_interval(
-        max_samples=params['max_samples'],
-        dwell=params['dwell'],
-        no_frequencies=no_frequencies
-    )
-
     picoscope.get_timebase(
         enum_sampling_interval=enum_sampling_interval)
 

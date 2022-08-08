@@ -18,6 +18,7 @@ class SweepType(AutoEnum):
     UPDOWN = auto()
     DOWNUP = auto()
 
+
 class ThresholdDirection(AutoEnum):
     ABOVE = auto()
     BELOW = auto()
@@ -125,9 +126,11 @@ def get_no_frequencies(start_freq: float, end_freq: float,
     return (end_freq - start_freq) / increment + 1
 
 
-def calculate_sampling_interval(max_samples: int, dwell: float,
-                                no_frequencies: int) -> int:
-    """Calculates the appropriate sampling interval.
+def set_sampling_params(no_samples: int,
+                        dwell: float,
+                        no_frequencies: int,
+                        baseline: float = 1E-7) -> int:
+    """Calculates the appropriate sampling interval and number of samples collected.
 
     Necessary to set GetTimebase() appropriately.
 
@@ -135,22 +138,31 @@ def calculate_sampling_interval(max_samples: int, dwell: float,
     1E-7 (100 ns) is 0, 2E-7 (200 ns) is 1, etc.
 
     Args:
-        max_samples (int): Maximum number of samples to be collected.
+        no_samples (int): _Desired_ number of samples to be collected.
         dwell (float): The time [s] between frequency changes.
         no_frequencies (int): Number of frequencies in sweep.
+        baseline (float, optional). Fastest rated sample rate of oscilloscope.
+            Generally not to be tinkered with. Defaults to 1E-7 (i.e. 100 ns).
 
     Returns:
         int: The **enumerated** sampling interval.
+        int: _Adjusted_ number of samples to be collected.
     """
 
-    baseline = 1E-7  # s
-
     sweep_duration = dwell * no_frequencies  # [s]
-    sampling_interval = sweep_duration / max_samples  # [s]
+    sampling_interval = sweep_duration / no_samples  # [s]
 
     if sampling_interval < baseline:
         sampling_interval = baseline
-        warnings.warn(f'Sampling interval set smaller than baseline {int(baseline*1E9)} [ns]. Changing to min val')
+        adjusted_no_samples = sweep_duration / sampling_interval
+        warnings.warn(
+            f'Sampling interval set smaller than baseline {int(baseline*1E9)} [ns]. ' \
+            f'Changing to baseline and adjusting number of samples from {int(no_samples)} ' \
+            f'to {int(adjusted_no_samples)}'
+        )
+    else:
+        adjusted_no_samples = no_samples
+
     enum_sampling_interval = sampling_interval / baseline - 1
 
-    return int(enum_sampling_interval)
+    return int(enum_sampling_interval), int(adjusted_no_samples)

@@ -8,7 +8,7 @@ class Picoplot:
 
     def __init__(self):
         plt.clf()
-        self.fig, self.axs = plt.subplots(2)
+        self.fig, self.axs = plt.subplots(2, figsize=(8, 6))
         self.ax2 = self.axs[0].twinx()
 
 
@@ -23,7 +23,7 @@ class Picoplot:
         no_freqs = len(frequencies)
         freqs = np.insert(frequencies, 0, 0)
         t_freqs = np.linspace(0, no_freqs * dwell, no_freqs + 1)
-        
+
         self.ax2.step(t_freqs, freqs/1000, where='pre', zorder=1, c='k')
         self.ax2.set_zorder(self.ax2.get_zorder() + 1)
         self.ax2.patch.set_visible(False)
@@ -87,6 +87,7 @@ class Picoplot:
 
 
     def save(self):
+        self.fig.tight_layout()
         now = datetime.now()
 
         plt.savefig(

@@ -15,7 +15,7 @@ c_handle = ctypes.c_int16()
 c_overflow = ctypes.c_int16()
 
 
-def set_globals(samples_max: int):
+def set_globals(no_samples_: int):
     """Sets global variables
 
     I hate using globals, but I can't figure out a different
@@ -23,14 +23,14 @@ def set_globals(samples_max: int):
     and c_max_samples.
 
     Args:
-        samples_max (int): Maximum number of samples to be collected.
+        no_samples (int): Maximum number of samples to be collected.
     """
 
-    global max_samples, c_buffer, c_max_samples
+    global no_samples, c_buffer, c_max_samples
 
-    max_samples = int(samples_max)
-    c_buffer = (ctypes.c_int16 * max_samples)()
-    c_max_samples = ctypes.c_int32(max_samples)
+    no_samples = int(no_samples_)
+    c_buffer = (ctypes.c_int16 * no_samples)()
+    c_max_samples = ctypes.c_int32(no_samples)
 
 
 def connect():
@@ -178,8 +178,8 @@ def get_timebase(enum_sampling_interval: int):
     """
 
     time_interval_ns = ctypes.c_int32()
-    c_max_samples = ctypes.c_int32(max_samples)
-    n_samples = max_samples
+    c_max_samples = ctypes.c_int32(no_samples)
+    n_samples = no_samples
 
     status = ps.ps4000GetTimebase(c_handle, enum_sampling_interval,
                                   n_samples,
@@ -234,7 +234,7 @@ def run_block(enum_sampling_interval: int):
     """
 
     pre_trigger_samples = 0
-    post_trigger_samples = max_samples
+    post_trigger_samples = no_samples
     time_indisposed_ms = 0
     lp_ready = 0
     p_parameter = 0
@@ -284,7 +284,7 @@ def set_data_buffer(channel: int):
         channel (int): Picoscope channel, either 0 (A) or 1 (B).
     """
 
-    buffer_length = max_samples
+    buffer_length = no_samples
 
     # Note that we use the pseudo-pointer byref
     status = ps.ps4000SetDataBuffer(c_handle, channel,
@@ -340,6 +340,6 @@ def to_mV(enum_voltage_range: int):
         list: Amplitudes in mV.
     """
 
-    c_max_ADC = ctypes.c_int16(max_samples)
+    c_max_ADC = ctypes.c_int16(no_samples)
 
     return adc2mV(c_buffer, enum_voltage_range, c_max_ADC)
