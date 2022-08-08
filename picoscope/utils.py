@@ -12,6 +12,28 @@ class AutoEnum(Enum):
         return 0
 
 
+class SweepType(AutoEnum):
+    UP = auto()
+    DOWN = auto()
+    UPDOWN = auto()
+    DOWNUP = auto()
+
+class ThresholdDirection(AutoEnum):
+    ABOVE = auto()
+    BELOW = auto()
+    RISING = auto()
+    FALLING = auto()
+    RISING_OR_FALLING = auto()
+
+
+class TriggerSource(AutoEnum):
+    SIGGEN_NONE = auto()
+    SIGGEN_SCOPE_TRIG = auto()
+    SIGGEN_AUX_IN = auto()
+    SIGGEN_EXT_IN = auto()
+    SIGGEN_SOFT_TRIG = auto()
+
+
 class TriggerType(AutoEnum):
     RISING = auto()
     FALLING = auto()

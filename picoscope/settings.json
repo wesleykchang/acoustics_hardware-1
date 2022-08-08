@@ -7,11 +7,11 @@
         "offset_voltage": 0,
         "pk_to_pk": 2E6,
         "wave_type": "SINE",
-        "sweep_type": "PICO_UP",
+        "sweep_type": "UP",
         "shots": 0,
         "sweeps": 1,
-        "trigger_type": "RISING",
-        "trigger_source": "PICO_SIGGEN_SOFT_TRIG",
+        "trigger_type": "FALLING",
+        "trigger_source": "SIGGEN_SOFT_TRIG",
         "samples_max": 1E6
     },
     "voltage_range_conversion_table": {

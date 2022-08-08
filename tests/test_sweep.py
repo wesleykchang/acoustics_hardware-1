@@ -17,6 +17,8 @@ def connection():
     yield picoscope.connect()
 
     # Teardown
+    picoscope.disconnect()
+
     with open('tests/data/waveform.pkl', 'wb') as f:
         pickle.dump(picodata, f)
 
@@ -28,3 +30,4 @@ def test_successful_sweep(params, connection):
     picodata = sweep.sweep(params=params)
 
     assert isinstance(picodata, list)
+

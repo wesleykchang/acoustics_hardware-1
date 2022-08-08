@@ -33,7 +33,7 @@ class Picoplot:
         self.ax2.set_title(now.strftime("%Y-%m-%d %H:%M"))
 
 
-    def plot_dft(self, freq_bins: np.array, amps: np.array):
+    def plot_dft(self, freq_bins: np.array, amps: np.array, right_lim: int = 200, top_lim: int = None):
         """A lineplot of discrete fourier transform.
         
         freq_bins (np.array): Frequency bins.
@@ -43,7 +43,10 @@ class Picoplot:
         self.axs[1].plot(freq_bins/1000, amps, c='k')
         self.axs[1].set_xlabel('Frequency [kHz]')
         self.axs[1].set_ylabel('Amplitude [a.u.]')
-        self.axs[1].set_xlim(left=0, right=200)
+        self.axs[1].set_xlim(left=0, right=right_lim)
+
+        if top_lim is not None:
+            self.axs[1].set_ylim(bottom=0, top=top_lim)
 
 
     def plot_params(self, params: dict):

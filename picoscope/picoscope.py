@@ -3,13 +3,12 @@
 import ctypes
 import json
 from picosdk.errors import PicoSDKCtypesError
-from picosdk.PicoDeviceEnums import picoEnum as enums
 from picosdk.functions import adc2mV, assert_pico_ok
 from picosdk.ps4000 import ps4000 as ps
 
 from picoscope import utils
 
-C_OVERSAMPLE = ctypes.c_int16(1)
+C_OVERSAMPLE = ctypes.c_int16(1)  # Oversampling factor
 SEGMENT_INDEX = 0  # specifies which memory segment to use
 
 c_handle = ctypes.c_int16()
@@ -69,9 +68,9 @@ def define_procedure(ext_in_threshold: int = 0,
             Defaults to 0.
         pk_to_pk (int): Peak-to-peak voltage [uV].
             Defaults to 2E6.
-        wave_type (int): The type of waveform to be generated.
+        wave_type (str): The type of waveform to be generated.
             Refer to programmer's guide for all available types.
-            Defaults to 0 (Sine).
+            Defaults to 'Sine'.
         start_freq (float): Starting frequency.
             Defaults to 1.0E6.
         end_freq (float): Stopping (or reversing) frequency (included).
@@ -82,17 +81,17 @@ def define_procedure(ext_in_threshold: int = 0,
             Defaults to 1E-3.
         dwell_time (str): Determines sweeping type.
             Refer to programmer's guide for all available types.
-            Defaults to PICO_UP.
+            Defaults to 'UP'.
         shots (int): The number of cycles of the waveform to be produced
             after a trigger event. Defaults to 1.
         sweeps (int): Number of sweep repetitions.
             Defaults to 0.
-        trigger_type (int): The type of trigger to be applied to signal
+        trigger_type (str): The type of trigger to be applied to signal
             generator. Refer to programmer's guide for all available types.
-            Defaults to 1 (SIGGEN_FALLING).
+            Defaults to 'FALLING'.
         trigger_source (str): The source that triggers the signal generator.
             Refer to programmer's guide for all available types.
-            Defaults to SIGGEN_SCOPE_TRIG.
+            Defaults to 'SIGGEN_SOFT_TRIG'.
 
     NOTE:
         If a trigger source other than 0 (SIGGEN_NONE) is specified,
@@ -100,7 +99,7 @@ def define_procedure(ext_in_threshold: int = 0,
         non-zero value.
 
     Raises:
-        ValueError: If end_freq>2E4 [Hz].
+        ValueError: If end_freq > 2E4 [Hz].
 
     Example:
         picoscope.define_procedure(**params) <- Note the kwargs (double-star).
@@ -117,36 +116,49 @@ def define_procedure(ext_in_threshold: int = 0,
     if sig_params['end_freq'] > 2E4:
         raise ValueError(f'end_freq cannot be larger than 2E4')
 
-    # Enum to change str to ints
-    sweep_type = enums.PICO_SWEEP_TYPE[sig_params['sweep_type']]
-    trigger_source = enums.PICO_SIGGEN_TRIG_SOURCE[
-        sig_params['trigger_source']]
-    # Ugh, the library doesn't have this for wavetype and triggertype?
+    # Why not use built-in enum in pico-sdk library?
+    # Well, first of all it doesn't for wavetype and triggertype,
+    # and secondly it requires the ps6000a driver, which increases
+    # unnecessary overhead.
     wave_type = utils.WaveType[sig_params['wave_type']].value
+    sweep_type = utils.SweepType[sig_params['sweep_type']].value
     trigger_type = utils.TriggerType[sig_params['trigger_type']].value
+    trigger_source = utils.TriggerSource[
+        sig_params['trigger_source']].value
 
     status = ps.ps4000SetSigGenBuiltIn(
-        c_handle, sig_params['offset_voltage'],
-        int(sig_params['pk_to_pk']), wave_type,
-        sig_params['start_freq'], sig_params['end_freq'],
-        sig_params['increment'], sig_params['dwell'], sweep_type,
-        operation_type, sig_params['shots'], sig_params['sweeps'],
-        trigger_type, trigger_source, ext_in_threshold)
+        c_handle,
+        sig_params['offset_voltage'],
+        int(sig_params['pk_to_pk']),
+        wave_type,
+        sig_params['start_freq'],
+        sig_params['end_freq'],
+        sig_params['increment'],
+        sig_params['dwell'],
+        sweep_type,
+        operation_type,
+        sig_params['shots'],
+        sig_params['sweeps'],
+        trigger_type,
+        trigger_source,
+        ext_in_threshold
+    )
 
     assert_pico_ok(status)
 
 
-def set_channel_params(enum_voltage_range: int, channel: int):
+def set_channel_params(enum_voltage_range: int, channel: int, is_channel: bool = True, is_dc: bool = True):
     """Sets various channel parameters.
 
     Args:
         enum_voltage_range (int): Enum specifying measuring voltage range.
             Refer to programmer's manual for further info.
         channel (int): Picoscope channel, either 0 (A) or 1 (B).
+        is_channel (bool, optional): Whether to enable channel or not.
+            Not to be tinkered with. Defaults to True.
+        is_dc (bool, optional): Specifies AC/DC coupling mode.
+            Not to be tinkered with. Defaults to True.
     """
-
-    is_channel = True
-    is_dc = True
 
     status = ps.ps4000SetChannel(c_handle, channel, is_channel, is_dc,
                                  enum_voltage_range)
@@ -176,13 +188,12 @@ def get_timebase(enum_sampling_interval: int):
                                   ctypes.byref(c_max_samples),
                                   SEGMENT_INDEX)
 
-    print(time_interval_ns)
     assert_pico_ok(status)
 
 
 def set_simple_trigger(channel: int,
                        threshold: int = 300,
-                       direction: int = "PICO_RISING_OR_FALLING",
+                       direction: int = "FALLING",
                        delay: int = 0,
                        autoTrigger_ms: int = 1000,
                        enable_trigger: int = 1):
@@ -194,7 +205,7 @@ def set_simple_trigger(channel: int,
             trigger will fire. Defaults to 300.
         direction (str, optional): The direction in which the
             signal must move to cause a trigger.
-            Defaults to PICO_RISING_OR_FALLING.
+            Defaults to FALLING.
         delay (int, optional): The time, in sample periods,
             between the trigger occuring and the first sample
             being taken. Defaults to 0.
@@ -205,7 +216,7 @@ def set_simple_trigger(channel: int,
             or not. Not used so don't mess with. Defaults to 1.
     """
 
-    threshold_direction = enums.PICO_THRESHOLD_DIRECTION[direction]
+    threshold_direction = utils.ThresholdDirection[direction].value
 
     status = ps.ps4000SetSimpleTrigger(c_handle, enable_trigger,
                                        channel, threshold,
@@ -224,9 +235,9 @@ def run_block(enum_sampling_interval: int):
 
     pre_trigger_samples = 0
     post_trigger_samples = max_samples
-    time_indisposed_ms = None
-    lp_ready = None
-    p_parameter = None
+    time_indisposed_ms = 0
+    lp_ready = 0
+    p_parameter = 0
 
     status = ps.ps4000RunBlock(c_handle, pre_trigger_samples,
                                post_trigger_samples,
@@ -243,9 +254,7 @@ def pull_trigger():
     Triggers the wave generator.
     """
 
-    state = 1
-
-    status = ps.ps4000SigGenSoftwareControl(c_handle, state)
+    status = ps.ps4000SigGenSoftwareControl(c_handle, 0)
 
     assert_pico_ok(status)
 
