@@ -259,11 +259,6 @@ def pull_trigger():
     assert_pico_ok(status)
 
 
-def block_ready(c_handle, status_, p_parameter):
-
-    ps.ps4000BlockReady(c_handle, status_, p_parameter)
-
-
 def wait_ready():
     """Waits for data collection to finish before data is collected."""
 
@@ -315,6 +310,12 @@ def stop():
     """
 
     status = ps.ps4000Stop(c_handle)
+
+    assert_pico_ok(status)
+
+    # Kills the signal generator
+    status = ps.ps4000SetSigGenBuiltIn(c_handle, 0, 0, 0, 0, 0, 0, 0,
+                                       0, 0, 0, 0, 1, 0, 0)
 
     assert_pico_ok(status)
 
