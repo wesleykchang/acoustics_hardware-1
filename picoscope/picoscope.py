@@ -192,7 +192,7 @@ def get_timebase(enum_sampling_interval: int):
 
 
 def set_simple_trigger(channel: int,
-                       threshold: int = 300,
+                       threshold: int = 5,
                        direction: int = "FALLING",
                        delay: int = 0,
                        autoTrigger_ms: int = 1000,
