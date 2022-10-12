@@ -1,83 +1,65 @@
-from enum import Enum, auto
 import json
 import warnings
+from typing import NamedTuple
 
 
-class AutoEnum(Enum):
-    """Zero-based auto enum because I do be specific like that."""
-
-    def _generate_next_value_(name, start, count, last_values):
-        if len(last_values) > 0:
-            return last_values[-1] + 1
-        return 0
+# This would probably be more concise as an enum
+with open("picoscope/settings.json") as f:
+    settings = json.load(f)
 
 
-class SweepType(AutoEnum):
-    UP = auto()
-    DOWN = auto()
-    UPDOWN = auto()
-    DOWNUP = auto()
+class RawParams(NamedTuple):
+    """Incoming params format."""
+    keys: str
+    vals: str
 
 
-class ThresholdDirection(AutoEnum):
-    ABOVE = auto()
-    BELOW = auto()
-    RISING = auto()
-    FALLING = auto()
-    RISING_OR_FALLING = auto()
+class ParsedParams(NamedTuple):
+    """Params ready to be passed to oscilloscope."""
+    keys: str
+    vals: float
 
 
-class TriggerSource(AutoEnum):
-    SIGGEN_NONE = auto()
-    SIGGEN_SCOPE_TRIG = auto()
-    SIGGEN_AUX_IN = auto()
-    SIGGEN_EXT_IN = auto()
-    SIGGEN_SOFT_TRIG = auto()
+def parse_incoming_params(raw_params: RawParams) -> ParsedParams:
+    """Parses incoming JSON to an appropriate format.
+    
+    The raw incoming JSON has str-str key-value pairs.
+    This is the case even if the actual value is a float. We ameliorate
+    that here.
 
+    Args:
+        raw_params (RawParams): Raw incoming params,
+            e.g. {'start_freq': '10.0'}.
 
-class TriggerType(AutoEnum):
-    RISING = auto()
-    FALLING = auto()
-    GATE_HIGH = auto()
-    GATE_LOW = auto()
-    TRIG_TYPE = auto()
-
-
-class WaveType(AutoEnum):
-    SINE = auto()
-    SQUARE = auto()
-    TRIANGLE = auto()
-    RAMP_UP = auto()
-    RAMP_DOWN = auto()
-    SINC = auto()
-    GAUSSIAN = auto()
-    HALF_SINE = auto()
+    Returns:
+        ParsedParams: Values ready to be passed to picoscope,
+            e.g. {'start_freq': 10.0}
+    """
+    return dict([key, float(val)] for key, val in raw_params.items())
 
 
 def parse_voltage_range(numerical_voltage_range: float) -> int:
-    """Parses voltage range from volts to a categorical number value.
+    """Parses voltage range from volts to an enumerated number value.
 
     Args:
-        numerical_voltage_range (float): 
+        numerical_voltage_range (float): A human-readable voltage [V].
 
     Returns:
-        (int)
+        (int): Enumerated voltage. Refer to manual or constants.py
 
     Raises:
         ValueError: 
     """
 
-    # This would probably be more concise as an enum
-    with open("picoscope/settings.json") as f:
-        settings = json.load(f)
-
     voltage_range_conversion_table = settings[
         "voltage_range_conversion_table"]
 
     for range_, voltage in voltage_range_conversion_table.items():
-        if float(voltage) == numerical_voltage_range:
-            parsed_voltage_range = range_
-            break
+        if float(voltage) != numerical_voltage_range:
+            continue
+
+        parsed_voltage_range = range_
+        break
 
     # Ensure voltage range was matched
     if 'parsed_voltage_range' not in locals():
@@ -152,6 +134,8 @@ def set_sampling_params(no_samples: int,
     sweep_duration = dwell * no_frequencies  # [s]
     sampling_interval = sweep_duration / no_samples  # [s]
 
+    adjusted_no_samples = no_samples
+
     if sampling_interval < baseline:
         sampling_interval = baseline
         adjusted_no_samples = sweep_duration / sampling_interval
@@ -160,8 +144,6 @@ def set_sampling_params(no_samples: int,
             f'Changing to baseline and adjusting number of samples from {int(no_samples)} ' \
             f'to {int(adjusted_no_samples)}'
         )
-    else:
-        adjusted_no_samples = no_samples
 
     enum_sampling_interval = sampling_interval / baseline - 1
 

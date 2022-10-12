@@ -4,7 +4,6 @@ to be called externally.
 
 import numpy as np
 from scipy import signal
-from scipy import stats
 
 
 def _detrend(waves: np.array) -> np.array:

@@ -6,6 +6,8 @@ import logging
 import os
 import werkzeug
 
+from picoscope.utils import parse_incoming_params
+
 log_filename = "logs/logs.log"
 os.makedirs(os.path.dirname(log_filename), exist_ok=True)
 logging.basicConfig(filename=log_filename,
@@ -18,18 +20,18 @@ app = flask.Flask(__name__)
 
 
 def configure_routes(app):
-    from picoscope import picoscope, sweep
+    from picoscope import pulse, sweep
+    from picoscope.picoscope import Picoscope2000, Picoscope4000
 
     @app.route('/')
     def hello_world():
         """
-
         Returns:
             Str: Status message
         """
         return "Flask picoscope server running"
 
-    @app.route('/connect')
+    @app.route('/connect', methods=['POST'])
     def connect():
         """Connect to picoscope
     
@@ -41,33 +43,44 @@ def configure_routes(app):
             str: Status message
         """
 
-        picoscope.connect()
+        global picoscope_
+
+        raw_params = flask.request.values.to_dict()
+
+        picoscope_ = Picoscope2000() if raw_params['type_']=='2000' else Picoscope4000()
+
+        picoscope_.connect()
 
         return "Picoscope connected"
 
-    @app.route('/pulse')
+    @app.route('/get_wave', methods=['POST'])
     def pulse():
+        """Pulsing. Performs a pulse and returns the resulting data.
+        
+        Returns:
+            dict: Pulsing data.
+        """
 
-        return "Pulsing hasn't been implemented"
+        raw_params = flask.request.values.to_dict()
+        params = parse_incoming_params(raw_params=raw_params)
+
+        data = pulse.pulse(picoscope_=picoscope_, params=params)
+
+        return json.dumps(data)
 
     # Runs resonance
     @app.route('/get_resonance', methods=['POST'])
     def get_resonance():
-        """This is where the magic happens.
-
-        Receives params from pithy, passes them onto the oscilloscope,
-        sweeps, and finally returns the data
+        """Resonance. Performs a frequency sweep and returns the resulting data.
 
         Returns:
-            dict: waveform data
+            dict: Resonance data.
         """
 
-        params_dict_w_strs = flask.request.values.to_dict()
-        # Raw dict has this form {'value should be a float': '5.0'}
-        params = dict([key, float(val)]
-                      for key, val in params_dict_w_strs.items())
+        raw_params = flask.request.values.to_dict()
+        params = parse_incoming_params(raw_params=raw_params)
 
-        data = sweep.sweep(params=params)
+        data = sweep.sweep(picoscope_=picoscope_, params=params)
 
         return json.dumps(data)
 
@@ -75,7 +88,7 @@ def configure_routes(app):
     def disconnect():
         """Mainly for testing purposes. Disconnects the oscilloscope."""
 
-        picoscope.disconnect()
+        picoscope_.disconnect()
 
         return 'Picoscope disconnected'
 
