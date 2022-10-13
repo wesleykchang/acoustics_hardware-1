@@ -43,7 +43,7 @@ class Picoscope:
     an instrument-class-specific subclass.
     """
 
-    def __init__(self, functions: dict(Callable)):
+    def __init__(self, functions: dict):
         self._counter.counter = 0
         self.functions = functions
 
