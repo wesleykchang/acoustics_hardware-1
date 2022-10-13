@@ -12,26 +12,17 @@ from picosdk.ps2000 import ps2000
 from picoscope.constants import (SweepType, ThresholdDirection, TriggerType,
                                  TriggerSource, WaveType)
 
-
 C_OVERSAMPLE = ctypes.c_int16(1)  # Oversampling factor
 SEGMENT_INDEX = 0  # specifies memory segment
 c_handle = ctypes.c_int16()
 c_overflow = ctypes.c_int16()
 
 FN = [
-    'OpenUnit',
-    'SetSigGenBuiltIn',
-    'SetChannel',
-    'GetTimebase',
-    'SetSimpleTrigger',
-    'RunBlock',
-    'SigGenSoftwareControl',
-    'IsReady',
-    'SetDataBuffer',
-    'GetValues',
-    'Stop',
-    'CloseUnit'
+    'OpenUnit', 'SetSigGenBuiltIn', 'SetChannel', 'GetTimebase',
+    'SetSimpleTrigger', 'RunBlock', 'SigGenSoftwareControl', 'IsReady',
+    'SetDataBuffer', 'GetValues', 'Stop', 'CloseUnit'
 ]
+
 
 class Picoscope:
     """Picoscope base class.
@@ -380,7 +371,7 @@ class Picoscope:
         assert_pico_ok(status)
 
     def to_mV(self, enum_voltage_range: int, no_samples: int,
-              c_buffer) -> list(float):
+              c_buffer) -> list:
         """Converts amplitude in ADCs to mV.
 
         Args:
