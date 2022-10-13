@@ -7,15 +7,15 @@ from typing import Callable
 from picosdk.errors import PicoSDKCtypesError
 from picosdk.functions import adc2mV, assert_pico_ok
 from picosdk.ps4000 import ps4000
-from picosdk.ps2000 import ps2000
+from picosdk.ps2000a import ps2000a
 
 from picoscope.constants import (SweepType, ThresholdDirection, TriggerType,
                                  TriggerSource, WaveType)
 
 C_OVERSAMPLE = ctypes.c_int16(1)  # Oversampling factor
 SEGMENT_INDEX = 0  # specifies memory segment
-c_handle = ctypes.c_int16()
-c_overflow = ctypes.c_int16()
+C_HANDLE = ctypes.c_int16()
+C_OVERFLOW = ctypes.c_int16()
 
 FN = [
     'OpenUnit', 'SetSigGenBuiltIn', 'SetChannel', 'GetTimebase',
@@ -34,36 +34,19 @@ class Picoscope:
     an instrument-class-specific subclass.
     """
 
-    def __init__(self, functions: dict):
-        self._counter.counter = 0
-        self.functions = functions
-
-        self.OpenUnit = self._set_function()
-        self.SetSigGenBuiltIn = self._set_function()
-        self.SetChannel = self._set_function()
-        self.GetTimebase = self._set_function()
-        self.SetSimpleTrigger = self._set_function()
-        self.RunBlock = self._set_function()
-        self.SigGenSoftwareControl = self._set_function()
-        self.IsReady = self._set_function()
-        self.SetDataBuffer = self._set_function()
-        self.GetValues = self._set_function()
-        self.Stop = self._set_function()
-        self.CloseUnit = self._set_function()
-
-    def _set_function(self):
-        counter = self._counter.counter()
-        function_repr = FN[counter]
-        function_ = self.functions[function_repr]
-
-        assert function_repr in function_.__repr__()
-
-        return function_
-
-    def _counter(self):
-        self._counter.counter += 1
-
-        return self._counter.counter
+    def __init__(self, fns: dict):
+        self.OpenUnit = fns['OpenUnit']
+        self.SetSigGenBuiltIn = fns['SetSigGenBuiltIn']
+        self.SetChannel = fns['SetChannel']
+        self.GetTimebase = fns['GetTimebase']
+        self.SetSimpleTrigger = fns['SetSimpleTrigger']
+        self.RunBlock = fns['RunBlock']
+        self.SigGenSoftwareControl = fns['SigGenSoftwareControl']
+        self.IsReady = fns['IsReady']
+        self.SetDataBuffer = fns['SetDataBuffer']
+        self.GetValues = fns['GetValues']
+        self.Stop = fns['Stop']
+        self.CloseUnit = fns['CloseUnit']
 
     def make_buffer(self, no_samples: int) -> None:
         """Generates a buffer to which data is dumped.
@@ -89,7 +72,7 @@ class Picoscope:
 
         for _ in range(3):
             try:
-                status = self.OpenUnit(ctypes.byref(c_handle))
+                status = self.OpenUnit(ctypes.byref(C_HANDLE))
                 assert_pico_ok(status)
                 return
             except PicoSDKCtypesError:
@@ -173,7 +156,7 @@ class Picoscope:
         trigger_type = TriggerType[sig_params['trigger_type']].value
         trigger_source = TriggerSource[sig_params['trigger_source']].value
 
-        status = self.SetSigGenBuiltIn(c_handle, sig_params['offset_voltage'],
+        status = self.SetSigGenBuiltIn(C_HANDLE, sig_params['offset_voltage'],
                                        int(sig_params['pk_to_pk']), wave_type,
                                        sig_params['start_freq'],
                                        sig_params['end_freq'],
@@ -202,7 +185,7 @@ class Picoscope:
                 Not to be tinkered with. Defaults to True.
         """
 
-        status = self.SetChannel(c_handle, channel, is_channel, is_dc,
+        status = self.SetChannel(C_HANDLE, channel, is_channel, is_dc,
                                  enum_voltage_range)
 
         assert_pico_ok(status)
@@ -225,7 +208,7 @@ class Picoscope:
         c_max_samples = ctypes.c_int32(no_samples)
         n_samples = no_samples
 
-        status = self.GetTimebase(c_handle, enum_sampling_interval, n_samples,
+        status = self.GetTimebase(C_HANDLE, enum_sampling_interval, n_samples,
                                   ctypes.byref(time_interval_ns), C_OVERSAMPLE,
                                   ctypes.byref(c_max_samples), SEGMENT_INDEX)
 
@@ -259,7 +242,7 @@ class Picoscope:
 
         threshold_direction = ThresholdDirection[direction].value
 
-        status = self.SetSimpleTrigger(c_handle, enable_trigger, channel,
+        status = self.SetSimpleTrigger(C_HANDLE, enable_trigger, channel,
                                        threshold, threshold_direction, delay,
                                        autoTrigger_ms)
 
@@ -280,7 +263,7 @@ class Picoscope:
         lp_ready = 0
         p_parameter = 0
 
-        status = self.RunBlock(c_handle, pre_trigger_samples,
+        status = self.RunBlock(C_HANDLE, pre_trigger_samples,
                                post_trigger_samples, enum_sampling_interval,
                                C_OVERSAMPLE, time_indisposed_ms, SEGMENT_INDEX,
                                lp_ready, p_parameter)
@@ -293,7 +276,7 @@ class Picoscope:
         Triggers the wave generator.
         """
 
-        status = self.SigGenSoftwareControl(c_handle, 0)
+        status = self.SigGenSoftwareControl(C_HANDLE, 0)
 
         assert_pico_ok(status)
 
@@ -304,7 +287,7 @@ class Picoscope:
         check = ctypes.c_int16(0)
 
         while ready.value == check.value:
-            status = self.IsReady(c_handle, ctypes.byref(ready))
+            status = self.IsReady(C_HANDLE, ctypes.byref(ready))
 
             assert_pico_ok(status)
 
@@ -322,7 +305,7 @@ class Picoscope:
         buffer_length = no_samples
 
         # Note that we use the pseudo-pointer byref
-        status = self.SetDataBuffer(c_handle, channel, ctypes.byref(c_buffer),
+        status = self.SetDataBuffer(C_HANDLE, channel, ctypes.byref(c_buffer),
                                     buffer_length)
 
         assert_pico_ok(status)
@@ -339,10 +322,10 @@ class Picoscope:
         downsample_ratio_mode = 0  # None
         c_max_samples = ctypes.c_int32(no_samples)
 
-        status = self.GetValues(c_handle, start_index,
+        status = self.GetValues(C_HANDLE, start_index,
                                 ctypes.byref(c_max_samples), downsample_ratio,
                                 downsample_ratio_mode, SEGMENT_INDEX,
-                                ctypes.byref(c_overflow))
+                                ctypes.byref(C_OVERFLOW))
 
         assert_pico_ok(status)
 
@@ -350,12 +333,12 @@ class Picoscope:
         """Stops the picoscope, a necessary step at the end of each sweep.
         """
 
-        status = self.Stop(c_handle)
+        status = self.Stop(C_HANDLE)
 
         assert_pico_ok(status)
 
         # Kills the signal generator
-        status = self.SetSigGenBuiltIn(c_handle, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        status = self.SetSigGenBuiltIn(C_HANDLE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                        0, 1, 0, 0)
 
         assert_pico_ok(status)
@@ -366,7 +349,7 @@ class Picoscope:
         Generally speaking, this should only be used for tests.
         """
 
-        status = self.CloseUnit(c_handle)
+        status = self.CloseUnit(C_HANDLE)
 
         assert_pico_ok(status)
 
@@ -389,7 +372,7 @@ class Picoscope:
 
 
 class Picoscope4000(Picoscope):
-    """Implementation of 4000-level picoscopes. We have a 4262 model."""
+    """Subclass for 4000-level picoscopes. We have a 4262 model."""
 
     def __init__(self):
         c_functions = [
@@ -402,23 +385,23 @@ class Picoscope4000(Picoscope):
         ]
         functions = dict(zip(FN, c_functions))
 
-        super(Picoscope4000, self).__init__(functions=functions)
+        super(Picoscope4000, self).__init__(fns=functions)
 
 
 class Picoscope2000(Picoscope):
-    """Implementation of 2000-level picoscopes.
+    """Subclass for 2000A-level picoscopes.
     We have the 2208b and 2207b models.
     """
 
     def __init__(self):
         c_functions = [
-            ps2000.ps2000OpenUnit, ps2000.ps2000SetSigGenBuiltIn,
-            ps2000.ps2000SetChannel, ps2000.ps2000GetTimebase,
-            ps2000.ps2000SetSimpleTrigger, ps2000.ps2000RunBlock,
-            ps2000.ps2000SigGenSoftwareControl, ps2000.ps2000IsReady,
-            ps2000.ps2000SetDataBuffer, ps2000.ps2000GetValues,
-            ps2000.ps2000Stop, ps2000.ps2000CloseUnit
+            ps2000a.ps2000aOpenUnit, ps2000a.ps2000aSetSigGenBuiltIn,
+            ps2000a.ps2000aSetChannel, ps2000a.ps2000aGetTimebase,
+            ps2000a.ps2000aSetSimpleTrigger, ps2000a.ps2000aRunBlock,
+            ps2000a.ps2000aSigGenSoftwareControl, ps2000a.ps2000aIsReady,
+            ps2000a.ps2000aSetDataBuffer, ps2000a.ps2000aGetValues,
+            ps2000a.ps2000aStop, ps2000a.ps2000aCloseUnit
         ]
         functions = dict(zip(FN, c_functions))
 
-        super(Picoscope2000, self).__init__(c_functions=functions)
+        super(Picoscope2000, self).__init__(fns=functions)
