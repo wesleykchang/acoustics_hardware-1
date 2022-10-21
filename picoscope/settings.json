@@ -27,7 +27,7 @@
         "sweeps": 0,
         "trigger_type": "FALLING",
         "trigger_source": "SIGGEN_SOFT_TRIG",
-        "samples_max": 1E4,
+        "samples_max": 1E4
     },
     "voltage_range_conversion_table": {
         "0": 1E-2,
