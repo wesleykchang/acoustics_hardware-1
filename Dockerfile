@@ -30,7 +30,10 @@ RUN mv /bin/udevadm /bin/udevadm.bin \
 # 4. Actual installation
 # Note: only installing libps4000 driver as opposed to 'picoscope' which installs all of them
 RUN apt-get -y update && apt-get install -y \
-    libps4000
+    libps4000 \
+    libps2000a
+
+RUN echo 'siberiaa'
 
 # Pico repo
 RUN git clone --branch dev https://github.com/steingartlab/acoustics_hardware.git

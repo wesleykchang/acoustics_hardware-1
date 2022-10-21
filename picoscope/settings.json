@@ -1,5 +1,5 @@
 {
-    "sigGenBuiltIn": {
+    "sweep": {
         "start_freq": 1.0E4,
         "end_freq": 2.0E4,
         "increment": 10.0,
@@ -13,6 +13,21 @@
         "trigger_type": "FALLING",
         "trigger_source": "SIGGEN_SOFT_TRIG",
         "samples_max": 1E6
+    },
+    "pulse": {
+        "start_freq": 5.0E6,
+        "end_freq": 5.0E6,
+        "increment": 0.0,
+        "dwell": 1E-3,
+        "offset_voltage": 0,
+        "pk_to_pk": 2E6,
+        "wave_type": "SQUARE",
+        "sweep_type": "DOWN",
+        "shots": 1,
+        "sweeps": 0,
+        "trigger_type": "FALLING",
+        "trigger_source": "SIGGEN_SOFT_TRIG",
+        "samples_max": 1E4,
     },
     "voltage_range_conversion_table": {
         "0": 1E-2,

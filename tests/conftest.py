@@ -1,3 +1,5 @@
+"""Setting up testing suite. Autoruns before every test session."""
+
 import json
 import pickle
 import pytest

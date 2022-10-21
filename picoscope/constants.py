@@ -1,5 +1,12 @@
 from enum import Enum, auto
 
+FN_NAMES = [
+    'OpenUnit', 'SetSigGenBuiltIn', 'SetChannel', 'GetTimebase',
+    'SetSimpleTrigger', 'RunBlock', 'SigGenSoftwareControl', 'IsReady',
+    'SetDataBuffer', 'GetValues', 'Stop', 'CloseUnit'
+]
+
+
 
 class AutoEnum(Enum):
     """Zero-based auto enum because I do be specific like that."""

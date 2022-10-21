@@ -9,19 +9,21 @@ from picosdk.functions import adc2mV, assert_pico_ok
 from picosdk.ps4000 import ps4000
 from picosdk.ps2000a import ps2000a
 
-from picoscope.constants import (SweepType, ThresholdDirection, TriggerType,
-                                 TriggerSource, WaveType)
+from picoscope.constants import (
+    FN_NAMES,
+    SweepType,
+    ThresholdDirection,
+    TriggerType,
+    TriggerSource,
+    WaveType
+)
 
 C_OVERSAMPLE = ctypes.c_int16(1)  # Oversampling factor
-SEGMENT_INDEX = 0  # specifies memory segment
 C_HANDLE = ctypes.c_int16()
 C_OVERFLOW = ctypes.c_int16()
-
-FN = [
-    'OpenUnit', 'SetSigGenBuiltIn', 'SetChannel', 'GetTimebase',
-    'SetSimpleTrigger', 'RunBlock', 'SigGenSoftwareControl', 'IsReady',
-    'SetDataBuffer', 'GetValues', 'Stop', 'CloseUnit'
-]
+SEGMENT_INDEX: int = 0  # specifies memory segment
+EXT_IN_THRESHOLD: int = 0
+OPERATION_TYPE: int = 0  # Disable white noise
 
 
 class Picoscope:
@@ -34,7 +36,7 @@ class Picoscope:
     an instrument-class-specific subclass.
     """
 
-    def __init__(self, fns: dict):
+    def __init__(self, fns: dict[str: Callable]):
         self.OpenUnit = fns['OpenUnit']
         self.SetSigGenBuiltIn = fns['SetSigGenBuiltIn']
         self.SetChannel = fns['SetChannel']
@@ -81,8 +83,7 @@ class Picoscope:
         raise Exception('Picoscope connection unsuccessful.')
 
     def define_procedure(self,
-                         ext_in_threshold: int = 0,
-                         operation_type: int = 0,
+                         type_: str,
                          **nondefault_params) -> None:
         """Sets up the signal generator to produce a waveType signal.
 
@@ -92,9 +93,6 @@ class Picoscope:
             All params are optional. Defaults defined in settings.json.
         
         Args:
-            ext_in_threshold (int): Generally not used so kept as 0.
-            operation_type (int): Generally not used to kept as 0
-                (disable white-noise). 
             offset_voltage (int): The voltage offset [uV].
                 Defaults to 0.
             pk_to_pk (int): Peak-to-peak voltage [uV].
@@ -138,14 +136,12 @@ class Picoscope:
 
         with open("picoscope/settings.json") as f:
             settings = json.load(f)
-        sig_params = settings["sigGenBuiltIn"]
+
+        sig_params = settings[type_]
 
         # Use nondefault params
         for parameter, value in nondefault_params.items():
             sig_params[parameter] = value
-
-        if sig_params['end_freq'] > 2E4:
-            raise ValueError(f'end_freq cannot be larger than 2E4')
 
         # Why not use built-in enum in pico-sdk library?
         # Well, first of all it doesn't for wavetype and triggertype,
@@ -162,9 +158,9 @@ class Picoscope:
                                        sig_params['end_freq'],
                                        sig_params['increment'],
                                        sig_params['dwell'], sweep_type,
-                                       operation_type, sig_params['shots'],
+                                       OPERATION_TYPE, sig_params['shots'],
                                        sig_params['sweeps'], trigger_type,
-                                       trigger_source, ext_in_threshold)
+                                       trigger_source, EXT_IN_THRESHOLD)
 
         assert_pico_ok(status)
 
@@ -383,7 +379,7 @@ class Picoscope4000(Picoscope):
             ps4000.ps4000SetDataBuffer, ps4000.ps4000GetValues,
             ps4000.ps4000Stop, ps4000.ps4000CloseUnit
         ]
-        functions = dict(zip(FN, c_functions))
+        functions = dict(zip(FN_NAMES, c_functions))
 
         super(Picoscope4000, self).__init__(fns=functions)
 
@@ -402,6 +398,6 @@ class Picoscope2000(Picoscope):
             ps2000a.ps2000aSetDataBuffer, ps2000a.ps2000aGetValues,
             ps2000a.ps2000aStop, ps2000a.ps2000aCloseUnit
         ]
-        functions = dict(zip(FN, c_functions))
+        functions = dict(zip(FN_NAMES, c_functions))
 
         super(Picoscope2000, self).__init__(fns=functions)

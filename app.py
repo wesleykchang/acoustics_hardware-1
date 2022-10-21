@@ -20,7 +20,7 @@ app = flask.Flask(__name__)
 
 
 def configure_routes(app):
-    from picoscope import pulse, sweep
+    from picoscope.techniques import pulse, sweep
     from picoscope.picoscope import Picoscope2000, Picoscope4000
 
     @app.route('/')
@@ -64,7 +64,7 @@ def configure_routes(app):
         raw_params = flask.request.values.to_dict()
         params = parse_incoming_params(raw_params=raw_params)
 
-        data = pulse.pulse(picoscope_=picoscope_, params=params)
+        data = pulse(picoscope_=picoscope_, params=params)
 
         return json.dumps(data)
 
@@ -80,7 +80,7 @@ def configure_routes(app):
         raw_params = flask.request.values.to_dict()
         params = parse_incoming_params(raw_params=raw_params)
 
-        data = sweep.sweep(picoscope_=picoscope_, params=params)
+        data = sweep(picoscope_=picoscope_, params=params)
 
         return json.dumps(data)
 

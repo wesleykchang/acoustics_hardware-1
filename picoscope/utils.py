@@ -38,18 +38,19 @@ def parse_incoming_params(raw_params: RawParams) -> ParsedParams:
     return dict([key, float(val)] for key, val in raw_params.items())
 
 
-def parse_voltage_range(numerical_voltage_range: float) -> int:
+def parse_voltage_range(numerical_voltage_range: float = 0.01) -> int:
     """Parses voltage range from volts to an enumerated number value.
 
     Args:
-        numerical_voltage_range (float): A human-readable voltage [V].
+        numerical_voltage_range (float, optional): A human-readable
+            voltage [V]. Defaults to 0.01 (pulsing).
 
     Returns:
         (int): Enumerated voltage. Refer to manual or constants.py
 
     Raises:
         ValueError: 
-    """
+    """        
 
     voltage_range_conversion_table = settings[
         "voltage_range_conversion_table"]
@@ -69,7 +70,7 @@ def parse_voltage_range(numerical_voltage_range: float) -> int:
     return int(parsed_voltage_range)
 
 
-def set_input_channel(params: dict):
+def set_input_channel(params: dict = None) -> int:
     """Sets the physical input channel, either 0 (A) or 1 (B).
 
     The lazy parsing of params in app/get_resonance makes channel
@@ -82,7 +83,6 @@ def set_input_channel(params: dict):
     Returns:
         channel (int): Enum of the channel.
     """
-
     return int(params['channel']) if 'channel' in params else 1
 
 
@@ -108,9 +108,9 @@ def get_no_frequencies(start_freq: float, end_freq: float,
     return (end_freq - start_freq) / increment + 1
 
 
-def set_sampling_params(no_samples: int,
-                        dwell: float,
-                        no_frequencies: int,
+def set_sampling_params(no_samples: int = 1e4,
+                        dwell: float = 0.01,
+                        no_frequencies: int = 1,
                         baseline: float = 1E-7) -> int:
     """Calculates the appropriate sampling interval and number of samples collected.
 
@@ -120,9 +120,9 @@ def set_sampling_params(no_samples: int,
     1E-7 (100 ns) is 0, 2E-7 (200 ns) is 1, etc.
 
     Args:
-        no_samples (int): _Desired_ number of samples to be collected.
-        dwell (float): The time [s] between frequency changes.
-        no_frequencies (int): Number of frequencies in sweep.
+        no_samples (int, optional): _Desired_ number of samples to be collected.
+        dwell (float, optional): The time [s] between frequency changes when sweeping.
+        no_frequencies (int, optional): Number of frequencies.
         baseline (float, optional). Fastest rated sample rate of oscilloscope.
             Generally not to be tinkered with. Defaults to 1E-7 (i.e. 100 ns).
 
