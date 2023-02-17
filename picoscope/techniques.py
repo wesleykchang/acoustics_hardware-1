@@ -11,7 +11,7 @@ from picoscope.utils import (
     ParsedParams
 )
 
-def _run(picoscope_: Union[Picoscope2000, Picoscope4000], enum_voltage_range: int, channel: int, enum_sampling_interval: int, no_samples: int) -> list[float]:
+def _run(picoscope_, enum_voltage_range: int, channel: int, enum_sampling_interval: int, no_samples: int) -> list:
     """Low-level implementation oscilloscope techniques.
 
     Technique implementation is actually technique-agnostic, the difference
@@ -77,7 +77,7 @@ def _run(picoscope_: Union[Picoscope2000, Picoscope4000], enum_voltage_range: in
     return data_mV
 
 
-def pulse(picoscope_: Picoscope2000, params: ParsedParams) -> list[float]:
+def pulse(picoscope_: Picoscope2000, params: ParsedParams) -> list:
     """Wrapper for acoustic pulsing.
 
     Follows recommended block mode procedure as
@@ -106,7 +106,7 @@ def pulse(picoscope_: Picoscope2000, params: ParsedParams) -> list[float]:
     return data_mV
 
 
-def sweep(picoscope_: Picoscope4000, params: ParsedParams) -> list[float]:
+def sweep(picoscope_: Picoscope4000, params: ParsedParams) -> list:
     '''Wrapper for frequency sweep.
 
     Follows recommended block mode procedure as
