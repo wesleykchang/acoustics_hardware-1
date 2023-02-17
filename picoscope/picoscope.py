@@ -36,7 +36,7 @@ class Picoscope:
     an instrument-class-specific subclass.
     """
 
-    def __init__(self, fns: dict[str: Callable]):
+    def __init__(self, fns: dict):
         self.OpenUnit = fns['OpenUnit']
         self.SetSigGenBuiltIn = fns['SetSigGenBuiltIn']
         self.SetChannel = fns['SetChannel']
