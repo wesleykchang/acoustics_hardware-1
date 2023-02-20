@@ -2,14 +2,23 @@ from dataclasses import fields
 import numpy as np
 from typing import Dict, Union, Callable
 
-from picoscope.constants import get_builtin_voltage_ranges, PulsingParams
+from picoscope.constants import PulsingParams
 
 
 def dataclass_from_dict(dataclass_, dict_: dict):
+    """Populated dataclass from a dictionary.
+    
+    Used to parse incoming http dicts to a dataclass.
+
+    Args:
+        dataclass_ (): Dataclass object, i.e. not an instance of it.
+        dict_ (dict): Dict that matches keys ot dataclass_ exactly.
+    """
     field_set = {f.name for f in fields(dataclass_) if f.init}
     filtered_arg_dict = {k : v for k, v in dict_.items() if k in field_set}
     
     return dataclass_(**filtered_arg_dict)
+
 
 def parse_incoming_params(raw_params: Dict[str, str]) -> PulsingParams:
     """Parses incoming JSON to a Dataclass.
@@ -37,7 +46,15 @@ def parse_incoming_params(raw_params: Dict[str, str]) -> PulsingParams:
 
 
 def parse_to_enum(val: Union[int, float], arr_fn: Callable) -> int:
-    """"""
+    """Parses val to enum based on arr_fn.
+
+    It finds the index of the value in the array closest to the passed _val_.
+    
+    Args:
+        val (Union[int, float]): Any numerical value.
+        arr_fn (Callable): The function should, when called, return
+            a sequence of numbers.
+    """
 
     arr = arr_fn()
 

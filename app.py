@@ -5,10 +5,13 @@ import json
 import logging
 import os
 from typing import Dict
-import werkzeug
+from werkzeug.exceptions import BadRequest
 
 from picoscope.constants import PulsingParams
+from picoscope.picoscope import Picoscope2000
+from picoscope import techniques
 from picoscope.utils import parse_incoming_params
+
 
 log_filename = "logs/logs.log"
 os.makedirs(os.path.dirname(log_filename), exist_ok=True)
@@ -24,8 +27,6 @@ app = flask.Flask(__name__)
 
 
 def configure_routes(app):
-    from picoscope.techniques import pulse
-    from picoscope.picoscope import Picoscope2000
 
     @app.route('/')
     def hello_world():
@@ -33,7 +34,7 @@ def configure_routes(app):
         Returns:
             Str: Status message
         """
-        return "Flask picoscope server running. Picoscope connected"
+        return "Flask picoscope server running."
 
     @app.route('/connect')
     def connect():
@@ -44,7 +45,13 @@ def configure_routes(app):
 
         picoscope_ = Picoscope2000()
         picoscope_.connect()
+        is_connected_ = picoscope_.is_connected()
 
+        status = '' if is_connected_ else 'not '
+
+        return f'Picoscope status: {status}connected.'
+
+        
     @app.route('/get_wave', methods=['POST'])
     def pulse():
         """Pulsing. Performs a pulse and returns the resulting data.
@@ -56,9 +63,9 @@ def configure_routes(app):
         raw_incoming_params: Dict[str, str] = flask.request.values.to_dict()
         pulsing_params: PulsingParams = parse_incoming_params(raw_params=raw_incoming_params)
 
-        data = pulse(picoscope_=picoscope_, pulsing_params=pulsing_params)
+        waveform = techniques.pulse(picoscope_=picoscope_, pulsing_params=pulsing_params)
 
-        return json.dumps(data)
+        return json.dumps(waveform)
 
     @app.route('/disconnect')
     def disconnect():
@@ -66,9 +73,9 @@ def configure_routes(app):
 
         picoscope_.disconnect()
 
-        return 'Picoscope disconnected'
+        return 'Picoscope disconnected.'
 
-    @app.errorhandler(werkzeug.exceptions.BadRequest)
+    @app.errorhandler(BadRequest)
     def handle_bad_request(e):
         return '', 404
 
