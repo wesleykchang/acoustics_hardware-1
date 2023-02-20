@@ -4,24 +4,28 @@ import flask
 import json
 import logging
 import os
+from typing import Dict
 import werkzeug
 
+from picoscope.constants import PulsingParams
 from picoscope.utils import parse_incoming_params
 
 log_filename = "logs/logs.log"
 os.makedirs(os.path.dirname(log_filename), exist_ok=True)
-logging.basicConfig(filename=log_filename,
-                    level=logging.INFO,
-                    format='%(asctime)s: %(message)s')
+logging.basicConfig(
+    filename=log_filename,
+    level=logging.INFO,
+    format='%(asctime)s: %(message)s'
+)
 
-PORT = '5001'
+PORT: int = 5001
 
 app = flask.Flask(__name__)
 
 
 def configure_routes(app):
-    from picoscope.techniques import pulse, sweep
-    from picoscope.picoscope import Picoscope2000, Picoscope4000
+    from picoscope.techniques import pulse
+    from picoscope.picoscope import Picoscope2000
 
     @app.route('/')
     def hello_world():
@@ -29,29 +33,17 @@ def configure_routes(app):
         Returns:
             Str: Status message
         """
-        return "Flask picoscope server running"
+        return "Flask picoscope server running. Picoscope connected"
 
-    @app.route('/connect', methods=['POST'])
+    @app.route('/connect')
     def connect():
-        """Connect to picoscope
-    
-        This is basically an initializer.
-        Note that it oftentimes has to be rerun a couple of times before
-        a connection is established.
-
-        Returns:
-            str: Status message
+        """Am separating from startup to be able to restart if connection is lost
+        w/o having to restarting container
         """
-
         global picoscope_
 
-        raw_params = flask.request.values.to_dict()
-
-        picoscope_ = Picoscope2000() if raw_params['type_']=='2000' else Picoscope4000()
-
+        picoscope_ = Picoscope2000()
         picoscope_.connect()
-
-        return "Picoscope connected"
 
     @app.route('/get_wave', methods=['POST'])
     def pulse():
@@ -61,26 +53,10 @@ def configure_routes(app):
             dict: Pulsing data.
         """
 
-        raw_params = flask.request.values.to_dict()
-        params = parse_incoming_params(raw_params=raw_params)
+        raw_incoming_params: Dict[str, str] = flask.request.values.to_dict()
+        pulsing_params: PulsingParams = parse_incoming_params(raw_params=raw_incoming_params)
 
-        data = pulse(picoscope_=picoscope_, params=params)
-
-        return json.dumps(data)
-
-    # Runs resonance
-    @app.route('/get_resonance', methods=['POST'])
-    def get_resonance():
-        """Resonance. Performs a frequency sweep and returns the resulting data.
-
-        Returns:
-            dict: Resonance data.
-        """
-
-        raw_params = flask.request.values.to_dict()
-        params = parse_incoming_params(raw_params=raw_params)
-
-        data = sweep(picoscope_=picoscope_, params=params)
+        data = pulse(picoscope_=picoscope_, pulsing_params=pulsing_params)
 
         return json.dumps(data)
 
@@ -100,4 +76,4 @@ def configure_routes(app):
 configure_routes(app)
 
 if __name__ == '__main__':
-    app.run(port=PORT, host="0.0.0.0", debug=True)
+    app.run(port=PORT, host="0.0.0.0", debug=False)

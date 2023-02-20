@@ -1,9 +1,10 @@
 import json
 import pytest
-from typing import Union
+from typing import Tuple
 
+from picoscope.constants import Channel, SignalProperties, TriggerProperties
 from picoscope import utils
-from picoscope.picoscope import Picoscope2000, Picoscope4000
+from picoscope.picoscope import Picoscope2000
 
 with open("tests/params.json") as f:
     params = json.load(f)
@@ -13,89 +14,102 @@ ENUM_VOLTAGE_RANGE = 6
 
 
 @pytest.fixture
-def sampling_params(no_frequencies):
-    enum_sampling_interval, no_samples = utils.set_sampling_params(
-        no_samples=params['max_samples'],
-        dwell=params['dwell'],
-        no_frequencies=no_frequencies)
+def sampling_params():
 
-    return enum_sampling_interval, no_samples
+    return 8, 0
 
 
 @pytest.fixture
-def picoscope_():
-    """Manually toggle between the two, depending on picoscope connected."""
-    
-    picoscope_ = Picoscope4000()
-    # picoscope_ = Picoscope2000()
+def picoscope_():    
+    picoscope_ = Picoscope2000()
+
+    yield picoscope_
+
+    # Teardown
+    picoscope_.disconnect()
+
+
+@pytest.fixture
+def connection(picoscope_: Picoscope2000):
+
+    picoscope_.connect()  # Assertion called implicitly in function
 
     return picoscope_
 
-def test_class_vars(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    print(picoscope_.OpenUnit)
 
-
-def test_connect(picoscope_: Union[Picoscope2000, Picoscope4000]):
+def test_connect(picoscope_: Picoscope2000):
     picoscope_.connect()  # Assertion called implicitly in function
 
 
-def test_set_channel_params(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.set_channel_params(
-        enum_voltage_range=ENUM_VOLTAGE_RANGE, channel=CHANNEL)
+# def test_class_vars(picoscope_: Picoscope2000):
+#     print(picoscope_.OpenUnit)
+
+
+def test_get_analogue_offset(connection: Picoscope2000):
+    for i in range(1, 10):
+        max_voltage = connection.get_analogue_offset(voltage=i)
+
+        assert isinstance(max_voltage, float)
+
+
+def test_set_channel(connection: Picoscope2000):
+    connection.set_channel(
+        voltage=5,
+        analog_offset=0
+    )
+
+
+def test_get_timebase(connection: Picoscope2000):
+    connection.check_timebase(timebase=1)
+
+
+def test_set_simple_trigger(connection: Picoscope2000):
+    connection.set_simple_trigger()
+
+
+def test_define_procedure(connection: Picoscope2000):
+    connection.define_procedure(signal_properties=SignalProperties())
 
 
 @pytest.fixture
-def no_frequencies():
-    no_frequencies = utils.get_no_frequencies(
-        start_freq=params['start_freq'],
-        end_freq=params['end_freq'],
-        increment=params['increment'])
+def buffer(picoscope_: Picoscope2000):
+    buffer = picoscope_.make_buffer()
 
-    return no_frequencies
+    return buffer
+    
 
-
-def test_get_timebase(picoscope_: Union[Picoscope2000, Picoscope4000], sampling_params: tuple[int, int]):
-    picoscope_.get_timebase(
-        enum_sampling_interval=sampling_params[0])
+def test_set_data_buffer(connection: Picoscope2000, buffer):
+    connection.set_data_buffer(c_buffer=buffer)
 
 
-def test_set_simple_trigger(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.set_simple_trigger(channel=CHANNEL)
+def test_run_block(connection: Picoscope2000, sampling_params: Tuple[int, int]):
+    connection.run_block(enum_sampling_interval=sampling_params[0])
 
 
-def test_define_procedure(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.define_procedure(**params)
+def test_trigger_pull(connection: Picoscope2000):
+    connection.pull_trigger()
 
 
-def test_set_data_buffer(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.set_data_buffer(channel=CHANNEL)
+def test_wait_ready(connection: Picoscope2000):
+    connection.wait_ready()
 
 
-def test_run_block(picoscope_: Union[Picoscope2000, Picoscope4000], sampling_params: tuple[int, int]):
-    picoscope_.run_block(enum_sampling_interval=sampling_params[0])
+def test_get_data(connection: Picoscope2000):
+    connection.get_data()
 
 
-def test_trigger_pull(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.pull_trigger()
+def test_stop(connection: Picoscope2000):
+    connection.stop()
 
 
-def test_wait_ready(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.wait_ready()
-
-
-def test_get_data(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.get_data()
-
-
-def test_stop(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.stop()
-
-
-def test_to_mV(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    data_in_mV = picoscope_.to_mV(enum_voltage_range=ENUM_VOLTAGE_RANGE)
+def test_to_mV(connection: Picoscope2000, buffer):
+    data_in_mV = connection.to_mV(
+        enum_voltage_range=ENUM_VOLTAGE_RANGE,
+        c_buffer=buffer
+    )
 
     assert isinstance(data_in_mV, list)
 
 
-def test_close(picoscope_: Union[Picoscope2000, Picoscope4000]):
-    picoscope_.disconnect()
+def test_close(connection: Picoscope2000):
+    connection.disconnect()

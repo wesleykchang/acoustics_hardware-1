@@ -1,71 +1,60 @@
 import json
 import pytest
 
+from picoscope.constants import PulsingParams
 from picoscope import utils
 
 no_frequencies_reference = 10
 enum_sampling_interval_reference = 0
 no_samples_reference = 1E5
 
+DELAY = 10
+VOLTAGE = 1
+DURATION = 8
+AVG_NUM = 1024
 
-def test_parse_voltage_range():
-    assert utils.parse_voltage_range(1) == 6
-
-
-def test_parse_voltage_range_failure():
-    with pytest.raises(ValueError):
-        utils.parse_voltage_range(4.9)
+voltage_ranges = [2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1., 2., 5., 10., 20.]
 
 
-def test_set_default_input_channel(params):
-    params['channel'] = utils.set_input_channel(params=params)
+pulsing_params_dict_int = {
+    'delay': DELAY,
+    'voltage': VOLTAGE,
+    'duration': DURATION,
+    'avg_num': AVG_NUM
+}
+pulsing_params_dict_str = {k : str(v) for k, v in pulsing_params_dict_int.items()}
 
-    assert params['channel'] == 1
+PulsingParamsReference = PulsingParams(
+    delay=DELAY,
+    voltage=VOLTAGE,
+    duration=DURATION,
+    avg_num=AVG_NUM
+)
 
-
-def test_incorrectly_formatted_input_channel(params):
-    params['channel'] = 'A'
-    with pytest.raises(ValueError):
-        utils.set_input_channel(params=params)
-
-
-def test_custom_input_channel(params):
-    del params['channel']
-
-    params['channel'] = utils.set_input_channel(params=params)
-
-    assert params['channel'] == 1
-
-
-@pytest.fixture
-def no_freqs(params):
-    no_freqs = utils.get_no_frequencies(
-        start_freq=params['start_freq'],
-        end_freq=params['end_freq'],
-        increment=params['increment'])
-
-    return no_freqs
-
-
-def test_get_no_frequencies(no_freqs):
-    assert no_freqs == no_frequencies_reference
-
-
-def test_sampling_interval_calculation(params, no_freqs):
-    enum_sampling_interval, _ = utils.set_sampling_params(
-        no_samples=params['max_samples'],
-        dwell=params['dwell'],
-        no_frequencies=no_freqs,
+def test_dataclass_from_dict():
+    PulsingParams_ = utils.dataclass_from_dict(
+        dataclass_=PulsingParams,
+        dict_=pulsing_params_dict_int
     )
 
-    assert enum_sampling_interval == enum_sampling_interval_reference
+    assert PulsingParams_ == PulsingParamsReference
 
 
-def test_no_samples_adjusted(params, no_freqs):
-    _, no_samples = utils.set_sampling_params(
-        no_samples=params['max_samples'],
-        dwell=params['dwell'],
-        no_frequencies=no_freqs,
-    )
+def test_parse_incoming_params():
+    PulsingParams_ = utils.parse_incoming_params(raw_params=pulsing_params_dict_str)
 
-    assert no_samples == int(no_samples_reference)
+    assert PulsingParams_ == PulsingParamsReference
+
+
+def test_parse_voltage():
+    for enumeration, voltage_range in enumerate(voltage_ranges):
+        enumerated_voltage = utils.parse_voltage(voltage=voltage_range)
+        
+        assert enumerated_voltage == enumeration
+
+
+# def test_find_nearest_enum():
+
+
+def test_parse_sampling_interval():
+    enum_sampling_interval = utils.parse_sampling_interval(sampling_interval=2e-9)

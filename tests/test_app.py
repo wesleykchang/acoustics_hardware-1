@@ -18,7 +18,7 @@ def test_base_route(client):
     response = client.get('/')
 
     assert response.status_code == 200
-    assert response.get_data() == b'Flask picoscope server running'
+    assert response.get_data() == b"Flask picoscope server running. Picoscope connected"
 
 
 def test_random_route_failure(client):
@@ -30,20 +30,12 @@ def test_logs():
     assert os.path.isfile('logs/logs.log')
 
 
-def test_connection(client):
-    response = client.get('/connect')
+
+def test_pulse(client, params):
+    response = client.get('/get_wave')
 
     assert response.status_code == 200
-    assert response.get_data() == b'Picoscope connected'
-
-
-def test_sweep(client, params):
-    response = client.post('/get_resonance', data=params)
-
-    data = json.loads(response.get_data())
-
-    assert response.status_code == 200
-    assert isinstance(data, list)
+    assert type(response.get_data(), list)
 
 
 def test_disconnect(client):
