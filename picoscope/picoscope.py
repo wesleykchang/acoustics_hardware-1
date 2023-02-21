@@ -1,13 +1,13 @@
-"""Bindings for C-level functions for interfacing with picoscope."""
+"""Bindings for C driver functions for interfacing with picoscope."""
 
 import ctypes
-from typing import Dict, Callable
+from typing import Callable, Dict, List
 
 from picosdk.errors import PicoSDKCtypesError
 from picosdk.functions import adc2mV, assert_pico_ok
 from picosdk.ps2000a import ps2000a
 
-from picoscope.constants import Channel, SignalProperties, TriggerProperties, WaveType
+from picoscope import parameters, utils
 
 C_OVERSAMPLE = ctypes.c_int16(0)  # Oversampling factor
 C_HANDLE = ctypes.c_int16()
@@ -19,7 +19,8 @@ EXT_IN_THRESHOLD = START_INDEX = DOWNSAMPLING_RATIO = DOWNSAMPLING_MODE \
      =  PRE_TRIGGER_SAMPLES = TIME_INDISPOSED_MS = LP_READY = P_PARAMETER = 0
 C_SERIAL: None = None
 
-SAMPLING_INTERVAL: float = 2E-9
+# TODO: Move elsewhere
+ANALOG_OFFSET = 0
 
 
 class Picoscope:
@@ -28,58 +29,72 @@ class Picoscope:
     All class attributes are references to C-functions for calling
     instruments, hence the CamelCase.
 
-    The baseclass is not directly, but from an instrument-class-specific subclass.
+    The baseclass is not called directly, but from an instrument-class-specific subclass.
 
     Attributes:
         signal_properties (SignalProperties): The signal configuration parameters.
             Are generally not modified between experiments.
+        sampling_interval (float, optional): The desired sampling interval. Defaults
+            to 2E-9 (equal to 500MS/s sampling rate). 
+        channel (Channel, optional): The channel to which the receiving transducer
+            is connected. Defaults to Channel.B. 
     """
 
-    signal_properties: SignalProperties = SignalProperties()
+    signal_properties: parameters.SignalProperties = parameters.SignalProperties()
+    sampling_interval: float = 2E-9
+    channel: int = parameters.Channel.B.value
+    avg_num: int = 32
+    enum_sampling_interval: int = utils.to_enum(
+        val=sampling_interval,
+        arr_fn=parameters.available_sampling_intervals
+    )
 
-    def __init__(self, fns: Dict[str, Callable], channel: Channel = Channel.B) -> None:
+    def __init__(self, fns: Dict[str, Callable]) -> None:
         """
         
         Args:
             fns (Dict[str, Callable]): Mapping of a readable name to SDK functions.
-            channel (Channel, optional): The channel to which the receiving transducer
-                is connected. Defaults to Channel.B. 
         """
 
-        self.OpenUnit = fns['OpenUnit']
-        self.SetSigGenBuiltIn = fns['SetSigGenBuiltIn']
-        self.SetChannel = fns['SetChannel']
-        self.GetTimebase2 = fns['GetTimebase2']
-        self.SetSimpleTrigger = fns['SetSimpleTrigger']
-        self.RunBlock = fns['RunBlock']
-        self.SigGenSoftwareControl = fns['SigGenSoftwareControl']
-        self.IsReady = fns['IsReady']
-        self.SetDataBuffer = fns['SetDataBuffer']
-        self.GetValues = fns['GetValues']
-        self.Stop = fns['Stop']
-        self.CloseUnit = fns['CloseUnit']
-        self.GetAnalogueOffset = fns['GetAnalogueOffset']
-        self.SetNoOfCaptures = fns['SetNoOfCaptures']
-        self.MemorySegments = fns['MemorySegments']
-        self.PingUnit = fns['PingUnit']
+        self.OpenUnit: Callable = fns['OpenUnit']
+        self.SetSigGenBuiltIn: Callable = fns['SetSigGenBuiltIn']
+        self.SetChannel: Callable = fns['SetChannel']
+        self.GetTimebase2: Callable = fns['GetTimebase2']
+        self.SetSimpleTrigger: Callable = fns['SetSimpleTrigger']
+        self.RunBlock: Callable = fns['RunBlock']
+        self.SigGenSoftwareControl: Callable = fns['SigGenSoftwareControl']
+        self.IsReady: Callable = fns['IsReady']
+        self.SetDataBuffer: Callable = fns['SetDataBuffer']
+        self.GetValues: Callable = fns['GetValues']
+        self.Stop: Callable = fns['Stop']
+        self.CloseUnit: Callable = fns['CloseUnit']
+        self.GetAnalogueOffset: Callable = fns['GetAnalogueOffset']
+        self.SetNoOfCaptures: Callable = fns['SetNoOfCaptures']
+        self.MemorySegments: Callable = fns['MemorySegments']
+        self.PingUnit: Callable = fns['PingUnit']
 
-        self._channel = channel.value
         self._n_samples: int = None
+        self._is_connected: bool = False
+        self._c_buffer: ctypes.Array = None
+        self._enum_voltage_range: int = None
+        self._segment_index: int = 0  # Not None bc it's called during pulse preparation.
+        self._trigger_properties: parameters.TriggerProperties = parameters.TriggerProperties()
 
     @property
     def n_samples(self) -> int:
         """Number of samples per single pulse
         
-        We to access it externally when preallocating for data.
+        We need to access it externally when preallocating for data.
         
         Returns:
             int: Number of samples per single pulse.
         """
         return self._n_samples
 
-    def set_n_samples(self, duration: int, unit_multiplier: float = 1e-6) -> None:
+    @n_samples.setter
+    def n_samples(self, duration: int, unit_multiplier: float = 1e-6) -> None:
         """Sets number of samples to be collected per single pulse.
-        
+
         Args:
             duration (int): The duration of the window where we collect data.
                 The final unit should be in seconds, so if duration is in µs
@@ -87,9 +102,40 @@ class Picoscope:
             unit_multiplier (float, optional): Scales duration to seconds.
                 Defaults to 1e-6.
         """
-        self._n_samples: int = int(duration * unit_multiplier / SAMPLING_INTERVAL)
 
-    def set_segment_index(self, segment: int) -> None:
+        _n_samples = duration * unit_multiplier / Picoscope.sampling_interval
+        self._n_samples: int = int(round(_n_samples, -2))
+
+    @property
+    def enum_voltage_range(self):
+        return self._enum_voltage_range
+
+    @enum_voltage_range.setter
+    def enum_voltage_range(self, voltage_range: float):
+        self._enum_voltage_range = utils.to_enum(
+            val=voltage_range,
+            arr_fn=parameters.builtin_voltage_ranges
+        )
+
+    @property
+    def trigger_properties(self):
+        return self._trigger_properties
+
+    @trigger_properties.setter
+    def trigger_properties(self, delay: int):
+        """Sets delay, the only nondefault trigger property.
+        
+        Args:
+            delay (int): Microseconds
+        """
+        self._trigger_properties.set_delay(delay_us=delay)
+
+    @property
+    def segment_index(self):
+        return self._segment_index
+    
+    @segment_index.setter
+    def segment_index(self, segment: int):
         """Sets segment index, i.e. which memory segment the next pulse should be placed in.
         
         Used when averaging multiple waveforms. Not a a property because we never have to
@@ -100,14 +146,27 @@ class Picoscope:
         """
         self._segment_index = segment
 
-    def make_buffer(self) -> ctypes.Array:
-        """Generates a buffer to which data is dumped.
+    @property
+    def is_connected(self):
+        """Checks whether picoscope is connected.
+        
+        Convenience method to poll externally via http w/o
+        having to ssh into the container.
 
         Returns:
-            ctypes.Array[ctypes.c_int16]: Buffer to which oscilloscope data is dumped.
+            bool: True if connected, False if not.
         """
 
-        return (ctypes.c_int16 * self._n_samples)()
+        status = self.PingUnit(C_HANDLE)
+
+        try:
+            assert_pico_ok(status)
+            self._is_connected = True
+
+        except PicoSDKCtypesError:
+            self._is_connected = False
+
+        return self._is_connected
 
     def connect(self) -> None:
         """Connects to oscilloscope.
@@ -127,39 +186,32 @@ class Picoscope:
             except PicoSDKCtypesError:
                 continue
 
+        self.is_connected
+
         raise Exception('Picoscope connection unsuccessful.')
 
-    def is_connected(self) -> bool:
-        """Checks whether picoscope is connected.
-        
-        Convenience method to poll externally via http w/o
-        having to ssh into the container.
-        """
-        status = self.PingUnit(C_HANDLE)
+    def make_buffer(self) -> None:
+        """Generates a buffer to which data is dumped."""
+        self._c_buffer: ctypes.Array = (ctypes.c_int16 * self._n_samples)()
 
-        try:
-            assert_pico_ok(status)
-            return True
-        except PicoSDKCtypesError:
-            return False
-
-    def set_averaging(self, avg_num: int) -> None:
+    def set_averaging(self) -> None:
         """Sets the number of waveforms to be collected for averaging.
         
         Args:
             avg_num (int): The number of waveforms to be collected.
         """
 
-        status = self.SetNoOfCaptures(C_HANDLE, avg_num)
+        status = self.SetNoOfCaptures(C_HANDLE, Picoscope.avg_num)
 
         assert_pico_ok(status)
 
+        # Split memory to allow for storing multiple waveforms.
         n_max_samples = ctypes.c_int32(self._n_samples)
-        status = self.MemorySegments(C_HANDLE, avg_num, ctypes.byref(n_max_samples))
+        status = self.MemorySegments(C_HANDLE, Picoscope.avg_num, ctypes.byref(n_max_samples))
         
         assert_pico_ok(status)
 
-    def setup_signal(self) -> None:
+    def set_signal(self) -> None:
         """Sets up the signal generator to produce a signal. Refer to constants.SignalProperties."""
 
         status = self.SetSigGenBuiltIn(
@@ -208,22 +260,20 @@ class Picoscope:
 
         return max_voltage.value
 
-    def set_channel(self, enum_voltage_range: int) -> None:
+    def set_channel(self) -> None:
         """Sets various channel parameters.
 
         Args:
             enum_voltage_range (Voltage): Enumerated voltage.
         """
 
-        analog_offset = 0
-
         status = self.SetChannel(
             C_HANDLE,
-            self._channel,
+            Picoscope.channel,
             IS_ENABLED,
             COUPLING,
-            enum_voltage_range,
-            analog_offset
+            self.enum_voltage_range,
+            ANALOG_OFFSET
         )
 
         assert_pico_ok(status)
@@ -233,48 +283,44 @@ class Picoscope:
 
         There's a whole section devoted to this subject in the
         programmer's guide.
-
-        Args:
-            enum_sampling_rate (int): Enumerated sampling rate.
-                See utils.calculate_sampling_rate().
-            n_samples (int): Number of samples to be collected.
-
         """
 
-        enum_sampling_interval = 1  # Always running at top speed
 
         time_interval_ns = ctypes.c_float()
         returned_max_samples = ctypes.c_int32()
 
         status = self.GetTimebase2(
             C_HANDLE,
-            enum_sampling_interval,
+            Picoscope.enum_sampling_interval,
             self._n_samples,
             ctypes.byref(time_interval_ns),
             C_OVERSAMPLE,
             ctypes.byref(returned_max_samples),
-            self._segment_index
+            self.segment_index
         )
 
         assert_pico_ok(status)
 
-    def set_simple_trigger(self, trigger_properties: TriggerProperties) -> None:
-        """Cocks the gun."""
+    def set_trigger(self) -> None:
+        """Cocks the gun.
+        
+        trigger_properties (TriggerProperties): See definition.
+        """
 
         status = self.SetSimpleTrigger(
             C_HANDLE,
-            trigger_properties.enable_trigger,
-            self._channel,
-            trigger_properties.threshold,
-            trigger_properties.direction,
-            trigger_properties.delay,
-            trigger_properties.autoTrigger_ms
+            self._trigger_properties.enable_trigger,
+            Picoscope.channel,
+            self._trigger_properties.threshold,
+            self._trigger_properties.direction,
+            self._trigger_properties.delay,
+            self._trigger_properties.autoTrigger_ms
         )
 
         assert_pico_ok(status)
 
-    def run_block(self, enum_sampling_interval: int) -> None:
-        """Starts collecting data.
+    def run_block(self) -> None:
+        """Specifies how data should be collected.
         
         Args:
             enum_sampling_rate (int): Enumerated sampling rate.
@@ -288,10 +334,10 @@ class Picoscope:
             C_HANDLE,
             PRE_TRIGGER_SAMPLES,
             post_trigger_samples,
-            enum_sampling_interval,
+            Picoscope.enum_sampling_interval,
             C_OVERSAMPLE,
             TIME_INDISPOSED_MS,
-            self._segment_index,
+            self.segment_index,
             LP_READY,
             P_PARAMETER
         )
@@ -299,17 +345,14 @@ class Picoscope:
         assert_pico_ok(status)
 
     def pull_trigger(self) -> None:
-        """Pulls the trigger: Starts the sweep.
-        
-        Triggers the wave generator.
-        """
+        """Pulls the trigger: Sends a signal to the pulser."""
 
         status = self.SigGenSoftwareControl(C_HANDLE, 0)
 
         assert_pico_ok(status)
 
     def wait_ready(self) -> None:
-        """Waits for data collection to finish before data is collected."""
+        """A thread lock, waits for data collection to finish before data is collected."""
 
         ready = ctypes.c_int16(0)
         check = ctypes.c_int16(0)
@@ -319,23 +362,17 @@ class Picoscope:
 
             assert_pico_ok(status)
 
-    def set_data_buffer(self, c_buffer: ctypes.Array) -> None:
-        """Allocates memory to receive the oscilloscope to dump from memory.
-
-        C-type stuff.
-
-        Args:
-            c_buffer (): Buffer to which data is dumped.
-        """
+    def register_buffer(self) -> None:
+        """Register data buffer with driver."""
 
         buffer_length: int = self._n_samples
 
         status = self.SetDataBuffer(
             C_HANDLE,
-            self._channel,
-            ctypes.byref(c_buffer),
+            Picoscope.channel,
+            ctypes.byref(self._c_buffer),
             buffer_length,
-            self._segment_index,
+            self.segment_index,
             DOWNSAMPLING_MODE
         )
 
@@ -356,7 +393,7 @@ class Picoscope:
             ctypes.byref(c_max_samples), 
             DOWNSAMPLING_RATIO,
             DOWNSAMPLING_MODE,
-            self._segment_index,
+            self.segment_index,
             ctypes.byref(C_OVERFLOW)
         )
 
@@ -372,9 +409,24 @@ class Picoscope:
 
         # Kills the signal generator
         # For some reason the frequencies cannot be 0
-        status = self.SetSigGenBuiltIn(C_HANDLE, 0, 0, WaveType.DC_VOLTAGE.value, 1., 1., 0., 0., 0, 0, 0, 0, 0, 0, 0)
+        status = self.SetSigGenBuiltIn(C_HANDLE, 0, 0, parameters.WaveType.DC_VOLTAGE.value, 1., 1., 0., 0., 0, 0, 0, 0, 0, 0, 0)
 
         assert_pico_ok(status)
+
+    def to_mV(self) -> List[float]:
+        """Converts amplitude in ADCs to mV.
+
+        Args:
+            enum_voltage_range (int): Enumerated voltage range.
+            no_samples (int): Number of samples to be collected.
+        
+        Returns:
+            list[float]: Amplitudes in mV.
+        """
+
+        c_max_ADC = ctypes.c_int16(self._n_samples)
+
+        return adc2mV(self._c_buffer, self.enum_voltage_range, c_max_ADC)
 
     def disconnect(self) -> None:
         """Closes the oscilloscope connection, the opposite of connect().
@@ -385,22 +437,6 @@ class Picoscope:
         status = self.CloseUnit(C_HANDLE)
 
         assert_pico_ok(status)
-
-    def to_mV(self, enum_voltage_range: int, c_buffer: ctypes.Array) -> list:
-        """Converts amplitude in ADCs to mV.
-
-        Args:
-            enum_voltage_range (int): Enumerated voltage range.
-            no_samples (int): Number of samples to be collected.
-            c_buffer (): Buffer to which data is dumped.
-
-        Returns:
-            list[float]: Amplitudes in mV.
-        """
-
-        c_max_ADC = ctypes.c_int16(self._n_samples)
-
-        return adc2mV(c_buffer, enum_voltage_range, c_max_ADC)
 
 
 class Picoscope2000(Picoscope):

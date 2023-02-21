@@ -1,78 +1,113 @@
-import json
+import ctypes
 import pytest
-from typing import Tuple
 
-from picoscope.constants import TriggerProperties
 from picoscope.picoscope import Picoscope2000
 
-with open("tests/params.json") as f:
-    params = json.load(f)
 
-CHANNEL = 1
-ENUM_VOLTAGE_RANGE = 6
-
-
-@pytest.fixture
-def sampling_params():
-
-    return 8, 0
+CHANNEL: int = 1
+VOLTAGE_RANGE: int = 6
+ENUM_VOLTAGE_RANGE = 7
+N_SAMPLES: int = 3000
+DURATION: int = 6
+DELAY_IN_US: int = 10
+DELAY_IN_SAMPLES: int = 5000
+DUMMY_SEGMENT_INDEX: int = 20
 
 
 @pytest.fixture
 def picoscope_():    
     picoscope_ = Picoscope2000()
 
-    yield picoscope_
+    return picoscope_
 
-    # Teardown
-    picoscope_.disconnect()
+def test_set_n_samples_not_set(picoscope_: Picoscope2000):
+    n_samples_should_be_none = picoscope_.n_samples
+
+    assert n_samples_should_be_none is None
 
 
-def test_connect(picoscope_: Picoscope2000):
-    picoscope_.connect()  # Assertion called implicitly in function
+def test_set_n_samples_set(picoscope_: Picoscope2000):
+    picoscope_.n_samples = DURATION
+    n_samples = picoscope_.n_samples
+
+    assert n_samples == N_SAMPLES    
+
+
+def test_enum_voltage_range_not_set(picoscope_: Picoscope2000):
+    enum_voltage_range_should_be_none = picoscope_.enum_voltage_range
+
+    assert enum_voltage_range_should_be_none is None
+
+
+def test_enum_voltage_range(picoscope_: Picoscope2000):
+    picoscope_.enum_voltage_range = VOLTAGE_RANGE
+    enum_voltage_range = picoscope_.enum_voltage_range
+
+    assert enum_voltage_range == ENUM_VOLTAGE_RANGE
+
+
+def test_trigger_properties_delay_not_set(picoscope_: Picoscope2000):
+    trigger_properties = picoscope_.trigger_properties
+    delay_should_be_none = trigger_properties.delay
+
+    assert delay_should_be_none is None
+
+
+def test_trigger_properties_delay_set(picoscope_: Picoscope2000):
+    picoscope_.trigger_properties = DELAY_IN_US
+    trigger_properties = picoscope_.trigger_properties
+
+    assert trigger_properties.delay == DELAY_IN_SAMPLES
+
+
+def test_segment_index_initial_value_should_be_zero(picoscope_: Picoscope2000):
+    segment_index = picoscope_.segment_index
+
+    assert segment_index == 0
+
+
+def test_segment_index(picoscope_: Picoscope2000):
+    picoscope_.segment_index = DUMMY_SEGMENT_INDEX
+    segment_index = picoscope_.segment_index
+
+    assert segment_index == DUMMY_SEGMENT_INDEX
 
 
 @pytest.fixture
-def connection_wo_n_samples_set(picoscope_: Picoscope2000):
-    picoscope_.connect()  # Assertion called implicitly in function
+def setup_for_connect(picoscope_: Picoscope2000):
+    yield picoscope_
 
-    return picoscope_
-
-
-def test_set_n_samples_not_set(connection_wo_n_samples_set: Picoscope2000):
-    n_samples_should_be_none = connection_wo_n_samples_set.n_samples
-
-    assert n_samples_should_be_none == None
+    picoscope_.disconnect()
 
 
-def test_set_n_samples_set(connection_wo_n_samples_set: Picoscope2000):
+def test_connect(setup_for_connect: Picoscope2000):
+    setup_for_connect.connect()  # Assertion called implicitly in function
 
-    connection_wo_n_samples_set.set_n_samples(duration=6)
-    n_samples = connection_wo_n_samples_set.n_samples
 
-    assert n_samples == 3000    
+def test_is_not_connected(picoscope_: Picoscope2000):
+    is_connected = picoscope_.is_connected
+
+    assert is_connected == False
 
 
 @pytest.fixture
 def connection(picoscope_: Picoscope2000):
 
-    picoscope_.connect()  # Assertion called implicitly in function
-    picoscope_.set_n_samples(duration=6)
-    picoscope_.set_segment_index(segment=0)
+    picoscope_.connect()
+    picoscope_.n_samples = DURATION
+    picoscope_.segment_index = 0
+    picoscope_.enum_voltage_range = VOLTAGE_RANGE
+    picoscope_.trigger_properties = DELAY_IN_US
 
-    return picoscope_
+    yield picoscope_
+
+    picoscope_.disconnect()
 
 
 def test_is_connected(connection: Picoscope2000):
-    is_connected = connection.is_connected()
+    is_connected = connection.is_connected
 
     assert is_connected
-
-def test_is_not_connected():
-    picoscope_ = Picoscope2000()
-    is_connected = picoscope_.is_connected()
-
-    assert is_connected == False
 
 
 def test_get_analogue_offset(connection: Picoscope2000):
@@ -83,79 +118,81 @@ def test_get_analogue_offset(connection: Picoscope2000):
 
 
 def test_set_channel(connection: Picoscope2000):
-    connection.set_channel(enum_voltage_range=5)
+    connection.set_channel()
 
 
 def test_get_timebase(connection: Picoscope2000):
     connection.check_timebase()
 
 
-@pytest.fixture
-def trigger_properties():
-
-    trigger_properties = TriggerProperties()
-
-    trigger_properties.set_delay(
-        delay_us=6,
-        sampling_interval=2e-9
-    )
-
-    return trigger_properties
-
-def test_set_simple_trigger(connection: Picoscope2000, trigger_properties: TriggerProperties):
-    connection.set_simple_trigger(trigger_properties=trigger_properties)
+def test_set_simple_trigger(connection: Picoscope2000):
+    connection.set_trigger()
 
 
 def test_setup_signal(connection: Picoscope2000):
-    connection.setup_signal()
+    connection.set_signal()
+
+
+def test_buffer_is_not_made(connection: Picoscope2000):
+    assert connection._c_buffer is None
+
+
+def test_buffer_is_made(connection: Picoscope2000):
+    connection.make_buffer()
+
+    assert isinstance(connection._c_buffer, ctypes.Array)
 
 
 @pytest.fixture
-def buffer(picoscope_: Picoscope2000):
-    buffer = picoscope_.make_buffer()
+def connection_w_buffer(connection: Picoscope2000):
+    connection.make_buffer()
 
-    return buffer
+    return connection
     
 
-def test_set_data_buffer(connection: Picoscope2000, buffer):
-    connection.set_data_buffer(c_buffer=buffer)
+def test_register_data_buffer(connection_w_buffer: Picoscope2000):
+    connection_w_buffer.register_buffer()
 
 
-def test_set_averaging(connection: Picoscope2000):
-    connection.set_averaging(avg_num=32)
+def test_set_averaging(connection_w_buffer: Picoscope2000):
+    connection_w_buffer.set_averaging()
 
 
-def test_run_block(connection: Picoscope2000, sampling_params: Tuple[int, int]):
-    connection.run_block(enum_sampling_interval=sampling_params[0])
+def test_run_block(connection_w_buffer: Picoscope2000):
+    connection_w_buffer.run_block()
 
 
-def test_pull_trigger(connection: Picoscope2000):
-    connection.pull_trigger()
+def test_pull_trigger(connection_w_buffer: Picoscope2000):
+    connection_w_buffer.pull_trigger()
 
 
-def test_wait_ready(connection: Picoscope2000):
-    connection.wait_ready()
+# Not running these two bc they can't be run as unit tests w/o a lot of overhead
+# Are run implicitly in intergration tests (see test_pulse.py and test_app.py)
+# def test_wait_ready(connection_w_buffer: Picoscope2000):
+#     connection_w_buffer.wait_ready()
 
 
-def test_get_data(connection: Picoscope2000):
-    connection.get_data()
+# def test_get_data(connection_w_buffer: Picoscope2000):
+#     connection_w_buffer.get_data()
 
 
-def test_stop(connection: Picoscope2000):
-    connection.stop()
+def test_stop(connection_w_buffer: Picoscope2000):
+    connection_w_buffer.stop()
 
 
-def test_to_mV(connection: Picoscope2000, buffer):
-    data_in_mV = connection.to_mV(
-        enum_voltage_range=ENUM_VOLTAGE_RANGE,
-        c_buffer=buffer
-    )
-    print(data_in_mV)
+def test_to_mV(connection_w_buffer: Picoscope2000):
+    data_in_mV = connection_w_buffer.to_mV()
 
     assert isinstance(data_in_mV, list)
+    assert isinstance(data_in_mV[0], float)
 
 
-def test_close():
-    picoscope_ = Picoscope2000()
+@pytest.fixture
+def setup_for_close(picoscope_: Picoscope2000):
     picoscope_.connect()
-    picoscope_.disconnect()
+
+    return picoscope_
+
+
+def test_close(setup_for_close: Picoscope2000):
+    setup_for_close.disconnect()

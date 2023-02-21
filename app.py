@@ -4,13 +4,13 @@ import flask
 import json
 import logging
 import os
-from typing import Dict
+from typing import Dict, List
 from werkzeug.exceptions import BadRequest
 
-from picoscope.constants import PulsingParams
+from picoscope.parameters import PulsingParams
 from picoscope.picoscope import Picoscope2000
-from picoscope import techniques
-from picoscope.utils import parse_incoming_params
+from picoscope import pulse
+from picoscope import utils
 
 
 log_filename = "logs/logs.log"
@@ -21,9 +21,14 @@ logging.basicConfig(
     format='%(asctime)s: %(message)s'
 )
 
-PORT: int = 5001
+PORT: int = 5001  # TODO: Move to an env variable
 
-app = flask.Flask(__name__)
+app: flask.Flask = flask.Flask(__name__)
+picoscope_: Picoscope2000 = Picoscope2000()
+
+
+def picoscope_status() -> str:
+    return f"Picoscope connection status: {utils.bool_to_requests(picoscope_.is_connected)}"
 
 
 def configure_routes(app):
@@ -34,42 +39,52 @@ def configure_routes(app):
         Returns:
             Str: Status message
         """
-        return "Flask picoscope server running."
+        return f"Flask picoscope server running. {picoscope_status()}"
 
     @app.route('/connect')
     def connect():
-        """Am separating from startup to be able to restart if connection is lost
-        w/o having to restarting container
+        """Separated from startup to be able to restart if connection is lost
+        w/o having to restart container.
         """
-        global picoscope_
 
-        picoscope_ = Picoscope2000()
-        picoscope_.connect()
-        is_connected_ = picoscope_.is_connected()
+        picoscope_.connect()  # Calls self.is_connected() implicitly
 
-        status = '' if is_connected_ else 'not '
+        return picoscope_status()
 
-        return f'Picoscope status: {status}connected.'
+    @app.route('/is_connected')
+    def is_connected():
+        """Checking whether picoscope is connected."""
 
-        
+        picoscope_.is_connected
+
+        return picoscope_status()
+
     @app.route('/get_wave', methods=['POST'])
-    def pulse():
+    def pulsing():
         """Pulsing. Performs a pulse and returns the resulting data.
         
         Returns:
             dict: Pulsing data.
         """
 
-        raw_incoming_params: Dict[str, str] = flask.request.values.to_dict()
-        pulsing_params: PulsingParams = parse_incoming_params(raw_params=raw_incoming_params)
+        raw_pulsing_params: Dict[str, str] = flask.request.values.to_dict()
+        pulsing_params_parsed: Dict[str, int] = utils.parse_dict_vals_to_int(
+            dict_=raw_pulsing_params
+        )
+        pulsing_params_: PulsingParams = utils.dataclass_from_dict(
+            dict_=pulsing_params_parsed,
+            dataclass_=PulsingParams
+        )
+        payload: Dict[str, List[float]] = pulse.pulse(
+            picoscope_=picoscope_,
+            pulsing_params=pulsing_params_
+        )
 
-        waveform = techniques.pulse(picoscope_=picoscope_, pulsing_params=pulsing_params)
-
-        return json.dumps(waveform)
+        return json.dumps(payload)
 
     @app.route('/disconnect')
     def disconnect():
-        """Mainly for testing purposes. Disconnects the oscilloscope."""
+        """Disconnects the oscilloscope. Mainly for testing purposes."""
 
         picoscope_.disconnect()
 

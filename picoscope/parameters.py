@@ -1,17 +1,29 @@
-from dataclasses import dataclass, field
+""""Picoscope parameters."""
+
+from dataclasses import dataclass
 import numpy as np
 from enum import Enum, auto
 
+US_TO_S: float = 1e-6  # Seconds to microseconds conversion factor
+SAMPLING_INTERVAL: float = 2E-9  # The selected sampling interval [s]
+MAX_SAMPLING_RATE: float = 1E9  # The fastest possible sampling rate [1GS/s]
 
-MAX_SAMPLING_RATE = 1e9
 
+def builtin_voltage_ranges() -> np.ndarray:
+    """Used to map input voltage range to enumerated voltage range.
 
-def get_builtin_voltage_ranges():
-    """The builtin voltage ranges"""
+    Returns:
+        np.ndarray: Built-in voltage ranges.
+    """
     return np.asarray([2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1., 2., 5., 10., 20.])
 
 
-def get_available_sampling_intervals():
+def available_sampling_intervals() -> np.ndarray:
+    """For mapping raw sampling intervals (seconds) to enumerated sampling intervals.
+
+    Returns:
+        np.ndarray: Built-in sampling intervals.
+    """
     return 2**np.arange(0, 1000) / MAX_SAMPLING_RATE
 
 
@@ -65,25 +77,30 @@ class WaveType(Enum):
     SQUARE = 1
     DC_VOLTAGE = 3
 
+
 @dataclass
 class PulsingParams:
     """All the params that should should be passed
     to a pulsing picoscope, no more, no less.
 
-    Args:
-        delay (int): Delay in microseconds.
+    All other parameters are lower-level and thus not be tinkered
+    with on the fly, but rather by ssh-ing into the container.
 
+    Args:
+        delay (int): How long to wait between trigger being pulled
+            and starting collecting data [us].
+        voltage_range (int): A proxy for gain of receiving transducer [V].
+        duration (int): Duration of which data is collected [us].
     """
 
     delay: int
-    voltage: int
+    voltage_range: int
     duration: int
-    avg_num: int
 
 
 @dataclass(frozen=True)
 class SignalProperties:
-    """Properties passed to setup_signal()
+    """Properties passed to setup_signal().
 
     Attributes:
         offset_voltage (int, optional): The voltage offset [uV].
@@ -136,14 +153,14 @@ class SignalProperties:
 
 @dataclass
 class TriggerProperties:
-    """
+    """Sets parameters for how trigger should be pulled.
     
     Attributes:
         delay (int): The time, in sample periods,
             between the trigger occuring and the first sample
             being taken. Therefore note that it is different
             from PulsingParams.delay, which is why we parse it
-            here
+            here.
         threshold (int, optional): The ADC count at which the
             trigger will fire. Defaults to 5.
         direction (str, optional): The direction in which the
@@ -162,5 +179,16 @@ class TriggerProperties:
     enable_trigger: int = 1
     threshold: int = 5
 
-    def set_delay(self, delay_us: int, sampling_interval: float):
-        self.delay = int(delay_us * 1e-6 / sampling_interval)
+    def set_delay(self, delay_us: int) -> None:
+        """Sets the delay.
+        
+        Note that it is defined in number of samples from trigger being pulled,
+        not seconds.
+        
+        Args:
+            delay_us (int): Delay in microseconds.
+            sampling_interval (float): The timebase, i.e. the time
+                that passes between samples being collected.
+        """
+        delay = delay_us * US_TO_S / SAMPLING_INTERVAL
+        self.delay = int(round(delay, -2))

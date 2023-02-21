@@ -1,7 +1,7 @@
-import json
+import numpy as np
 import pytest
 
-from picoscope.constants import PulsingParams
+from picoscope.parameters import PulsingParams, builtin_voltage_ranges
 from picoscope import utils
 
 no_frequencies_reference = 10
@@ -11,25 +11,31 @@ no_samples_reference = 1E5
 DELAY = 10
 VOLTAGE = 1
 DURATION = 8
-AVG_NUM = 1024
-
-voltage_ranges = [2e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1., 2., 5., 10., 20.]
-
 
 pulsing_params_dict_int = {
     'delay': DELAY,
-    'voltage': VOLTAGE,
-    'duration': DURATION,
-    'avg_num': AVG_NUM
+    'voltage_range': VOLTAGE,
+    'duration': DURATION
 }
-pulsing_params_dict_str = {k : str(v) for k, v in pulsing_params_dict_int.items()}
+
+dict_w_vals_as_str = dict([key, str(val)] for key, val in pulsing_params_dict_int.items())
 
 PulsingParamsReference = PulsingParams(
     delay=DELAY,
-    voltage=VOLTAGE,
+    voltage_range=VOLTAGE,
     duration=DURATION,
-    avg_num=AVG_NUM
 )
+
+def test_bool_to_requests_true():
+    bool_str = utils.bool_to_requests(bool_=True)
+
+    assert bool_str == '1'
+
+
+def test_bool_to_requests_false():
+    bool_str = utils.bool_to_requests(bool_=False)
+
+    assert bool_str == '0'
 
 def test_dataclass_from_dict():
     PulsingParams_ = utils.dataclass_from_dict(
@@ -40,21 +46,22 @@ def test_dataclass_from_dict():
     assert PulsingParams_ == PulsingParamsReference
 
 
-def test_parse_incoming_params():
-    PulsingParams_ = utils.parse_incoming_params(raw_params=pulsing_params_dict_str)
+def test_parse_dict_vals_to_int():
+    dict_w_vals_as_float = utils.parse_dict_vals_to_int(dict_=dict_w_vals_as_str)
 
-    assert PulsingParams_ == PulsingParamsReference
-
-
-def test_parse_voltage():
-    for enumeration, voltage_range in enumerate(voltage_ranges):
-        enumerated_voltage = utils.parse_voltage(voltage=voltage_range)
-        
-        assert enumerated_voltage == enumeration
+    assert isinstance(dict_w_vals_as_float['delay'], int)
 
 
-# def test_find_nearest_enum():
+def test_parse_payload():
+    key: str = 'amps'
+    payload = utils.parse_payload(field=np.array([[0.1, 0.01], [0.08, 0.02]]), key=key)
+
+    assert isinstance(payload, dict)
+    assert isinstance(payload[key], list)
+    assert isinstance(payload[key][0], float)
 
 
-def test_parse_sampling_interval():
-    enum_sampling_interval = utils.parse_sampling_interval(sampling_interval=2e-9)
+def test_to_enum():
+    enum_ = utils.to_enum(val=9, arr_fn=builtin_voltage_ranges)
+    
+    assert isinstance(enum_, int)

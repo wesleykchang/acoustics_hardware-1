@@ -1,4 +1,4 @@
-from picoscope import constants
+from picoscope import parameters
 
 
 def test_auto_enum():
@@ -6,7 +6,7 @@ def test_auto_enum():
     (as opposed to enum's default 1-based).
     """
 
-    up_enum = constants.SweepType['UP'].value
+    up_enum = parameters.SweepType['UP'].value
 
     assert isinstance(up_enum, int)
     assert up_enum == 0
