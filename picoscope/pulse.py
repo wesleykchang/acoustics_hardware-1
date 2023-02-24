@@ -19,6 +19,14 @@ class Pulse:
 
     Not to be called externally, but rather through wrapper pulse.pulse()
     (not to be confused with method pulse.Pulse.pulse()).
+
+    Not to be conflated with the actual pulser, which is called externally.
+
+    Example:
+        picoscope_ = Picoscope2000()
+        pulse_ = Pulse(picoscope_=picoscope_)
+        pulse_.prepare()
+        waveforms = pulse_.pulse()
     """
 
     def __init__(self, picoscope_: Picoscope2000):
@@ -34,14 +42,12 @@ class Pulse:
         self.picoscope_: Picoscope2000 = picoscope_
         self.preparation_fns: List[Callable] = [
             picoscope_.set_averaging,
-            picoscope_.set_signal,
             picoscope_.set_channel,
             picoscope_.set_trigger,
             picoscope_.check_timebase
         ]
         self.pulsing_fns: List[Callable] =[
-            picoscope_.make_buffer,
-            picoscope_.register_buffer,
+            picoscope_.set_buffer,
             picoscope_.run_block,
             picoscope_.pull_trigger,
             picoscope_.wait_ready,

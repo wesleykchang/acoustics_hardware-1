@@ -3,6 +3,7 @@ We can therefore only run part of these tests at any given time:
 either the sweep tests or pulsing. The other should be commented
 """
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import pytest
@@ -50,6 +51,8 @@ def test_pulse(connection: Picoscope2000):
     assert isinstance(waveform[COL], list)
     assert isinstance(waveform[COL][0], float)
     assert np.mean(abs(np.asarray(waveform[COL])) > 0)
+
+    plt.plot()
 
 
 def test_pulse_wo_connection(instance: Picoscope2000):

@@ -10,7 +10,7 @@ from werkzeug.exceptions import BadRequest
 from picoscope.parameters import PulsingParams
 from picoscope.picoscope import Picoscope2000
 from picoscope import pulse
-from picoscope import utils
+from picoscope.utils import bool_to_requests, dataclass_from_dict, parse_dict_vals
 
 
 log_filename = "logs/logs.log"
@@ -28,7 +28,7 @@ picoscope_: Picoscope2000 = Picoscope2000()
 
 
 def picoscope_status() -> str:
-    return f"Picoscope connection status: {utils.bool_to_requests(picoscope_.is_connected)}"
+    return f"Picoscope connection status: {bool_to_requests(picoscope_.is_connected)}"
 
 
 def configure_routes(app):
@@ -68,10 +68,8 @@ def configure_routes(app):
         """
 
         raw_pulsing_params: Dict[str, str] = flask.request.values.to_dict()
-        pulsing_params_parsed: Dict[str, int] = utils.parse_dict_vals_to_int(
-            dict_=raw_pulsing_params
-        )
-        pulsing_params_: PulsingParams = utils.dataclass_from_dict(
+        pulsing_params_parsed: Dict[str, float] = parse_dict_vals(dict_=raw_pulsing_params)
+        pulsing_params_: PulsingParams = dataclass_from_dict(
             dict_=pulsing_params_parsed,
             dataclass_=PulsingParams
         )
@@ -85,7 +83,6 @@ def configure_routes(app):
     @app.route('/disconnect')
     def disconnect():
         """Disconnects the oscilloscope. Mainly for testing purposes."""
-
         picoscope_.disconnect()
 
         return 'Picoscope disconnected.'
@@ -99,3 +96,4 @@ configure_routes(app)
 
 if __name__ == '__main__':
     app.run(port=PORT, host="0.0.0.0", debug=False)
+

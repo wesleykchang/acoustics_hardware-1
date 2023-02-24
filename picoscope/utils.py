@@ -43,8 +43,8 @@ def dataclass_from_dict(dataclass_: Type, dict_: dict) -> Type:
     return dataclass_(**filtered_arg_dict)
 
 
-def parse_dict_vals_to_int(dict_: Dict[str, Union[str, float]]) -> Dict[str, int]:
-    """Parses dict_ values from str to int.
+def parse_dict_vals(dict_: Dict[str, str], type_: Union[float, int] = float) -> Dict[str, float]:
+    """Parses dict_ values from str to a numerical type.
 
     Incoming dictionaries through http are always automatically read as
     of the format dict[str, str], even if the values should be of a
@@ -54,9 +54,9 @@ def parse_dict_vals_to_int(dict_: Dict[str, Union[str, float]]) -> Dict[str, int
         dict_ (Dict[str, str]):
 
     Returns:
-        Dict[str, int]
+        Dict[str, float]
     """
-    return dict([key, int(val)] for key, val in dict_.items())
+    return dict([key, type_(val)] for key, val in dict_.items())
 
 
 def parse_payload(field: np.ndarray, key: str = 'amps') -> Dict[str, List[float]]:
@@ -85,6 +85,9 @@ def to_enum(val: Union[int, float], arr_fn: Callable) -> int:
         val (Union[int, float]): Any numerical value.
         arr_fn (Callable): The function should, when called, return
             a sequence of numbers.
+
+    Returns:
+        int: Enumerated value
     """
 
     arr = arr_fn()

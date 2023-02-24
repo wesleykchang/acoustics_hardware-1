@@ -46,8 +46,14 @@ def test_dataclass_from_dict():
     assert PulsingParams_ == PulsingParamsReference
 
 
+def test_parse_dict_vals_to_float():
+    dict_w_vals_as_float = utils.parse_dict_vals(dict_=dict_w_vals_as_str)
+
+    assert isinstance(dict_w_vals_as_float['delay'], float)
+
+
 def test_parse_dict_vals_to_int():
-    dict_w_vals_as_float = utils.parse_dict_vals_to_int(dict_=dict_w_vals_as_str)
+    dict_w_vals_as_float = utils.parse_dict_vals(dict_=dict_w_vals_as_str, type_=int)
 
     assert isinstance(dict_w_vals_as_float['delay'], int)
 

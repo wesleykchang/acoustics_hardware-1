@@ -121,7 +121,7 @@ def test_set_channel(connection: Picoscope2000):
     connection.set_channel()
 
 
-def test_get_timebase(connection: Picoscope2000):
+def test_check_timebase(connection: Picoscope2000):
     connection.check_timebase()
 
 
@@ -129,29 +129,19 @@ def test_set_simple_trigger(connection: Picoscope2000):
     connection.set_trigger()
 
 
-def test_setup_signal(connection: Picoscope2000):
-    connection.set_signal()
-
-
 def test_buffer_is_not_made(connection: Picoscope2000):
     assert connection._c_buffer is None
 
 
-def test_buffer_is_made(connection: Picoscope2000):
-    connection.make_buffer()
-
-    assert isinstance(connection._c_buffer, ctypes.Array)
-
-
 @pytest.fixture
 def connection_w_buffer(connection: Picoscope2000):
-    connection.make_buffer()
+    connection.set_buffer()
 
     return connection
     
 
-def test_register_data_buffer(connection_w_buffer: Picoscope2000):
-    connection_w_buffer.register_buffer()
+def test_register_data_buffer(connection: Picoscope2000):
+    connection.set_buffer()
 
 
 def test_set_averaging(connection_w_buffer: Picoscope2000):

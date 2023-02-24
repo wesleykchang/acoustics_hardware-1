@@ -33,10 +33,8 @@ RUN apt-get -y update && apt-get install -y \
     libps4000 \
     libps2000a
 
-RUN echo 'siberiaa'
-
 # Pico repo
-RUN git clone --branch dev https://github.com/steingartlab/acoustics_hardware.git
+RUN git clone --branch pulsing https://github.com/steingartlab/acoustics_hardware.git
 WORKDIR /acoustics_hardware
 RUN pip3 install -r requirements.txt
 
