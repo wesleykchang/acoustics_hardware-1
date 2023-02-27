@@ -4,9 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 from enum import Enum, auto
 
-US_TO_S: float = 1e-6  # Seconds to microseconds conversion factor
-SAMPLING_INTERVAL: float = 2E-9  # The selected sampling interval [s]
-MAX_SAMPLING_RATE: float = 1E9  # The fastest possible sampling rate [1GS/s]
+from picoscope import constants
 
 
 def builtin_voltage_ranges() -> np.ndarray:
@@ -24,7 +22,7 @@ def available_sampling_intervals() -> np.ndarray:
     Returns:
         np.ndarray: Built-in sampling intervals.
     """
-    return 2**np.arange(0, 1000) / MAX_SAMPLING_RATE
+    return 2**np.arange(0, 1000) / constants.MAX_SAMPLING_RATE
 
 
 class AutoEnum(Enum):
@@ -138,5 +136,5 @@ class TriggerProperties:
             sampling_interval (float): The timebase, i.e. the time
                 that passes between samples being collected.
         """
-        delay = delay_us * US_TO_S / SAMPLING_INTERVAL
+        delay = delay_us * constants.US_TO_S / constants.SAMPLING_INTERVAL
         self.delay = int(round(delay, -2))

@@ -8,7 +8,6 @@ from picoscope.picoscope import Picoscope2000
 from picoscope.utils import parse_payload
 
 
-
 class Pulse:
     """Implementation of oscilloscope pulsing.
 
@@ -86,7 +85,6 @@ class Pulse:
         Returns:
             np.ndarray: The averaged waveform.
         """
-        # should we here have an anlogue shift? I don't think it's necessary, but need to test
 
         waveforms_mV = np.zeros((self.picoscope_.avg_num, self.picoscope_.n_samples))
 

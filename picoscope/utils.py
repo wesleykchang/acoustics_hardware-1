@@ -13,10 +13,10 @@ def bool_to_requests(bool_: bool) -> str:
     """Parses a boolean to a format suitable for http, i.e. '0' or '1'.
     
     Args:
-        bool_ (bool): A python boolean
+        bool_ (bool): A python boolean.
 
     Returns:
-        str: Either a '0' (False) or '1'.
+        str: Either a '0' (False) or '1' (True).
     """
     
     assert isinstance(bool_, bool)
@@ -51,7 +51,9 @@ def parse_dict_vals(dict_: Dict[str, str], type_: Union[float, int] = float) -> 
     numerical type.
     
     Args:
-        dict_ (Dict[str, str]):
+        dict_ (Dict[str, str]): Incoming dictionary.
+        type_ (Union[float, int], optional): Desired data type.
+            Defaults to float.
 
     Returns:
         Dict[str, float]
@@ -64,7 +66,7 @@ def parse_payload(field: np.ndarray, key: str = 'amps') -> Dict[str, List[float]
     
     Args:
         field (np.ndarray): A numerical array (here, usually waveform).
-        key (str, optional): Field name.
+        key (str, optional): Dataclass field name.
 
     Returns:
         Dict[str, List[float]]: Http-ready data.

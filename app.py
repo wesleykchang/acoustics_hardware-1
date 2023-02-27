@@ -7,6 +7,7 @@ import os
 from typing import Dict, List
 from werkzeug.exceptions import BadRequest
 
+from picoscope.constants import PORT
 from picoscope.parameters import PulsingParams
 from picoscope.picoscope import Picoscope2000
 from picoscope import pulse
@@ -20,8 +21,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s: %(message)s'
 )
-
-PORT: int = 5001  # TODO: Move to an env variable
 
 app: flask.Flask = flask.Flask(__name__)
 picoscope_: Picoscope2000 = Picoscope2000()

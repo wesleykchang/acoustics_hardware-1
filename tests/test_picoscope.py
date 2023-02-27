@@ -1,8 +1,6 @@
-import ctypes
 import pytest
 
 from picoscope.picoscope import Picoscope2000
-
 
 CHANNEL: int = 1
 VOLTAGE_RANGE: int = 6
@@ -110,13 +108,6 @@ def test_is_connected(connection: Picoscope2000):
     assert is_connected
 
 
-def test_get_analogue_offset(connection: Picoscope2000):
-    for i in range(1, 10):
-        max_voltage = connection.get_analogue_offset(voltage=i)
-
-        assert isinstance(max_voltage, float)
-
-
 def test_set_channel(connection: Picoscope2000):
     connection.set_channel()
 
@@ -139,10 +130,6 @@ def connection_w_buffer(connection: Picoscope2000):
 
     return connection
     
-
-def test_register_data_buffer(connection: Picoscope2000):
-    connection.set_buffer()
-
 
 def test_set_averaging(connection_w_buffer: Picoscope2000):
     connection_w_buffer.set_averaging()

@@ -10,3 +10,10 @@ def test_auto_enum():
 
     assert isinstance(up_enum, int)
     assert up_enum == 0
+
+
+def test_channel():
+    channel_A_enum = parameters.Channel.A.value
+
+    assert channel_A_enum == 0
+

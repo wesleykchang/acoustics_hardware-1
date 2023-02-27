@@ -7,42 +7,28 @@ from picosdk.errors import PicoSDKCtypesError
 from picosdk.functions import adc2mV, assert_pico_ok
 from picosdk.ps2000a import ps2000a
 
-from picoscope import parameters, utils
-
-C_OVERSAMPLE = ctypes.c_int16(0)  # Oversampling factor
-C_HANDLE = ctypes.c_int16()
-C_OVERFLOW = ctypes.c_int16()
-
-# TODO: Tidy up
-COUPLING = IS_ENABLED = True
-EXT_IN_THRESHOLD = START_INDEX = DOWNSAMPLING_RATIO = DOWNSAMPLING_MODE \
-     =  PRE_TRIGGER_SAMPLES = TIME_INDISPOSED_MS = LP_READY = P_PARAMETER = 0
-C_SERIAL: None = None
-
-# TODO: Move elsewhere
-ANALOG_OFFSET = 0
+from picoscope import constants, parameters, utils
 
 
 class Picoscope:
     """Picoscope base class. Contains all functions for interfacing with picoscope.
-    
-    All class attributes are references to C-functions for calling
-    instruments, hence the CamelCase.
 
-    The baseclass is not called directly, but from an instrument-class-specific subclass.
+    The baseclass is not called directly, but from an instrument-class-specific
+    subclass.
 
     Attributes:
+        avg_num (int): The number of waveforms to average across for each pulse.
+        input_channel (Channel): The channel to which the _receiving_
+            transducer is connected. Defaults to Channel.B. 
         signal_properties (SignalProperties): The signal configuration parameters.
             Are generally not modified between experiments.
-        sampling_interval (float, optional): The desired sampling interval. Defaults
-            to 2E-9 (equal to 500MS/s sampling rate). 
-        channel (Channel, optional): The channel to which the receiving transducer
-            is connected. Defaults to Channel.B. 
+        sampling_interval (float): The desired sampling interval.
+            Defaults to 2E-9 (equal to 500MS/s sampling rate). 
     """
 
+    avg_num: int = 8
     sampling_interval: float = 2E-9
     input_channel: int = parameters.Channel.B.value
-    avg_num: int = 8
     enum_sampling_interval: int = utils.to_enum(
         val=sampling_interval,
         arr_fn=parameters.available_sampling_intervals
@@ -50,7 +36,6 @@ class Picoscope:
 
     def __init__(self, fns: Dict[str, Callable]) -> None:
         """
-        
         Args:
             fns (Dict[str, Callable]): Mapping of a readable name to SDK functions.
         """
@@ -80,7 +65,7 @@ class Picoscope:
 
     @property
     def n_samples(self) -> int:
-        """Number of samples per single pulse
+        """Number of samples collected per single pulse.
         
         We need to access it externally when preallocating for data.
         
@@ -94,29 +79,33 @@ class Picoscope:
         """Sets number of samples to be collected per single pulse.
 
         Args:
-            duration (int): The duration of the window where we collect data.
-                The final unit should be in seconds, so if duration is in µs
-                (which is usually the case) the unit_multiplier should be 1e-6.
-            unit_multiplier (float, optional): Scales duration to seconds.
-                Defaults to 1e-6.
+            duration (int): The duration of the window where we collect data [us].
         """
 
-        _n_samples = duration * unit_multiplier / Picoscope.sampling_interval
+        _n_samples = duration * constants.US_TO_S / Picoscope.sampling_interval
         self._n_samples: int = int(round(_n_samples, -2))
 
     @property
-    def enum_voltage_range(self):
+    def enum_voltage_range(self) -> int:
         return self._enum_voltage_range
 
     @enum_voltage_range.setter
     def enum_voltage_range(self, voltage_range: float):
+        """Enumerated voltage range.
+        
+        Refer to programmer's manual for details.
+        
+        Args:
+            voltage_range (float): The plus/minus voltage range
+                of the receiving channel. 
+        """
         self._enum_voltage_range = utils.to_enum(
             val=voltage_range,
             arr_fn=parameters.builtin_voltage_ranges
         )
 
     @property
-    def trigger_properties(self):
+    def trigger_properties(self) -> parameters.TriggerProperties:
         return self._trigger_properties
 
     @trigger_properties.setter
@@ -134,10 +123,11 @@ class Picoscope:
     
     @segment_index.setter
     def segment_index(self, segment: int):
-        """Sets segment index, i.e. which memory segment the next pulse should be placed in.
+        """Sets segment index, i.e. which memory segment the next
+        pulse should be placed in.
         
-        Used when averaging multiple waveforms. Not a a property because we never have to
-        access it externally.
+        Used when averaging multiple waveforms. Not a property
+        because we never have to access it externally.
 
         Args:
             segment (int): The memory segment index.
@@ -155,7 +145,7 @@ class Picoscope:
             bool: True if connected, False if not.
         """
 
-        status = self.PingUnit(C_HANDLE)
+        status = self.PingUnit(constants.C_HANDLE)
 
         try:
             assert_pico_ok(status)
@@ -176,7 +166,10 @@ class Picoscope:
 
         for _ in range(3):
             try:
-                status = self.OpenUnit(ctypes.byref(C_HANDLE), C_SERIAL)
+                status = self.OpenUnit(
+                    ctypes.byref(constants.C_HANDLE),
+                    constants.C_SERIAL
+                )
                 assert_pico_ok(status)
 
                 return
@@ -189,62 +182,32 @@ class Picoscope:
         raise Exception('Picoscope connection unsuccessful.')
 
     def set_averaging(self) -> None:
-        """Sets the number of waveforms to be collected for averaging.
-        
-        Args:
-            avg_num (int): The number of waveforms to be collected.
-        """
+        """Sets the number of waveforms to be collected for averaging."""
 
-        status = self.SetNoOfCaptures(C_HANDLE, Picoscope.avg_num)
+        status = self.SetNoOfCaptures(constants.C_HANDLE, Picoscope.avg_num)
 
         assert_pico_ok(status)
 
         # Split memory to allow for storing multiple waveforms.
         n_max_samples = ctypes.c_int32(self._n_samples)
-        status = self.MemorySegments(C_HANDLE, Picoscope.avg_num, ctypes.byref(n_max_samples))
-        
-        assert_pico_ok(status)
-
-    def get_analogue_offset(self, voltage: int) -> float:
-        """Gets analogue offset. Is this needed?
-        
-        Args:
-            voltage (int): Enumerated voltage. See settings.json.
-
-        Returns:
-            float: Max analogue offset [V]. Only max_voltage is returned
-                as max_voltage = -min_voltage.
-        """
-        
-        min_voltage = ctypes.c_float()
-        max_voltage = ctypes.c_float()
-
-        status = self.GetAnalogueOffset(
-            C_HANDLE,
-            voltage,
-            COUPLING,
-            ctypes.byref(max_voltage),
-            ctypes.byref(min_voltage)
+        status = self.MemorySegments(
+            constants.C_HANDLE,
+            Picoscope.avg_num,
+            ctypes.byref(n_max_samples)
         )
-
+        
         assert_pico_ok(status)
-
-        return max_voltage.value
 
     def set_channel(self) -> None:
-        """Sets various input channel parameters.
-
-        Args:
-            enum_voltage_range (Voltage): Enumerated voltage.
-        """
+        """Sets various input channel parameters."""
 
         status = self.SetChannel(
-            C_HANDLE,
+            constants.C_HANDLE,
             Picoscope.input_channel,
-            IS_ENABLED,
-            COUPLING,
+            constants.IS_ENABLED,
+            constants.COUPLING,
             self.enum_voltage_range,
-            ANALOG_OFFSET
+            constants.ANALOG_OFFSET
         )
 
         assert_pico_ok(status)
@@ -252,20 +215,18 @@ class Picoscope:
     def check_timebase(self) -> None:
         """Checks whether set sampling interval is valid.
 
-        There's a whole section devoted to this subject in the
-        programmer's guide.
+        Refer to Programmer's guide for details.
         """
-
 
         time_interval_ns = ctypes.c_float()
         returned_max_samples = ctypes.c_int32()
 
         status = self.GetTimebase2(
-            C_HANDLE,
+            constants.C_HANDLE,
             Picoscope.enum_sampling_interval,
             self._n_samples,
             ctypes.byref(time_interval_ns),
-            C_OVERSAMPLE,
+            constants.C_OVERSAMPLE,
             ctypes.byref(returned_max_samples),
             self.segment_index
         )
@@ -273,13 +234,10 @@ class Picoscope:
         assert_pico_ok(status)
 
     def set_trigger(self) -> None:
-        """Cocks the gun.
-        
-        trigger_properties (TriggerProperties): See definition.
-        """
+        """Cocks the gun."""
 
         status = self.SetSimpleTrigger(
-            C_HANDLE,
+            constants.C_HANDLE,
             self._trigger_properties.enable_trigger,
             self._trigger_properties.channel,
             self._trigger_properties.threshold,
@@ -291,22 +249,16 @@ class Picoscope:
         assert_pico_ok(status)
 
     def run_block(self) -> None:
-        """Specifies how data should be collected.
-        
-        Args:
-            enum_sampling_rate (int): Enumerated sampling rate.
-                See utils.calculate_sampling_rate().
-            no_samples (int): Number of samples to be collected.
-        """
+        """Specifies how data should be collected."""
 
         post_trigger_samples = self._n_samples
 
         status = self.RunBlock(
-            C_HANDLE,
-            PRE_TRIGGER_SAMPLES,
+            constants.C_HANDLE,
+            constants.PRE_TRIGGER_SAMPLES,
             post_trigger_samples,
             Picoscope.enum_sampling_interval,
-            C_OVERSAMPLE,
+            constants.C_OVERSAMPLE,
             None,
             self.segment_index,
             None,
@@ -318,7 +270,7 @@ class Picoscope:
     def pull_trigger(self) -> None:
         """Pulls the trigger: Sends a signal to the pulser."""
 
-        status = self.SigGenSoftwareControl(C_HANDLE, 0)
+        status = self.SigGenSoftwareControl(constants.C_HANDLE, 0)
 
         assert_pico_ok(status)
 
@@ -329,7 +281,7 @@ class Picoscope:
         check = ctypes.c_int16(0)
 
         while ready.value == check.value:
-            status = self.IsReady(C_HANDLE, ctypes.byref(ready))
+            status = self.IsReady(constants.C_HANDLE, ctypes.byref(ready))
 
             assert_pico_ok(status)
 
@@ -340,51 +292,42 @@ class Picoscope:
         buffer_length: int = self._n_samples
 
         status = self.SetDataBuffer(
-            C_HANDLE,
+            constants.C_HANDLE,
             Picoscope.input_channel,
             ctypes.byref(self._c_buffer),
             buffer_length,
             self.segment_index,
-            DOWNSAMPLING_MODE
+            constants.DOWNSAMPLING_MODE
         )
 
         assert_pico_ok(status)
 
     def get_data(self) -> None:
-        """Pulls the data from the oscilloscope.
-        
-        Args:
-            no_samples (int): Number of samples to be collected.
-        """
+        """Pulls the data from the oscilloscope."""
 
         c_max_samples = ctypes.c_int32(self._n_samples)
 
         status = self.GetValues(
-            C_HANDLE,
-            START_INDEX,
+            constants.C_HANDLE,
+            constants.START_INDEX,
             ctypes.byref(c_max_samples), 
-            DOWNSAMPLING_RATIO,
-            DOWNSAMPLING_MODE,
+            constants.DOWNSAMPLING_RATIO,
+            constants.DOWNSAMPLING_MODE,
             self.segment_index,
-            ctypes.byref(C_OVERFLOW)
+            ctypes.byref(constants.C_OVERFLOW)
         )
 
         assert_pico_ok(status)
 
     def stop(self) -> None:
-        """Wrapper for stopping the picoscope, a necessary step at the end of each pulse.
-        """
+        """Stops the picoscope, a necessary step at the end of each pulse."""
 
-        status = self.Stop(C_HANDLE)
+        status = self.Stop(constants.C_HANDLE)
 
         assert_pico_ok(status)
 
     def to_mV(self) -> List[float]:
-        """Converts amplitude in ADCs to mV.
-
-        Args:
-            enum_voltage_range (int): Enumerated voltage range.
-            no_samples (int): Number of samples to be collected.
+        """Converts raw amplitude (in ADCs) to mV.
         
         Returns:
             list[float]: Amplitudes in mV.
@@ -400,7 +343,7 @@ class Picoscope:
         Generally speaking, this should only be used for tests.
         """
 
-        status = self.CloseUnit(C_HANDLE)
+        status = self.CloseUnit(constants.C_HANDLE)
 
         assert_pico_ok(status)
 
