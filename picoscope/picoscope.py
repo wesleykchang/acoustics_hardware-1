@@ -26,8 +26,8 @@ class Picoscope:
             Defaults to 2E-9 (equal to 500MS/s sampling rate). 
     """
 
-    avg_num: int = 8
-    sampling_interval: float = 2E-9
+    avg_num: int = constants.AVG_NUM
+    sampling_interval: float = constants.SAMPLING_INTERVAL
     input_channel: int = parameters.Channel.B.value
     enum_sampling_interval: int = utils.to_enum(
         val=sampling_interval,
